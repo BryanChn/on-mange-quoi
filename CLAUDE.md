@@ -23,6 +23,14 @@ Cahier des charges complet : page Notion « On mange quoi ? — Cahier des charg
 - Variables d'environnement : `.env` (ignoré par Git), modèle dans `.env.example`. Seules l'URL et la clé publique Supabase côté app ; jamais la clé `service_role`.
 - `example/` contient le code de démo Expo : référence locale, ignorée par Git, à ne pas importer.
 
+## Ambition et contraintes à anticiper
+
+L'app commence dans le foyer, mais elle vise une publication sur les stores et un usage hors de la famille. On anticipe dans la conception, sans construire avant la version prévue :
+
+- **Invités sans app (V1)** : un lien partagé ouvre l'app si elle est installée (deep link), sinon une page web (Expo Web). Le schéma prévoit dès le MVP qu'un participant peut être un invité anonyme.
+- **Publication sur les stores** : politique de confidentialité, suppression de compte dans l'app (exigée par Apple), données minimales (RGPD).
+- **Catalogue des fast-foods (V1)** : pas d'API publique. Catalogue JSON maintenu à la main pour quelques enseignes, avec autocomplétion et texte libre en secours. Pas de scraping, pas de logos de marques.
+
 ## Concepts
 
 | Concept | Définition |
