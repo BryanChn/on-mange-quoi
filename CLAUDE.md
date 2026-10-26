@@ -74,7 +74,8 @@ Hors MVP, volontairement : présence, heure limite et notifications, commande gr
 | Imposer un plat | Non, l'organisateur ne tranche **qu'en cas d'égalité** | Décision manuelle refusée s'il y a un gagnant unique |
 | Aucun vote | Traité comme une égalité entre toutes les propositions | Pas de cas spécial : même règle d'égalité |
 
-En cas d'égalité, l'organisateur choisit : tirage au sort parmi les ex æquo, ou choix manuel parmi les ex æquo. La façon dont le gagnant a été désigné est enregistrée (`vote`, `tirage`, `organisateur`).
+En cas d'égalité, l'organisateur choisit : tirage au sort parmi les ex æquo, ou choix manuel parmi les ex æquo.
+Le tirage s'affiche comme une **roulette animée** sur tous les téléphones. Le résultat est tiré **une seule fois** et enregistré en base ; l'animation se contente de s'arrêter sur ce résultat, pour que tout le monde voie le même plat. La façon dont le gagnant a été désigné est enregistrée (`vote`, `tirage`, `organisateur`).
 
 ## Commandes
 
