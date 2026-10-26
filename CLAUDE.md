@@ -64,13 +64,17 @@ On ne passe à la version suivante qu'une fois son feu vert atteint ; sinon on a
 
 Hors MVP, volontairement : présence, heure limite et notifications, commande groupée, invités, liste de courses, recettes, stock.
 
-### Règles à trancher avant le schéma SQL
+### Règles du vote (tranchées le 2026-10-26)
 
-- [ ] Qui peut ajouter des propositions : l'organisateur seul, ou tout le groupe ?
-- [ ] Qui clôture le vote et quand : l'organisateur manuellement, ou quand tout le monde a voté ?
-- [ ] Un membre peut-il modifier ses votes avant la clôture ?
-- [ ] L'organisateur peut-il imposer un plat même sans égalité ?
-- [ ] Que se passe-t-il si personne n'a voté ?
+| Règle | Décision | Conséquence technique |
+| --- | --- | --- |
+| Qui propose | Tout membre du groupe, tant que la session est ouverte | RLS `proposals` : être membre du groupe |
+| Clôture | L'organisateur, manuellement (bouton) | RLS : seul l'organisateur passe la session à `closed` |
+| Modifier ses votes | Oui, jusqu'à la clôture (cocher / décocher) | Un vote = une ligne, supprimable tant que la session est ouverte |
+| Imposer un plat | Non, l'organisateur ne tranche **qu'en cas d'égalité** | Décision manuelle refusée s'il y a un gagnant unique |
+| Aucun vote | Traité comme une égalité entre toutes les propositions | Pas de cas spécial : même règle d'égalité |
+
+En cas d'égalité, l'organisateur choisit : tirage au sort parmi les ex æquo, ou choix manuel parmi les ex æquo. La façon dont le gagnant a été désigné est enregistrée (`vote`, `tirage`, `organisateur`).
 
 ## Commandes
 
