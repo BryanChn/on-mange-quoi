@@ -37,8 +37,8 @@ Studio (interface de la base) : http://127.0.0.1:54323. Schéma et règles : [`d
 ```bash
 npx tsc --noEmit   # types
 npm run lint       # ESLint
-# Scénarios RLS (Supabase local démarré) :
-docker exec -i supabase_db_on-mange-quoi psql -U postgres -tA < supabase/scripts/test-rls.sql
+# Scénarios de la base (Supabase local démarré) : chaque ligne affiche l'obtenu et l'attendu
+for f in supabase/scripts/test-*.sql; do echo "## $f"; docker exec -i supabase_db_on-mange-quoi psql -U postgres -tA < "$f"; done
 ```
 
 ## Roadmap
