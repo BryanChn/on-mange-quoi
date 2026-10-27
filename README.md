@@ -18,11 +18,27 @@ cp .env.example .env   # puis remplir les valeurs Supabase
 npm start              # scanner le QR code avec Expo Go
 ```
 
+Sous WSL, le téléphone ne voit pas le réseau de WSL : lancer `npx expo start --tunnel`.
+
+## Base de données locale
+
+Prérequis : Docker Desktop (sous Windows : activer l'intégration WSL de la distribution).
+
+```bash
+npx supabase start      # démarre Supabase en local et applique les migrations
+npx supabase db reset   # repart d'une base vide et rejoue toutes les migrations
+npx supabase stop       # arrête les conteneurs (les données sont conservées)
+```
+
+Studio (interface de la base) : http://127.0.0.1:54323. Schéma et règles : [`docs/schema.md`](docs/schema.md).
+
 ## Vérifications
 
 ```bash
 npx tsc --noEmit   # types
 npm run lint       # ESLint
+# Scénarios RLS (Supabase local démarré) :
+docker exec -i supabase_db_on-mange-quoi psql -U postgres -tA < supabase/scripts/test-rls.sql
 ```
 
 ## Roadmap
