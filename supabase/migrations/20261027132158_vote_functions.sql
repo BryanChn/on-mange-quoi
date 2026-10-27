@@ -36,7 +36,8 @@ grant execute on function public.get_session_result(uuid) to authenticated;
 --     personne ne peut imposer un plat.
 --   - Égalité : method obligatoire. 'tirage' → tiré au hasard parmi les ex æquo ;
 --     'organisateur' → chosen_proposal_id doit être l'un des ex æquo.
--- Réservé à l'organisateur, ou à l'owner du groupe (session oubliée).
+-- Réservé à l'organisateur (s'il est toujours membre), ou à l'owner du groupe
+-- (session oubliée, ou organisateur parti).
 create function public.close_session(
   target_session_id  uuid,
   method             public.decision_method default null,
@@ -72,10 +73,14 @@ begin
     raise exception 'Session déjà clôturée' using errcode = '55000';
   end if;
 
-  if session.organizer_id is distinct from caller_id
-     and not exists (
-       select 1 from public.groups
-       where id = session.group_id and owner_id = caller_id
+  -- Un organisateur qui a quitté le groupe ne peut plus clôturer ; l'owner, si.
+  if not (
+       (session.organizer_id = caller_id and exists (
+          select 1 from public.group_members
+          where group_id = session.group_id and profile_id = caller_id))
+       or exists (
+          select 1 from public.groups
+          where id = session.group_id and owner_id = caller_id)
      ) then
     raise exception 'Seul l''organisateur ou l''owner du groupe peut clôturer'
       using errcode = '42501';
