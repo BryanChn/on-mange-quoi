@@ -114,7 +114,7 @@ Une décision à prendre dans un groupe, lancée par un membre (l'organisateur).
 | `group_id` | `uuid` | not null · FK → `groups(id)` `on delete cascade` |
 | `organizer_id` | `uuid` | FK → `profiles(id)` `on delete set null` |
 | `status` | enum `session_status` (`open`, `closed`) | not null · default `'open'` |
-| `winner_proposal_id` | `uuid` | FK → `proposals(id)` |
+| `winner_proposal_id` | `uuid` | FK composée `(winner_proposal_id, id)` → `proposals(id, session_id)` `on delete no action` : le gagnant est forcément de cette session et ne peut pas être supprimé |
 | `decided_by` | enum `decision_method` (`vote`, `tirage`, `organisateur`) | |
 | `created_at` | `timestamptz` | not null · default `now()` |
 | `closed_at` | `timestamptz` | |
@@ -131,7 +131,7 @@ Plat soumis au vote, en texte libre.
 | `name` | `varchar(60)` | not null · non vide après `trim` |
 | `proposed_by` | `uuid` | FK → `profiles(id)` `on delete set null` |
 | `created_at` | `timestamptz` | not null · default `now()` |
-| | | **unique** `(session_id, name)` |
+| | | **index unique** `(session_id, lower(trim(name)))` : « Pizza » = « pizza » = « Pizza  » |
 
 ### votes
 
@@ -148,10 +148,13 @@ Une ligne = « ce profil a coché ce plat ». Pas de compteur : le score se calc
 
 À couvrir par la RLS ou des fonctions, et à tester :
 
-- Le gagnant (`winner_proposal_id`) appartient à **la même** session.
 - On ne propose, ne vote et ne retire un vote que si la session est `open`.
+- L'auteur ne peut retirer sa proposition que si elle n'a encore reçu aucun vote (personne n'est lésé, rien à notifier).
 - Seul l'organisateur passe une session à `closed`, et `organisateur` n'est accepté qu'en cas d'égalité.
 - Avant de supprimer un compte owner : transfert au membre le plus ancien (`joined_at`), ou suppression du groupe s'il est seul.
+- Avant de supprimer un compte organisateur d'une session **ouverte** : l'organisation passe à l'owner du groupe.
+- À la suppression d'un compte, ses propositions **sans vote** dans les sessions **ouvertes** sont supprimées ; les autres restent (`proposed_by` à `null`). Jamais le gagnant d'une session fermée : la base le refuse (FK `no action`).
+- Parcours de suppression de compte : prévenir d'abord l'utilisateur (groupes dont il est owner, votes en cours qu'il organise) et lui proposer de choisir à qui transférer ; à défaut, transfert automatique.
 
 ## Ordre de création des migrations
 
