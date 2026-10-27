@@ -69,7 +69,8 @@ Hors MVP, volontairement : présence, heure limite et notifications, commande gr
 | Règle | Décision | Conséquence technique |
 | --- | --- | --- |
 | Qui propose | Tout membre du groupe, tant que la session est ouverte | RLS `proposals` : être membre du groupe |
-| Clôture | L'organisateur, manuellement (bouton) | RLS : seul l'organisateur passe la session à `closed` |
+| Qui lance | Tout membre du groupe ; **une seule session ouverte à la fois par groupe** (2026-10-27) | Index unique partiel sur `vote_sessions (group_id) where status = 'open'` |
+| Clôture | L'organisateur, manuellement (bouton) ; l'**owner** du groupe peut aussi clôturer une session oubliée (2026-10-27) | Fonction `close_session` (calcul du gagnant et tirage côté serveur), pas d'`update` direct |
 | Modifier ses votes | Oui, jusqu'à la clôture (cocher / décocher) | Un vote = une ligne, supprimable tant que la session est ouverte |
 | Imposer un plat | Non, l'organisateur ne tranche **qu'en cas d'égalité** | Décision manuelle refusée s'il y a un gagnant unique |
 | Aucun vote | Traité comme une égalité entre toutes les propositions | Pas de cas spécial : même règle d'égalité |
