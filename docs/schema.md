@@ -152,7 +152,7 @@ Une ligne = « ce profil a coché ce plat ». Pas de compteur : le score se calc
 - L'auteur ne peut retirer sa proposition que si elle n'a encore reçu aucun vote (personne n'est lésé, rien à notifier).
 - Seul l'organisateur passe une session à `closed`, et `organisateur` n'est accepté qu'en cas d'égalité.
 - Avant de supprimer un compte owner : transfert au membre le plus ancien (`joined_at`), ou suppression du groupe s'il est seul.
-- Avant de supprimer un compte organisateur d'une session **ouverte** : l'organisation passe à l'owner du groupe.
+- Organisateur parti (groupe quitté ou compte supprimé) : il ne peut plus clôturer ; l'owner du groupe le peut toujours.
 - À la suppression d'un compte, ses propositions **sans vote** dans les sessions **ouvertes** sont supprimées ; les autres restent (`proposed_by` à `null`). Jamais le gagnant d'une session fermée : la base le refuse (FK `no action`).
 - Parcours de suppression de compte : prévenir d'abord l'utilisateur (groupes dont il est owner, votes en cours qu'il organise) et lui proposer de choisir à qui transférer ; à défaut, transfert automatique.
 
