@@ -13,4 +13,4 @@ Avant de passer à une nouvelle version (voir la roadmap dans `CLAUDE.md`), reli
 | Durée de vie maximale d'une session ouverte | V1 (heure limite) | Clôture automatique à l'échéance, avec la même règle d'égalité. |
 | Annulation d'une session par l'organisateur ou l'owner | À définir | Ajouter la valeur `cancelled` à l'enum `session_status` et adapter le check de `vote_sessions`. |
 | Limiter les tentatives de `join_group` (anti force brute sur les codes d'invitation) | Avant publication | Compteur d'échecs par utilisateur sur une fenêtre de temps, ou rate limiting côté API. |
-| Parcours de suppression de compte : avertir (groupes possédés, votes organisés) et choisir à qui transférer | MVP, avant publication | Exigé par Apple. Règles détaillées dans `docs/schema.md`. |
+| Écran de suppression de compte : avertir (groupes possédés, votes organisés), proposer un successeur par groupe, puis déconnecter | MVP, avant publication | Exigé par Apple. Côté base, `leave_group` et `delete_account` existent ; reste l'écran. |
