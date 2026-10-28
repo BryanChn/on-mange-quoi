@@ -43,7 +43,13 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts"
+    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
+    "dev": "expo start --tunnel",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:test": "for f in supabase/scripts/test-*.sql; do echo \"## $f\"; docker exec -i supabase_db_on-mange-quoi psql -U postgres -tA < \"$f\"; done",
+    "db:push": "supabase db push --linked"
   },
   "private": true
 }

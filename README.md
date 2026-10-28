@@ -14,21 +14,24 @@ Prérequis : Node.js 20+, l'app **Expo Go** sur ton téléphone.
 
 ```bash
 npm install
-cp .env.example .env   # puis remplir les valeurs Supabase
-npm start              # scanner le QR code avec Expo Go
+cp .env.example .env   # puis remplir l'URL et la clé publique du projet Supabase de dev
+npm run dev            # Expo avec tunnel (indispensable sous WSL), scanner le QR code avec Expo Go
 ```
 
-Sous WSL, le téléphone ne voit pas le réseau de WSL : lancer `npx expo start --tunnel`.
+L'app vise le projet Supabase **en ligne** (le téléphone ne peut pas joindre une base sur le PC) : Docker n'est pas nécessaire pour coder les écrans.
 
 ## Base de données locale
 
-Prérequis : Docker Desktop (sous Windows : activer l'intégration WSL de la distribution).
+Sert à écrire et tester les migrations. Prérequis : Docker Desktop (sous Windows : activer l'intégration WSL de la distribution).
 
-```bash
-npx supabase start      # démarre Supabase en local et applique les migrations
-npx supabase db reset   # repart d'une base vide et rejoue toutes les migrations
-npx supabase stop       # arrête les conteneurs (les données sont conservées)
-```
+| Commande | Effet |
+| --- | --- |
+| `npm run db:start` | Démarre Supabase en local (en arrière-plan) et applique les migrations |
+| `npm run db:reset` | Repart d'une base vide et rejoue toutes les migrations |
+| `npm run db:test` | Lance les scénarios de `supabase/scripts/` (chaque ligne : obtenu / attendu) |
+| `npm run db:types` | Régénère `src/lib/database.types.ts` après une migration |
+| `npm run db:push` | Applique les nouvelles migrations au projet en ligne (faire `npx supabase db push --linked --dry-run` avant) |
+| `npm run db:stop` | Arrête les conteneurs (les données sont conservées) |
 
 Studio (interface de la base) : http://127.0.0.1:54323. Schéma et règles : [`docs/schema.md`](docs/schema.md).
 
@@ -37,8 +40,7 @@ Studio (interface de la base) : http://127.0.0.1:54323. Schéma et règles : [`d
 ```bash
 npx tsc --noEmit   # types
 npm run lint       # ESLint
-# Scénarios de la base (Supabase local démarré) : chaque ligne affiche l'obtenu et l'attendu
-for f in supabase/scripts/test-*.sql; do echo "## $f"; docker exec -i supabase_db_on-mange-quoi psql -U postgres -tA < "$f"; done
+npm run db:test    # scénarios de la base (Supabase local démarré)
 ```
 
 ## Roadmap
