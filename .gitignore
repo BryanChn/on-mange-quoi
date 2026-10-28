@@ -42,3 +42,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Métadonnées Windows (Mark of the Web) créées en copiant depuis Windows
+*:Zone.Identifier
