@@ -81,7 +81,10 @@ Le tirage s'affiche comme une **roulette animée** sur tous les téléphones. Le
 ## Commandes
 
 ```bash
-npm start            # serveur de dev Expo (scanner le QR code avec Expo Go)
+npm run dev          # Expo avec tunnel (WSL), l'app vise le projet Supabase de dev en ligne
+npm run db:start     # Supabase local (Docker), pour écrire et tester les migrations
+npm run db:test      # scénarios SQL de supabase/scripts/
+npm run db:push      # pousser les migrations en ligne (dry-run avant)
 npx tsc --noEmit     # vérification des types
 npm run lint         # ESLint
 ```
