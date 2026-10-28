@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="3 49 492.89 226" width="985.78" height="452" role="img" aria-label="OMQ, symbole nuit">
+<title>OMQ, symbole nuit</title>
+<path d="M422 228 C 462 268, 492 170, 452 128 C 418 92, 352 96, 318 122" fill="none" stroke="#FF5A3C" stroke-width="26" stroke-linecap="round"/>
+<path d="M212 250 V178 A27 27 0 0 1 266 178 V250 M266 178 A27 27 0 0 1 320 178 V250" fill="none" stroke="#FF5A3C" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M370 202 a26 26 0 1 0 52 0 a20 20 0 1 0 -40 0 a14 14 0 1 0 28 0 a7 7 0 1 0 -14 0" fill="none" stroke="#F6B828" stroke-width="6" stroke-linecap="round"/>
+<circle cx="409" cy="189" r="8" fill="#FFB4A3"/>
+<ellipse cx="384" cy="187" rx="8" ry="4" transform="rotate(-35 384 187)" fill="#3FAE6E"/>
+<circle cx="396" cy="202" r="48" fill="none" stroke="#FF5A3C" stroke-width="26"/>
+<polygon points="90,124 124,106 90,66" fill="#FF5A3C" stroke="#FF5A3C" stroke-width="10" stroke-linejoin="round"/>
+<polygon points="136,106 170,124 170,66" fill="#FF5A3C" stroke="#FF5A3C" stroke-width="10" stroke-linejoin="round"/>
+<circle cx="130" cy="170" r="62" fill="none" stroke="#FF5A3C" stroke-width="26"/>
+<path d="M52 172 L20 164 M52 186 L18 192" fill="none" stroke="#FF5A3C" stroke-width="6" stroke-linecap="round"/>
+<path d="M104 168 Q112 158 120 168 M140 168 Q148 158 156 168" fill="none" stroke="#FF5A3C" stroke-width="6" stroke-linecap="round"/>
+<circle cx="106" cy="188" r="7" fill="#FFB4A3" fill-opacity="0.35"/>
+<circle cx="154" cy="188" r="7" fill="#FFB4A3" fill-opacity="0.35"/>
+<path d="M124 179 L136 179 L130 186 Z" fill="#FFB4A3" stroke="#FFB4A3" stroke-width="3" stroke-linejoin="round"/>
+<path d="M120 192 Q125 198 130 192 Q135 198 140 192" fill="none" stroke="#FF5A3C" stroke-width="4.5" stroke-linecap="round"/>
+<path d="M130 196 C 126 214, 142 222, 132 246" fill="none" stroke="#F6B828" stroke-width="6" stroke-linecap="round"/>
+</svg>
