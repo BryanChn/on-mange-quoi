@@ -39,11 +39,13 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Protected guard={isSignedIn}>
+      {/* redirectTo explicite : sans lui, Expo Router choisit lui-même un écran
+          autorisé parmi les fichiers de src/app/ (il prenait verify au lieu de sign-in). */}
+      <Stack.Protected guard={isSignedIn} redirectTo="/sign-in">
         <Stack.Screen name="index" options={{ title: "On mange quoi ?" }} />
       </Stack.Protected>
 
-      <Stack.Protected guard={!isSignedIn}>
+      <Stack.Protected guard={!isSignedIn} redirectTo="/">
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="verify" options={{ title: "Ton code" }} />
       </Stack.Protected>
