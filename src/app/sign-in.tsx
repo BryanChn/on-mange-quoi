@@ -32,22 +32,21 @@ export default function SignIn() {
     setIsSending(true);
 
     try {
-      // 5. Supabase envoie le code (le compte est créé à la première connexion).
+      // Le compte est créé automatiquement à la première connexion.
       const { error: sendError } = await supabase.auth.signInWithOtp({ email: cleanEmail });
 
-      // 6a. Échec prévu : Supabase a répondu, mais avec une erreur (trop de demandes…).
+      // Échec prévu : Supabase a répondu, mais avec une erreur (trop de demandes…).
       if (sendError) {
         setError("Impossible d’envoyer le code. Réessaie dans un instant.");
         return;
       }
-
-      // 6b. Succès : l'écran du code a besoin de l'email pour le vérifier.
+      // L'écran du code a besoin de l'email pour le vérifier.
       router.push({ pathname: "/verify", params: { email: cleanEmail } });
     } catch {
       // Échec imprévu : l'appel a planté (réseau coupé, serveur injoignable).
       setError("Pas de connexion ? Vérifie ton réseau et réessaie.");
     } finally {
-      // 7. Succès, échec ou plantage : le bouton redevient utilisable.
+      // Succès, échec ou plantage : le bouton redevient utilisable.
       setIsSending(false);
     }
   }

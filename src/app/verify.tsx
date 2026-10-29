@@ -7,6 +7,12 @@ import { TextField } from "@/components/text-field";
 import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
 
+function getCodeError(cleanCode: string): string | null {
+  if (cleanCode === "") return "Entre le code à 6 chiffres reçu par email.";
+  if (!/^\d{6}$/.test(cleanCode)) return "Ce code n'est pas valide !";
+  return null;
+}
+
 export default function Verify() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -16,17 +22,32 @@ export default function Verify() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleVerify() {
-    // TODO(human): vérifier le code reçu par email.
-    // Indices :
-    //   - Le code contient uniquement des chiffres : refuse tout de suite un code incomplet.
-    //   - L'appel : supabase.auth.verifyOtp({ email, token: code, type: "email" }) renvoie { error }.
-    //   - Même gestion que l'écran précédent : isVerifying, error, remise à false dans tous les cas.
-    //   - En cas de succès, tu n'as RIEN à faire pour la navigation : la session change,
-    //     le layout (Stack.Protected) bascule tout seul vers l'accueil. Pourquoi ?
-    //   - Code faux ou expiré : un message clair, et l'utilisateur doit pouvoir réessayer.
+    const cleanCode = code.replace(/\s/g, "");
+    const codeError = getCodeError(cleanCode);
+    if (codeError) {
+      setError(codeError);
+      return;
+    }
+    setError(null);
+    setIsVerifying(true);
+
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: cleanCode,
+        type: "email",
+      });
+      if (verifyError) {
+        setError("Code incorrect ou expiré. Vérifie-le ou redemande un code.");
+        return;
+      }
+    } catch {
+      setError("La connexion n’a pas fonctionné. Vérifie ton réseau et réessaie.");
+    } finally {
+      setIsVerifying(false);
+    }
   }
 
-  // Ouvert sans email (lien direct, appli rouverte sur cet écran) : rien à vérifier.
   if (!email) {
     return <Redirect href="/sign-in" />;
   }
@@ -48,13 +69,12 @@ export default function Verify() {
       <TextField
         label="Code à 6 chiffres"
         value={code}
-        onChangeText={setCode}
+        onChangeText={(text) => setCode(text.replace(/\D/g, "").slice(0, 6))}
         error={error}
         placeholder="123456"
         keyboardType="number-pad"
         autoComplete="one-time-code"
         textContentType="oneTimeCode"
-        maxLength={6}
         editable={!isVerifying}
         onSubmitEditing={handleVerify}
         style={styles.codeInput}
