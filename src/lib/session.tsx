@@ -1,7 +1,7 @@
-import type { Session } from '@supabase/supabase-js';
-import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import type { Session } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
 
-import { supabase } from './supabase';
+import { supabase } from "./supabase";
 
 type SessionState = {
   session: Session | null;

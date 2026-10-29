@@ -21,7 +21,11 @@ export function PrimaryButton({ label, onPress, isLoading = false }: PrimaryButt
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ busy: isLoading, disabled: isLoading }}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed, isLoading && styles.loading]}
+      style={({ pressed }) => [
+        styles.button,
+        pressed && styles.pressed,
+        isLoading && styles.loading,
+      ]}
     >
       {isLoading ? (
         <ActivityIndicator color={theme.colors.onPrimary} />

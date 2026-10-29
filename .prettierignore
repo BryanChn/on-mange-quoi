@@ -1,0 +1,7 @@
+# Généré par `npm run db:types` : ne jamais retoucher à la main
+src/lib/database.types.ts
+# Hors code applicatif
+supabase/
+example/
+docs/
+*.md

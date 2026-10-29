@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
-import { AppState, Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createClient } from "@supabase/supabase-js";
+import { AppState, Platform } from "react-native";
 
-import type { Database } from './database.types';
+import type { Database } from "./database.types";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -10,7 +10,7 @@ const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 // Échouer tout de suite avec un message clair plutôt qu'une erreur réseau obscure plus tard.
 if (!supabaseUrl || !supabaseKey) {
   throw new Error(
-    'Variables EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY manquantes : copier .env.example en .env.',
+    "Variables EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY manquantes : copier .env.example en .env.",
   );
 }
 
@@ -26,9 +26,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
 });
 
 // Sur mobile, le rafraîchissement du jeton ne doit tourner que quand l'app est au premier plan.
-if (Platform.OS !== 'web') {
-  AppState.addEventListener('change', (state) => {
-    if (state === 'active') {
+if (Platform.OS !== "web") {
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") {
       supabase.auth.startAutoRefresh();
     } else {
       supabase.auth.stopAutoRefresh();

@@ -39,7 +39,6 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-
       <Stack.Protected guard={isSignedIn} redirectTo="/sign-in">
         <Stack.Screen name="index" options={{ title: "On mange quoi ?" }} />
       </Stack.Protected>
