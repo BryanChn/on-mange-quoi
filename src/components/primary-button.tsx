@@ -41,7 +41,7 @@ function createStyles({ colors, radius, fonts, fontSize }: Theme) {
       alignItems: "center",
       justifyContent: "center",
     },
-    pressed: { backgroundColor: colors.primaryPressed },
+    pressed: { backgroundColor: colors.primaryStrong },
     loading: { opacity: 0.7 },
     label: { color: colors.onPrimary, fontFamily: fonts.displayBold, fontSize: fontSize.button },
   });
