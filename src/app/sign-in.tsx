@@ -1,13 +1,18 @@
-import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
 import { Logo } from "@/components/logo";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextField } from "@/components/text-field";
 import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
+import { router } from "expo-router";
+import { useMemo, useState } from "react";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+function getEmailError(cleanEmail: string): string | null {
+  if (cleanEmail === "") return "Entre ton email pour recevoir le code de connexion";
+  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) return "Cet email ne me semble pas valide !";
+  return null;
+}
 
 export default function SignIn() {
   const theme = useTheme();
@@ -17,16 +22,34 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleSendCode() {
-    // TODO(human): envoyer le code par email, puis aller à l'écran de saisie du code.
-    // Indices :
-    //   - Nettoie l'email avant de l'utiliser (espaces autour, majuscules ?).
-    //   - Refuse tout de suite un email vide, sans appeler le serveur.
-    //   - L'appel : supabase.auth.signInWithOtp({ email }) renvoie { error }.
-    //     Il ne lève pas d'exception : c'est à toi de regarder `error`.
-    //   - Pendant l'appel : isSending à true (le bouton se désactive), et pense
-    //     à le remettre à false dans TOUS les cas, succès comme échec.
-    //   - En cas de succès : router.push({ pathname: "/verify", params: { email } })
-    //   - En cas d'échec : un message compréhensible dans setError, pas le message technique brut.
+    const cleanEmail = email.trim().toLowerCase();
+    const emailError = getEmailError(cleanEmail);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+    setError(null);
+    setIsSending(true);
+
+    try {
+      // 5. Supabase envoie le code (le compte est créé à la première connexion).
+      const { error: sendError } = await supabase.auth.signInWithOtp({ email: cleanEmail });
+
+      // 6a. Échec prévu : Supabase a répondu, mais avec une erreur (trop de demandes…).
+      if (sendError) {
+        setError("Impossible d’envoyer le code. Réessaie dans un instant.");
+        return;
+      }
+
+      // 6b. Succès : l'écran du code a besoin de l'email pour le vérifier.
+      router.push({ pathname: "/verify", params: { email: cleanEmail } });
+    } catch {
+      // Échec imprévu : l'appel a planté (réseau coupé, serveur injoignable).
+      setError("Pas de connexion ? Vérifie ton réseau et réessaie.");
+    } finally {
+      // 7. Succès, échec ou plantage : le bouton redevient utilisable.
+      setIsSending(false);
+    }
   }
 
   return (
