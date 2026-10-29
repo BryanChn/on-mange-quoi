@@ -38,7 +38,7 @@ function createStyles({ colors, spacing, radius, fontSize }: Theme) {
     input: {
       height: 54,
       borderWidth: 2,
-      borderColor: colors.border,
+      borderColor: colors.inputBorder,
       borderRadius: radius.md,
       backgroundColor: colors.surface,
       paddingHorizontal: spacing.lg,
