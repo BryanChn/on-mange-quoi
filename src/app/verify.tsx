@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 
@@ -24,6 +24,11 @@ export default function Verify() {
     //   - En cas de succès, tu n'as RIEN à faire pour la navigation : la session change,
     //     le layout (Stack.Protected) bascule tout seul vers l'accueil. Pourquoi ?
     //   - Code faux ou expiré : un message clair, et l'utilisateur doit pouvoir réessayer.
+  }
+
+  // Ouvert sans email (lien direct, appli rouverte sur cet écran) : rien à vérifier.
+  if (!email) {
+    return <Redirect href="/sign-in" />;
   }
 
   return (
