@@ -32,7 +32,10 @@ export default function Verify() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <View style={styles.intro}>
         <Text style={styles.title} accessibilityRole="header">
           Vérifie tes emails

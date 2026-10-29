@@ -40,7 +40,9 @@ export default function SignIn() {
           <Text style={styles.title} accessibilityRole="header">
             On mange quoi <Text style={styles.questionMark}>?</Text>
           </Text>
-          <Text style={styles.tagline}>De « on mange quoi ? » à « c’est réglé » en moins de 2 minutes.</Text>
+          <Text style={styles.tagline}>
+            De « on mange quoi ? » à « c’est réglé » en moins de 2 minutes.
+          </Text>
         </View>
 
         <View style={styles.form}>
@@ -58,7 +60,9 @@ export default function SignIn() {
             onSubmitEditing={handleSendCode}
           />
           <PrimaryButton label="Recevoir mon code" onPress={handleSendCode} isLoading={isSending} />
-          <Text style={styles.hint}>Pas de mot de passe : un code à 6 chiffres arrive par email.</Text>
+          <Text style={styles.hint}>
+            Pas de mot de passe : un code à 6 chiffres arrive par email.
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -68,11 +72,26 @@ export default function SignIn() {
 function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
-    container: { flex: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing.xl, gap: spacing.xl },
+    container: {
+      flex: 1,
+      paddingHorizontal: spacing.xl,
+      paddingBottom: spacing.xl,
+      gap: spacing.xl,
+    },
     hero: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },
-    title: { fontFamily: fonts.display, fontSize: fontSize.title, color: colors.text, textAlign: "center" },
+    title: {
+      fontFamily: fonts.display,
+      fontSize: fontSize.title,
+      color: colors.text,
+      textAlign: "center",
+    },
     questionMark: { color: colors.primary },
-    tagline: { fontSize: fontSize.body, lineHeight: 26, color: colors.textMuted, textAlign: "center" },
+    tagline: {
+      fontSize: fontSize.body,
+      lineHeight: 26,
+      color: colors.textMuted,
+      textAlign: "center",
+    },
     form: { gap: spacing.md },
     hint: { fontSize: fontSize.small, color: colors.textMuted, textAlign: "center" },
   });
