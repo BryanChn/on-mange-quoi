@@ -94,3 +94,8 @@ npm run lint         # ESLint
 1. Schéma SQL + politiques RLS (migrations versionnées), testés avant tout écran.
 2. Logique de décision (comptage, égalité, tirage) en fonctions SQL côté serveur (`get_session_result`, `close_session`), testées par scénarios : le tirage doit être unique et infalsifiable, donc jamais calculé sur le téléphone.
 3. Écrans un par un, chaque parcours testé sur un vrai téléphone via Expo Go.
+
+## Reprendre le travail
+
+- En début de session, lire `docs/journal-de-bord.md` : état du projet, prochaines étapes, vérifications et pièges connus.
+- En fin de session, le mettre à jour (fait, à faire, à vérifier) dans la PR de la session.
