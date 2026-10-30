@@ -32,6 +32,7 @@ Ordre de construction (`CLAUDE.md`) :
 | #11 | **Connexion par code (OTP) de bout en bout**, testée sur téléphone |
 | #12 | Journal de bord |
 | #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
+| #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
@@ -42,14 +43,13 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Clavier qui masque le champ** (repéré par Bryan sur téléphone) : sur l'écran de connexion, le champ d'email passe sous le clavier et on ne voit plus ce qu'on tape. Cause probable : sur Android, `KeyboardAvoidingView` reçoit `behavior={undefined}` (`sign-in.tsx`, `verify.tsx`) alors que l'app est bord à bord, donc rien ne remonte. À corriger avant les nouveaux écrans de saisie, sur une branche dédiée, et à vérifier aussi sur l'écran du code.
-2. **Écran « Choisis ton nom »** : après la première connexion, créer la ligne `profiles` (`display_name`, 30 caractères max, non vide). Sans profil, la base refuse de créer ou rejoindre un groupe (clé étrangère vers `profiles`). Le layout devra rediriger vers cet écran tant que le profil n'existe pas.
-3. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
-4. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
-5. **Temps réel** : votes visibles en direct (Supabase Realtime).
-6. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
-7. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-8. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
+1. **Écran « Choisis ton nom »** : après la première connexion, créer la ligne `profiles` (`display_name`, 30 caractères max, non vide). Sans profil, la base refuse de créer ou rejoindre un groupe (clé étrangère vers `profiles`). Le layout devra rediriger vers cet écran tant que le profil n'existe pas.
+2. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
+3. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
+4. **Temps réel** : votes visibles en direct (Supabase Realtime).
+5. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
+6. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
+7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP. Idées produit : `docs/backlog.md`.
 
@@ -70,6 +70,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | --- | --- |
 | Sous WSL, le téléphone ne voit pas le PC | Toujours `npm run dev` (tunnel). L'app vise la base **en ligne** : `127.0.0.1` sur le téléphone, c'est le téléphone |
 | `Stack.Protected` sans `redirectTo` | Expo Router choisit lui-même l'écran de repli (il prenait `verify`). Toujours un `redirectTo` explicite |
+| `KeyboardAvoidingView` sous un en-tête | Il ne compte pas l'en-tête : passer `keyboardVerticalOffset={useHeaderHeight()}`. Sur Android, sans `behavior`, rien ne remonte |
 | VS Code supprime les imports inutilisés à l'enregistrement | `organizeImports` : un import pas encore utilisé disparaît. `Ctrl+.` pour le remettre |
 | Une migration déjà appliquée ailleurs | Ne jamais la modifier : en créer une nouvelle (`npx supabase migration new …`) |
 | Après une migration | `npm run db:reset` + `npm run db:test`, puis `npm run db:types`, puis `npx supabase db push --linked --dry-run` avant `npm run db:push` |
