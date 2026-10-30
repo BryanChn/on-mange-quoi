@@ -11,7 +11,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion terminée, la suite commence au profil |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion fonctionnelle (l'écran du code manque encore d'issues de secours), la suite commence au profil |
 
 **Ce qui marche aujourd'hui sur le téléphone :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email → accueil provisoire « Connecté : email » + déconnexion. La session survit à la fermeture de l'app.
 
@@ -40,13 +40,17 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Écran « Choisis ton nom »** : après la première connexion, créer la ligne `profiles` (`display_name`, 30 caractères max, non vide). Sans profil, la base refuse de créer ou rejoindre un groupe (clé étrangère vers `profiles`). Le layout devra rediriger vers cet écran tant que le profil n'existe pas.
-2. **Groupes** : liste de mes groupes, créer un groupe (`create_group`), rejoindre avec un code (`join_group`), partager le code avec la feuille de partage native.
-3. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
-4. **Temps réel** : votes visibles en direct (Supabase Realtime).
-5. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
-6. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
+1. **Écran du code : ne plus laisser l'utilisateur sans issue** (repéré par Bryan). Aujourd'hui, un code expiré ou jamais reçu bloque : seule la flèche retour de l'en-tête permet de recommencer, et rien ne permet de renvoyer un code.
+   - Bouton « Renvoyer le code », désactivé avec un compte à rebours (60 s) : Supabase impose un délai minimal entre deux envois à la même adresse, et le SMTP est limité (30 emails/heure avec Resend).
+   - Lien visible « Changer d'email » (retour à l'écran de connexion).
+   - Message d'un code faux ou expiré qui propose directement le renvoi.
+2. **Écran « Choisis ton nom »** : après la première connexion, créer la ligne `profiles` (`display_name`, 30 caractères max, non vide). Sans profil, la base refuse de créer ou rejoindre un groupe (clé étrangère vers `profiles`). Le layout devra rediriger vers cet écran tant que le profil n'existe pas.
+3. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
+4. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
+5. **Temps réel** : votes visibles en direct (Supabase Realtime).
+6. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
+7. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
+8. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP. Idées produit : `docs/backlog.md`.
 
