@@ -11,9 +11,9 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion fonctionnelle (l'écran du code manque encore d'issues de secours), la suite commence au profil |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion terminée, y compris le renvoi du code. La suite commence au profil |
 
-**Ce qui marche aujourd'hui sur le téléphone :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email → accueil provisoire « Connecté : email » + déconnexion. La session survit à la fermeture de l'app.
+**Ce qui marche aujourd'hui sur le téléphone :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s → accueil provisoire « Connecté : email » + déconnexion. La session survit à la fermeture de l'app.
 
 ## 2. Ce qui a été fait
 
@@ -30,6 +30,8 @@ Ordre de construction (`CLAUDE.md`) :
 | #9 | Palette sombre charbon, contour de champ accessible (≥ 3:1), logo nuit recoloré |
 | #10 | Prettier comme formateur commun |
 | #11 | **Connexion par code (OTP) de bout en bout**, testée sur téléphone |
+| #12 | Journal de bord |
+| #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
@@ -40,10 +42,7 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Écran du code : ne plus laisser l'utilisateur sans issue** (repéré par Bryan). Aujourd'hui, un code expiré ou jamais reçu bloque : seule la flèche retour de l'en-tête permet de recommencer, et rien ne permet de renvoyer un code.
-   - Bouton « Renvoyer le code », désactivé avec un compte à rebours (60 s) : Supabase impose un délai minimal entre deux envois à la même adresse, et le SMTP est limité (30 emails/heure avec Resend).
-   - Lien visible « Changer d'email » (retour à l'écran de connexion).
-   - Message d'un code faux ou expiré qui propose directement le renvoi.
+1. **Clavier qui masque le champ** (repéré par Bryan sur téléphone) : sur l'écran de connexion, le champ d'email passe sous le clavier et on ne voit plus ce qu'on tape. Cause probable : sur Android, `KeyboardAvoidingView` reçoit `behavior={undefined}` (`sign-in.tsx`, `verify.tsx`) alors que l'app est bord à bord, donc rien ne remonte. À corriger avant les nouveaux écrans de saisie, sur une branche dédiée, et à vérifier aussi sur l'écran du code.
 2. **Écran « Choisis ton nom »** : après la première connexion, créer la ligne `profiles` (`display_name`, 30 caractères max, non vide). Sans profil, la base refuse de créer ou rejoindre un groupe (clé étrangère vers `profiles`). Le layout devra rediriger vers cet écran tant que le profil n'existe pas.
 3. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
 4. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
@@ -88,6 +87,6 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 
 ## 7. Notes d'apprentissage
 
-Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG.
+Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`.
 
-Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne.
+Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul).

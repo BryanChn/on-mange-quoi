@@ -1,16 +1,25 @@
-import { Redirect, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "@/components/primary-button";
+import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
+
+const RESEND_DELAY_MS = 60_000;
 
 function getCodeError(cleanCode: string): string | null {
   if (cleanCode === "") return "Entre le code à 6 chiffres reçu par email.";
   if (!/^\d{6}$/.test(cleanCode)) return "Ce code n'est pas valide !";
   return null;
+}
+
+function getSecondsLeft(resendAvailableAt: number, now: number): number {
+  const msLeft = resendAvailableAt - now;
+  const seconds = Math.ceil(msLeft / 1000);
+  return Math.max(seconds, 0);
 }
 
 export default function Verify() {
@@ -20,6 +29,43 @@ export default function Verify() {
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  const [resendAvailableAt, setResendAvailableAt] = useState(() => Date.now() + RESEND_DELAY_MS);
+  // L'heure courante vit dans un state : un rendu React ne doit pas appeler Date.now().
+  const [now, setNow] = useState(() => Date.now());
+  const secondsLeft = getSecondsLeft(resendAvailableAt, now);
+
+  // Rafraîchit l'heure chaque seconde pour que le compte à rebours avance à l'écran.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  async function handleResend() {
+    setError(null);
+    setIsResending(true);
+
+    try {
+      const { error: sendError } = await supabase.auth.signInWithOtp({ email });
+      if (sendError) {
+        setError("Impossible de renvoyer un code tout de suite.");
+        return;
+      }
+      const sentAt = Date.now();
+      setNow(sentAt);
+      setResendAvailableAt(sentAt + RESEND_DELAY_MS);
+      setCode("");
+    } catch {
+      // Échec imprévu : l'appel a planté (réseau coupé, serveur injoignable).
+      setError("Pas de connexion ? Vérifie ton réseau et réessaie.");
+    } finally {
+      // Succès, échec ou plantage : le bouton redevient utilisable.
+      setIsResending(false);
+    }
+  }
 
   async function handleVerify() {
     const cleanCode = code.replace(/\s/g, "");
@@ -38,7 +84,9 @@ export default function Verify() {
         type: "email",
       });
       if (verifyError) {
-        setError("Code incorrect ou expiré. Vérifie-le ou redemande un code.");
+        setError(
+          "Code incorrect ou expiré. Vérifie-le ou utilise « Renvoyer le code » ci-dessous.",
+        );
         return;
       }
     } catch {
@@ -80,6 +128,15 @@ export default function Verify() {
         style={styles.codeInput}
       />
       <PrimaryButton label="Valider" onPress={handleVerify} isLoading={isVerifying} />
+
+      <View style={styles.actions}>
+        <TextButton
+          label={secondsLeft > 0 ? `Renvoyer le code (${secondsLeft} s)` : "Renvoyer le code"}
+          onPress={handleResend}
+          isDisabled={secondsLeft > 0 || isResending}
+        />
+        <TextButton label="Changer d'email" onPress={() => router.back()} />
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -92,5 +149,6 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     subtitle: { fontSize: fontSize.body, color: colors.textMuted },
     email: { color: colors.text, fontWeight: "600" },
     codeInput: { fontSize: 26, letterSpacing: 8, textAlign: "center" },
+    actions: { gap: spacing.xs },
   });
 }
