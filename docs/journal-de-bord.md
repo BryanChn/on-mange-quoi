@@ -42,13 +42,14 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Écran « Choisis ton nom »** : après la première connexion, créer la ligne `profiles` (`display_name`, 30 caractères max, non vide). Sans profil, la base refuse de créer ou rejoindre un groupe (clé étrangère vers `profiles`). Le layout devra rediriger vers cet écran tant que le profil n'existe pas.
-2. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
-3. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
-4. **Temps réel** : votes visibles en direct (Supabase Realtime).
-5. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
-6. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
+1. **Clavier qui masque le champ** (repéré par Bryan sur téléphone) : sur l'écran de connexion, le champ d'email passe sous le clavier et on ne voit plus ce qu'on tape. Cause probable : sur Android, `KeyboardAvoidingView` reçoit `behavior={undefined}` (`sign-in.tsx`, `verify.tsx`) alors que l'app est bord à bord, donc rien ne remonte. À corriger avant les nouveaux écrans de saisie, sur une branche dédiée, et à vérifier aussi sur l'écran du code.
+2. **Écran « Choisis ton nom »** : après la première connexion, créer la ligne `profiles` (`display_name`, 30 caractères max, non vide). Sans profil, la base refuse de créer ou rejoindre un groupe (clé étrangère vers `profiles`). Le layout devra rediriger vers cet écran tant que le profil n'existe pas.
+3. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
+4. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
+5. **Temps réel** : votes visibles en direct (Supabase Realtime).
+6. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
+7. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
+8. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP. Idées produit : `docs/backlog.md`.
 
