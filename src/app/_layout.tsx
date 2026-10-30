@@ -5,19 +5,24 @@ import {
 } from "@expo-google-fonts/bricolage-grotesque";
 import { Stack } from "expo-router";
 
+import { LoadingScreen, ProfileErrorScreen } from "@/components/status-screens";
+import { ProfileProvider, useProfile } from "@/lib/profile";
 import { SessionProvider, useSession } from "@/lib/session";
 import { useTheme } from "@/theme";
 
 export default function RootLayout() {
   return (
     <SessionProvider>
-      <RootNavigator />
+      <ProfileProvider>
+        <RootNavigator />
+      </ProfileProvider>
     </SessionProvider>
   );
 }
 
 function RootNavigator() {
   const { session, isLoading } = useSession();
+  const { profile, isLoading: isProfileLoading, hasFailed, retry } = useProfile();
   const [fontsLoaded] = useFonts({ BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold });
   const { colors, fonts } = useTheme();
 
@@ -27,7 +32,19 @@ function RootNavigator() {
     return null;
   }
 
+  // Tant que le profil n'est pas chargé, on ne sait pas s'il faut demander le nom.
+  if (isProfileLoading) {
+    return <LoadingScreen />;
+  }
+  if (hasFailed) {
+    return <ProfileErrorScreen onRetry={retry} />;
+  }
+
   const isSignedIn = session !== null;
+  const hasProfile = profile !== null;
+
+  // Toutes les gardes renvoient au même écran : celui qui correspond à l'état du compte.
+  const homeRoute = hasProfile ? "/" : isSignedIn ? "/choose-name" : "/sign-in";
 
   return (
     <Stack
@@ -39,11 +56,15 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Protected guard={isSignedIn} redirectTo="/sign-in">
+      <Stack.Protected guard={hasProfile} redirectTo={homeRoute}>
         <Stack.Screen name="index" options={{ title: "On mange quoi ?" }} />
       </Stack.Protected>
 
-      <Stack.Protected guard={!isSignedIn} redirectTo="/">
+      <Stack.Protected guard={isSignedIn && !hasProfile} redirectTo={homeRoute}>
+        <Stack.Screen name="choose-name" options={{ headerShown: false }} />
+      </Stack.Protected>
+
+      <Stack.Protected guard={!isSignedIn} redirectTo={homeRoute}>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="verify" options={{ title: "Ton code" }} />
       </Stack.Protected>

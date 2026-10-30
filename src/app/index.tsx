@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { useSession } from "@/lib/session";
+import { useProfile } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
 
@@ -9,11 +9,11 @@ import { useTheme, type Theme } from "@/theme";
 export default function Index() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const { session } = useSession();
+  const { profile } = useProfile();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Connecté : {session?.user.email}</Text>
+      <Text style={styles.text}>Salut {profile?.display_name} !</Text>
       <Pressable onPress={() => supabase.auth.signOut()} accessibilityRole="button">
         <Text style={styles.link}>Se déconnecter</Text>
       </Pressable>
