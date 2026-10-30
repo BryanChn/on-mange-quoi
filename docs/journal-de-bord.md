@@ -3,6 +3,16 @@
 État du projet au **2026-10-30**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
+## Reprendre ici
+
+Session du 2026-10-30 arrêtée en pleine review : **la PR #15 est ouverte, pas mergée**, et son travail est sur la branche `feat/profile-name`.
+
+1. Se placer sur `feat/profile-name`, à jour avec GitHub.
+2. Finir les 2 tests de la PR #15 : nom vide ou seulement des espaces, et champ visible avec le clavier ouvert. Pour revoir l'écran du nom : supprimer sa ligne dans `profiles` (tableau de bord Supabase), puis se reconnecter.
+3. Faire la review de `src/lib/profile.tsx` avec Claude. Bryan n'a pas écrit ce code : il doit pouvoir l'expliquer. Question en attente : sans le `if (!isStale)`, si la réponse tardive du compte A arrive après celle du compte B, le profil de qui reste en mémoire ? (à chercher : *race condition*)
+4. Merger après le « ok merge » de Bryan, puis retirer cette section.
+5. Enchaîner sur la tâche 1 de la section 3 (liste des groupes). Bryan écrit de nouveau la logique, en petites étapes, en commençant par refaire un `useEffect` seul.
+
 ## 1. Où on en est
 
 Ordre de construction (`CLAUDE.md`) :
@@ -11,9 +21,9 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom (PR #15, à tester sur téléphone). La suite commence à la liste des groupes |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion terminée, choix du nom en review (PR #15). La suite commence à la liste des groupes |
 
-**Ce qui marche aujourd'hui sur le téléphone :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s → accueil provisoire « Connecté : email » + déconnexion. La session survit à la fermeture de l'app.
+**Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom (branche de la PR #15) → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
 ## 2. Ce qui a été fait
 
@@ -33,7 +43,7 @@ Ordre de construction (`CLAUDE.md`) :
 | #12 | Journal de bord |
 | #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
 | #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
-| #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout |
+| #15 | **Ouverte.** Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
@@ -44,7 +54,7 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
+1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
 2. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
 3. **Temps réel** : votes visibles en direct (Supabase Realtime).
 4. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
@@ -89,6 +99,6 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 
 ## 7. Notes d'apprentissage
 
-Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`.
+Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre.
 
-Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul).
+Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale`).
