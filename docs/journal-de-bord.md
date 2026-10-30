@@ -5,13 +5,11 @@
 
 ## Reprendre ici
 
-Session du 2026-10-30 arrêtée en pleine review : **la PR #15 est ouverte, pas mergée**, et son travail est sur la branche `feat/profile-name`.
+Session du 2026-10-30 : **la PR #15 est mergée à la demande de Bryan, avec 2 tests et la review encore à faire**. Tout part de `main`, à jour avec GitHub.
 
-1. Se placer sur `feat/profile-name`, à jour avec GitHub.
-2. Finir les 2 tests de la PR #15 : nom vide ou seulement des espaces, et champ visible avec le clavier ouvert. Pour revoir l'écran du nom : supprimer sa ligne dans `profiles` (tableau de bord Supabase), puis se reconnecter.
-3. Faire la review de `src/lib/profile.tsx` avec Claude. Bryan n'a pas écrit ce code : il doit pouvoir l'expliquer. Question en attente : sans le `if (!isStale)`, si la réponse tardive du compte A arrive après celle du compte B, le profil de qui reste en mémoire ? (à chercher : *race condition*)
-4. Merger après le « ok merge » de Bryan, puis retirer cette section.
-5. Enchaîner sur la tâche 1 de la section 3 (liste des groupes). Bryan écrit de nouveau la logique, en petites étapes, en commençant par refaire un `useEffect` seul.
+1. Finir les 2 tests restants : nom vide ou seulement des espaces, et champ visible avec le clavier ouvert. Pour revoir l'écran du nom : supprimer sa ligne dans `profiles` (tableau de bord Supabase), puis se reconnecter. Si un test échoue : correction sur une branche `fix/...`.
+2. Faire la review de `src/lib/profile.tsx` avec Claude. Bryan n'a pas écrit ce code : il doit pouvoir l'expliquer. Question en attente : sans le `if (!isStale)`, si la réponse tardive du compte A arrive après celle du compte B, le profil de qui reste en mémoire ? (à chercher : *race condition*)
+3. Retirer cette section, puis enchaîner sur la tâche 1 de la section 3 (liste des groupes). Bryan écrit de nouveau la logique, en petites étapes, en commençant par refaire un `useEffect` seul.
 
 ## 1. Où on en est
 
@@ -21,9 +19,9 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion terminée, choix du nom en review (PR #15). La suite commence à la liste des groupes |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion terminée, choix du nom mergé (2 tests restants). La suite commence à la liste des groupes |
 
-**Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom (branche de la PR #15) → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
+**Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
 ## 2. Ce qui a été fait
 
@@ -43,7 +41,7 @@ Ordre de construction (`CLAUDE.md`) :
 | #12 | Journal de bord |
 | #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
 | #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
-| #15 | **Ouverte.** Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone |
+| #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone au merge |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
