@@ -11,7 +11,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion terminée, y compris le renvoi du code. La suite commence au profil |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom (PR #15, à tester sur téléphone). La suite commence à la liste des groupes |
 
 **Ce qui marche aujourd'hui sur le téléphone :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s → accueil provisoire « Connecté : email » + déconnexion. La session survit à la fermeture de l'app.
 
@@ -33,6 +33,7 @@ Ordre de construction (`CLAUDE.md`) :
 | #12 | Journal de bord |
 | #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
 | #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
+| #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
@@ -43,13 +44,12 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Écran « Choisis ton nom »** : après la première connexion, créer la ligne `profiles` (`display_name`, 30 caractères max, non vide). Sans profil, la base refuse de créer ou rejoindre un groupe (clé étrangère vers `profiles`). Le layout devra rediriger vers cet écran tant que le profil n'existe pas.
-2. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
-3. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
-4. **Temps réel** : votes visibles en direct (Supabase Realtime).
-5. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
-6. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
+1. **Remplacer l'accueil provisoire** (« Connecté : email ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
+2. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
+3. **Temps réel** : votes visibles en direct (Supabase Realtime).
+4. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
+5. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
+6. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP. Idées produit : `docs/backlog.md`.
 
@@ -71,6 +71,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | Sous WSL, le téléphone ne voit pas le PC | Toujours `npm run dev` (tunnel). L'app vise la base **en ligne** : `127.0.0.1` sur le téléphone, c'est le téléphone |
 | `Stack.Protected` sans `redirectTo` | Expo Router choisit lui-même l'écran de repli (il prenait `verify`). Toujours un `redirectTo` explicite |
 | `KeyboardAvoidingView` sous un en-tête | Il ne compte pas l'en-tête : passer `keyboardVerticalOffset={useHeaderHeight()}`. Sur Android, sans `behavior`, rien ne remonte |
+| `profile: null` ne veut pas dire « erreur » | Sans profil = demander le nom ; chargement raté = écran « Réessayer ». Les confondre redemanderait son nom à un membre déjà inscrit |
 | VS Code supprime les imports inutilisés à l'enregistrement | `organizeImports` : un import pas encore utilisé disparaît. `Ctrl+.` pour le remettre |
 | Une migration déjà appliquée ailleurs | Ne jamais la modifier : en créer une nouvelle (`npx supabase migration new …`) |
 | Après une migration | `npm run db:reset` + `npm run db:test`, puis `npm run db:types`, puis `npx supabase db push --linked --dry-run` avant `npm run db:push` |
