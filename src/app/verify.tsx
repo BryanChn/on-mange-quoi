@@ -1,6 +1,7 @@
 import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useEffect, useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
@@ -25,6 +26,7 @@ function getSecondsLeft(resendAvailableAt: number, now: number): number {
 export default function Verify() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const headerHeight = useHeaderHeight();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -103,7 +105,8 @@ export default function Verify() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior="padding"
+      keyboardVerticalOffset={headerHeight}
     >
       <View style={styles.intro}>
         <Text style={styles.title} accessibilityRole="header">

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 function getEmailError(cleanEmail: string): string | null {
@@ -53,10 +53,7 @@ export default function SignIn() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.container} behavior="padding">
         <View style={styles.hero}>
           <Logo width={240} />
           <Text style={styles.title} accessibilityRole="header">
