@@ -66,6 +66,9 @@ function RootNavigator() {
     >
       <Stack.Protected guard={hasProfile} redirectTo={homeRoute}>
         <Stack.Screen name="index" options={{ title: "On mange quoi ?" }} />
+        <Stack.Screen name="create-group" options={{ title: "Nouveau groupe" }} />
+        <Stack.Screen name="join-group" options={{ title: "Rejoindre un groupe" }} />
+        <Stack.Screen name="group/[id]" options={{ title: "Groupe" }} />
       </Stack.Protected>
 
       <Stack.Protected guard={isSignedIn && !hasProfile} redirectTo={homeRoute}>

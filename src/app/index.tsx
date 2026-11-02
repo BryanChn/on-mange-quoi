@@ -1,7 +1,8 @@
-import { useFocusEffect } from "expo-router";
+import { Link, router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { fetchGroups, type Group } from "@/lib/groups";
@@ -77,13 +78,27 @@ export default function Index() {
         </Text>
       }
       renderItem={({ item }) => (
-        <View style={styles.group}>
-          <Text style={styles.groupName}>{item.name}</Text>
-        </View>
+        <Link href={{ pathname: "/group/[id]", params: { id: item.id } }} asChild>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Ouvrir le groupe ${item.name}`}
+            style={({ pressed }) => [styles.group, pressed && styles.groupPressed]}
+          >
+            <Text style={styles.groupName}>{item.name}</Text>
+          </Pressable>
+        </Link>
       )}
-      ListEmptyComponent={<Text style={styles.empty}>Tu n’as pas encore de groupe.</Text>}
+      ListEmptyComponent={
+        <Text style={styles.empty}>
+          Tu n’as pas encore de groupe. Crée le tien ou rejoins-en un avec un code.
+        </Text>
+      }
       ListFooterComponent={
-        <TextButton label="Se déconnecter" onPress={() => supabase.auth.signOut()} />
+        <View style={styles.actions}>
+          <PrimaryButton label="Créer un groupe" onPress={() => router.push("/create-group")} />
+          <TextButton label="Rejoindre avec un code" onPress={() => router.push("/join-group")} />
+          <TextButton label="Se déconnecter" onPress={() => supabase.auth.signOut()} />
+        </View>
       }
     />
   );
@@ -101,7 +116,9 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       borderColor: colors.border,
       backgroundColor: colors.surface,
     },
+    groupPressed: { borderColor: colors.primary },
     groupName: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
-    empty: { color: colors.textMuted, fontSize: fontSize.body },
+    empty: { color: colors.textMuted, fontSize: fontSize.body, lineHeight: 26 },
+    actions: { marginTop: spacing.lg, gap: spacing.xs },
   });
 }
