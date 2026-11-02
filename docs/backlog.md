@@ -5,6 +5,7 @@ Avant de passer à une nouvelle version (voir la roadmap dans `CLAUDE.md`), reli
 
 | Idée | Version | Notes techniques |
 | --- | --- | --- |
+| Menu latéral pour naviguer entre les groupes, les suggestions en cours, etc. | Après MVP | À décider avec le design de la liste : `Drawer` d'Expo Router, ou des onglets, plus courants sur mobile. |
 | Prévenir les votants quand un plat qu'ils avaient coché disparaît, et les inviter à revoter | V1 (notifications) | Au MVP, le retrait n'est possible que sans vote : le cas ne se pose pas encore. |
 | Invités avec un simple pseudo (sans email) pour un groupe éphémère ; le compte invité est supprimé à la clôture du vote | V1 (invités) | Auth anonyme Supabase (`enable_anonymous_sign_ins`) ; nettoyage des comptes anonymes après clôture (RGPD : rien de gardé sans raison). |
 | Détecter les fautes de frappe entre propositions (« piza », « piiza » → « Pizza ? ») | Après MVP | Extension Postgres `pg_trgm` (similarité de texte) pour suggérer, sans bloquer. |

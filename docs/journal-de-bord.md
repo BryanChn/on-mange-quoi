@@ -57,7 +57,8 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 3. **Temps réel** : votes visibles en direct (Supabase Realtime).
 4. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
 5. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-6. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
+6. **Refaire le design de la liste des groupes** (jugée très moche par Bryan) : une interface plus moderne, une fois le parcours de vote en place.
+7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable). Idées produit : `docs/backlog.md`.
 
