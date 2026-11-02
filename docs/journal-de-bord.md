@@ -5,10 +5,9 @@
 
 ## Reprendre ici
 
-Session du 2026-11-02 : **la tâche 1 est en PR sur `feat/groups-list`**. À la demande de Bryan, Claude a écrit « Réessayer », l'avertissement d'erreur, créer, rejoindre et partager (exception au mode habituel). Testés sur téléphone : créer (nom vide refusé), liste, partager, rejoindre avec `TESTJOIN`, code faux refusé, code en minuscules avec espace, rejoindre deux fois.
+Session du 2026-11-02 : **la tâche 1 est en PR sur `feat/groups-list`**. À la demande de Bryan, Claude a écrit « Réessayer », l'avertissement d'erreur, créer, rejoindre et partager (exception au mode habituel). Testés sur téléphone : créer (nom vide refusé), liste, partager, rejoindre avec `TESTJOIN`, code faux refusé, code en minuscules avec espace, rejoindre deux fois, « Réessayer » (mode avion).
 
-1. Finir le dernier test : « Réessayer » sur l'écran d'erreur.
-2. Merge après validation de Bryan, puis retirer cette section et enchaîner sur la tâche 2 (session de vote), qui partira de l'écran `group/[id]`.
+1. Merge après validation de Bryan, puis retirer cette section et enchaîner sur la tâche 2 (session de vote), qui partira de l'écran `group/[id]`.
 
 ## 1. Où on en est
 
