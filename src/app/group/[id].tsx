@@ -1,10 +1,12 @@
-import { useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { Share, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
+import { TextButton } from "@/components/text-button";
 import { fetchGroup, type GroupDetail } from "@/lib/groups";
+import { fetchOpenSessionId, startSession } from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
 
 export default function GroupScreen() {
@@ -12,15 +14,20 @@ export default function GroupScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [openSessionId, setOpenSessionId] = useState<string | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
-  const [shareError, setShareError] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadGroup = useCallback(() => {
     let isStale = false;
 
-    fetchGroup(id).then(
-      (loadedGroup) => {
-        if (!isStale) setGroup(loadedGroup);
+    Promise.all([fetchGroup(id), fetchOpenSessionId(id)]).then(
+      ([loadedGroup, loadedSessionId]) => {
+        if (isStale) return;
+        setGroup(loadedGroup);
+        setOpenSessionId(loadedSessionId);
+        setHasFailed(false);
       },
       () => {
         if (!isStale) setHasFailed(true);
@@ -32,22 +39,40 @@ export default function GroupScreen() {
     };
   }, [id]);
 
-  useEffect(() => loadGroup(), [loadGroup]);
+  // À chaque retour : un membre a pu lancer un vote entre-temps.
+  useFocusEffect(loadGroup);
 
   function retry() {
     setHasFailed(false);
     loadGroup();
   }
 
+  function openSession(sessionId: string) {
+    router.push({ pathname: "/session/[id]", params: { id: sessionId } });
+  }
+
+  async function handleStartVote() {
+    setError(null);
+    setIsStarting(true);
+
+    try {
+      openSession(await startSession(id));
+    } catch {
+      setError("Impossible de lancer le vote. Vérifie ton réseau et réessaie.");
+    } finally {
+      setIsStarting(false);
+    }
+  }
+
   async function handleShare(detail: GroupDetail) {
-    setShareError(null);
+    setError(null);
 
     try {
       await Share.share({
         message: `Rejoins « ${detail.name} » sur On mange quoi ? avec le code ${detail.invite_code}`,
       });
     } catch {
-      setShareError("Impossible d’ouvrir le partage. Note le code et transmets-le à la main.");
+      setError("Impossible d’ouvrir le partage. Note le code et transmets-le à la main.");
     }
   }
 
@@ -70,6 +95,17 @@ export default function GroupScreen() {
         {group.name}
       </Text>
 
+      {openSessionId ? (
+        <PrimaryButton label="Voter" onPress={() => openSession(openSessionId)} />
+      ) : (
+        <PrimaryButton label="Lancer un vote" onPress={handleStartVote} isLoading={isStarting} />
+      )}
+      {error ? (
+        <Text style={styles.error} accessibilityRole="alert">
+          {error}
+        </Text>
+      ) : null}
+
       <View style={styles.invite}>
         <Text style={styles.inviteLabel}>Code d’invitation</Text>
         <Text style={styles.inviteCode} selectable>
@@ -78,14 +114,8 @@ export default function GroupScreen() {
         <Text style={styles.inviteHint}>
           Envoie-le aux membres de ton groupe : ils le saisiront dans « Rejoindre avec un code ».
         </Text>
+        <TextButton label="Partager le code" onPress={() => handleShare(group)} />
       </View>
-
-      <PrimaryButton label="Partager le code" onPress={() => handleShare(group)} />
-      {shareError ? (
-        <Text style={styles.error} accessibilityRole="alert">
-          {shareError}
-        </Text>
-      ) : null}
     </View>
   );
 }
