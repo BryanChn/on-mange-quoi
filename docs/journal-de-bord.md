@@ -9,7 +9,7 @@ Session du 2026-11-02 : **PR #16 (groupes) mergée, tous les tests passés. La t
 
 1. Tester sur téléphone : lancer un vote, proposer un plat (vide refusé, doublon refusé), cocher et décocher, retirer son plat, revenir au groupe (« Voter » remplace « Lancer un vote »).
 2. Si tout passe : pousser la branche et ouvrir la PR.
-3. Retirer cette section et enchaîner sur la tâche 3 (temps réel). La session lancée pendant les tests reste ouverte jusqu'à la tâche 4 (clôture) : elle bloque un second vote dans ce groupe, c'est normal.
+3. Retirer cette section et enchaîner sur le temps réel (section 3). La session lancée pendant les tests reste ouverte jusqu'à la clôture : elle bloque un second vote dans ce groupe, c'est normal.
 
 ## 1. Où on en est
 
@@ -54,13 +54,14 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native. En PR sur `feat/groups-list`, avec l'avertissement d'erreur demandé par Bryan (composant `ErrorScreen`).
-2. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
-3. **Temps réel** : votes visibles en direct (Supabase Realtime).
-4. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
-5. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-6. **Refaire le design de la liste des groupes** (jugée très moche par Bryan) : une interface plus moderne, une fois le parcours de vote en place.
-7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
+**Décision de Bryan (2026-11-02) : d'abord toutes les fonctionnalités du MVP, ensuite le design.** Tant qu'elles ne sont pas finies, les écrans restent fonctionnels et simples.
+
+1. **Session de vote** : écrite sur `feat/vote-session`, à tester sur téléphone. Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
+2. **Temps réel** : votes visibles en direct (Supabase Realtime).
+3. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
+4. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
+5. **Design de toute l'app**, une fois le MVP complet : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
+6. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend) et déconnexion inexpliquée à surveiller (section 5).
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable). Idées produit : `docs/backlog.md`.
 
@@ -101,6 +102,6 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 
 ## 7. Notes d'apprentissage
 
-Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre.
+Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre ; JWT et `auth.uid()` (le serveur sait qui appelle), IDOR, `.then` / `.finally`, valeur de départ d'un state, feuille de partage native (Intent Android), lire une erreur TypeScript, ne changer qu'une chose à la fois quand on teste.
 
 Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02).
