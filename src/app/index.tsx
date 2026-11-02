@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
+import { LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { fetchGroups, type Group } from "@/lib/groups";
 import { useProfile } from "@/lib/profile";
@@ -12,10 +13,28 @@ export default function Index() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile } = useProfile();
   const [groups, setGroups] = useState<Group[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasFailed, setHasFailed] = useState(false);
 
   useEffect(() => {
-    fetchGroups().then(setGroups);
+    fetchGroups()
+      .then(setGroups, () => setHasFailed(true))
+      .finally(() => setIsLoading(false));
   }, []);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+  // Échec distinct de la liste vide : sans réseau, on ne dit pas « pas de groupe ».
+  if (hasFailed) {
+    return (
+      <View style={styles.content}>
+        <Text style={styles.empty} accessibilityRole="alert">
+          Impossible de charger tes groupes. Vérifie ton réseau.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <FlatList
