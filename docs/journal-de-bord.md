@@ -1,15 +1,7 @@
 # Journal de bord
 
-État du projet au **2026-10-30**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-02**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
-
-## Reprendre ici
-
-Session du 2026-10-30 : **la PR #15 est mergée à la demande de Bryan, avec 2 tests et la review encore à faire**. Tout part de `main`, à jour avec GitHub.
-
-1. Finir les 2 tests restants : nom vide ou seulement des espaces, et champ visible avec le clavier ouvert. Pour revoir l'écran du nom : supprimer sa ligne dans `profiles` (tableau de bord Supabase), puis se reconnecter. Si un test échoue : correction sur une branche `fix/...`.
-2. Faire la review de `src/lib/profile.tsx` avec Claude. Bryan n'a pas écrit ce code : il doit pouvoir l'expliquer. Question en attente : sans le `if (!isStale)`, si la réponse tardive du compte A arrive après celle du compte B, le profil de qui reste en mémoire ? (à chercher : *race condition*)
-3. Retirer cette section, puis enchaîner sur la tâche 1 de la section 3 (liste des groupes). Bryan écrit de nouveau la logique, en petites étapes, en commençant par refaire un `useEffect` seul.
 
 ## 1. Où on en est
 
@@ -19,7 +11,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion terminée, choix du nom mergé (2 tests restants). La suite commence à la liste des groupes |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Liste des groupes en cours sur `feat/groups-list` |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -41,7 +33,7 @@ Ordre de construction (`CLAUDE.md`) :
 | #12 | Journal de bord |
 | #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
 | #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
-| #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone au merge |
+| #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone au merge, les 2 derniers validés le 2026-11-02 |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
@@ -59,7 +51,7 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 5. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
 6. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
 
-Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP. Idées produit : `docs/backlog.md`.
+Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable). Idées produit : `docs/backlog.md`.
 
 ## 4. À vérifier en début de session
 
@@ -99,4 +91,4 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 
 Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre.
 
-Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale`).
+Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02).
