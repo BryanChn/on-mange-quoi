@@ -3,6 +3,14 @@
 État du projet au **2026-11-02**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
+## Reprendre ici
+
+Session du 2026-11-02 : **la tâche 1 est écrite sur `feat/groups-list`, pas encore testée sur téléphone ni poussée**. À la demande de Bryan, Claude a écrit « Réessayer », l'avertissement d'erreur, créer, rejoindre et partager (exception au mode habituel).
+
+1. Tester sur téléphone : créer un groupe (nom vide, puis valide), retour à la liste, ouvrir le groupe, partager le code, rejoindre avec un code faux, puis avec le bon code depuis un second compte, et l'écran d'erreur avec « Réessayer ».
+2. Si tout passe : pousser la branche et ouvrir la PR.
+3. Retirer cette section et enchaîner sur la tâche 2 (session de vote), qui partira de l'écran `group/[id]`.
+
 ## 1. Où on en est
 
 Ordre de construction (`CLAUDE.md`) :
@@ -11,7 +19,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Liste des groupes en cours sur `feat/groups-list` |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) écrits sur `feat/groups-list`, à tester sur téléphone |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -44,7 +52,7 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native. État sur `feat/groups-list` : affichage, chargement et erreur faits ; reste « Réessayer » et « Se déconnecter » sur l'erreur, puis la création. **À refaire en même temps (demandé par Bryan) : le design du message d'erreur de l'accueil, trop discret, il doit se lire comme un vrai avertissement.**
+1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native. Écrit sur `feat/groups-list`, avec l'avertissement d'erreur demandé par Bryan (composant `ErrorScreen`) : reste à tester sur téléphone.
 2. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
 3. **Temps réel** : votes visibles en direct (Supabase Realtime).
 4. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
