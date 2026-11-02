@@ -44,7 +44,7 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
+1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native. État sur `feat/groups-list` : affichage, chargement et erreur faits ; reste « Réessayer » et « Se déconnecter » sur l'erreur, puis la création. **À refaire en même temps (demandé par Bryan) : le design du message d'erreur de l'accueil, trop discret, il doit se lire comme un vrai avertissement.**
 2. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
 3. **Temps réel** : votes visibles en direct (Supabase Realtime).
 4. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
@@ -78,6 +78,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | Local et en ligne divergent | `supabase/config.toml` (local) ≠ réglages du projet en ligne (ex. OTP 6 contre 8). Vérifier les deux |
 | Modèles d'email | Non modifiables sur le SMTP intégré de Supabase : il faut un SMTP personnalisé (Resend) |
 | Docker « permission denied » | Le groupe `docker` n'est pris en compte qu'à l'ouverture de session : relancer VS Code ou `wsl --shutdown`. Jamais `sudo docker` |
+| Déconnexion inexpliquée (2026-11-02) | Vue une fois en enregistrant un fichier, non reproduite au 2e essai, cause non confirmée. Piste : rechargement pendant la rotation du refresh token. Si ça revient : erreur dans le terminal et Logs → Auth de Supabase (`refresh_token_already_used`). À vérifier avant d'inviter la famille |
 | Garde-fou de Claude Code | Il bloque les commandes destructives (`rm -rf`, suppression de branches distantes, modification de la config Supabase en ligne) : c'est Bryan qui les lance |
 
 ## 6. Mode de travail
