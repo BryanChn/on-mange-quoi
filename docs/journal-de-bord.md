@@ -8,8 +8,7 @@
 Session du 2026-11-02 : **la tâche 1 est en PR sur `feat/groups-list`**. À la demande de Bryan, Claude a écrit « Réessayer », l'avertissement d'erreur, créer, rejoindre et partager (exception au mode habituel). Testés sur téléphone : créer, liste, partager, rejoindre avec `TESTJOIN`.
 
 1. Finir les tests : code faux (`FAUXCODE`), code en minuscules avec espace (`test join`), rejoindre deux fois, « Réessayer » sur l'écran d'erreur.
-2. Nettoyer le projet de dev : supprimer le groupe `TESTJOIN`, puis l'utilisateur `00000000-0000-0000-0000-0000000000f1` dans `auth.users`.
-3. Merge après validation de Bryan, puis retirer cette section et enchaîner sur la tâche 2 (session de vote), qui partira de l'écran `group/[id]`.
+2. Merge après validation de Bryan, puis retirer cette section et enchaîner sur la tâche 2 (session de vote), qui partira de l'écran `group/[id]`.
 
 ## 1. Où on en est
 
@@ -48,7 +47,8 @@ Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `sup
 Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau de bord) :
 - code OTP à **6 chiffres** (8 par défaut sur les nouveaux projets) ;
 - **SMTP Resend** (`smtp.resend.com:465`, expéditeur `onboarding@resend.dev`), limite 30 emails/heure ;
-- modèles « Confirm sign up » et « Magic link or OTP » avec `{{ .Token }}`, dans la charte.
+- modèles « Confirm sign up » et « Magic link or OTP » avec `{{ .Token }}`, dans la charte ;
+- compte fictif gardé pour les tests : « Testeur » (`00000000-0000-0000-0000-0000000000f1`), owner du groupe `TESTJOIN`. Pour le retirer : supprimer le groupe, puis l'utilisateur dans `auth.users`.
 
 ## 3. À faire, dans l'ordre
 
