@@ -22,29 +22,39 @@ export function LoadingScreen() {
   );
 }
 
-type ProfileErrorScreenProps = {
+type ErrorScreenProps = {
+  title: string;
+  message: string;
   onRetry: () => void;
+  // Sortie de secours quand aucun autre écran n'est accessible.
+  canSignOut?: boolean;
 };
 
-// Sans ce profil, impossible de savoir s'il faut demander le nom : on ne devine pas.
-export function ProfileErrorScreen({ onRetry }: ProfileErrorScreenProps) {
+// Avertissement qui remplace l'écran : on ne fait jamais passer un échec pour une liste vide.
+export function ErrorScreen({ title, message, onRetry, canSignOut = false }: ErrorScreenProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.message} accessibilityRole="alert">
-        Impossible de charger ton profil. Vérifie ton réseau et réessaie.
-      </Text>
+      <View style={styles.warning} accessibilityRole="alert">
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>!</Text>
+        </View>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.message}>{message}</Text>
+      </View>
       <View style={styles.actions}>
         <PrimaryButton label="Réessayer" onPress={onRetry} />
-        <TextButton label="Se déconnecter" onPress={() => supabase.auth.signOut()} />
+        {canSignOut ? (
+          <TextButton label="Se déconnecter" onPress={() => supabase.auth.signOut()} />
+        ) : null}
       </View>
     </View>
   );
 }
 
-function createStyles({ colors, spacing, fontSize }: Theme) {
+function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -52,6 +62,30 @@ function createStyles({ colors, spacing, fontSize }: Theme) {
       padding: spacing.xl,
       gap: spacing.xl,
       backgroundColor: colors.background,
+    },
+    warning: {
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.xl,
+      borderWidth: 2,
+      borderColor: colors.danger,
+      borderRadius: radius.md,
+      backgroundColor: colors.surface,
+    },
+    badge: {
+      width: 48,
+      height: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: radius.pill,
+      backgroundColor: colors.danger,
+    },
+    badgeText: { color: colors.background, fontFamily: fonts.display, fontSize: 28 },
+    title: {
+      color: colors.danger,
+      fontFamily: fonts.displayBold,
+      fontSize: 22,
+      textAlign: "center",
     },
     message: { color: colors.text, fontSize: fontSize.body, lineHeight: 26, textAlign: "center" },
     actions: { gap: spacing.xs },

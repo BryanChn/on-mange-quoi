@@ -5,7 +5,7 @@ import {
 } from "@expo-google-fonts/bricolage-grotesque";
 import { Stack } from "expo-router";
 
-import { LoadingScreen, ProfileErrorScreen } from "@/components/status-screens";
+import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { ProfileProvider, useProfile } from "@/lib/profile";
 import { SessionProvider, useSession } from "@/lib/session";
 import { useTheme } from "@/theme";
@@ -37,7 +37,15 @@ function RootNavigator() {
     return <LoadingScreen />;
   }
   if (hasFailed) {
-    return <ProfileErrorScreen onRetry={retry} />;
+    // Sans ce profil, impossible de savoir s'il faut demander le nom : on ne devine pas.
+    return (
+      <ErrorScreen
+        title="Impossible de charger ton profil"
+        message="Vérifie ton réseau et réessaie."
+        onRetry={retry}
+        canSignOut
+      />
+    );
   }
 
   const isSignedIn = session !== null;

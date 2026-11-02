@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
-import { LoadingScreen } from "@/components/status-screens";
+import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { fetchGroups, type Group } from "@/lib/groups";
 import { useProfile } from "@/lib/profile";
@@ -16,11 +17,38 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasFailed, setHasFailed] = useState(false);
 
-  useEffect(() => {
+  const loadGroups = useCallback(() => {
+    // Si on quitte l'écran pendant l'appel, sa réponse arrive trop tard : on l'ignore.
+    let isStale = false;
+
     fetchGroups()
-      .then(setGroups, () => setHasFailed(true))
-      .finally(() => setIsLoading(false));
+      .then(
+        (loadedGroups) => {
+          if (isStale) return;
+          setGroups(loadedGroups);
+          setHasFailed(false);
+        },
+        () => {
+          if (!isStale) setHasFailed(true);
+        },
+      )
+      .finally(() => {
+        if (!isStale) setIsLoading(false);
+      });
+
+    return () => {
+      isStale = true;
+    };
   }, []);
+
+  // À chaque retour sur l'écran, et pas une seule fois : un groupe créé ou rejoint
+  // depuis un autre écran doit apparaître dans la liste.
+  useFocusEffect(loadGroups);
+
+  function retry() {
+    setIsLoading(true);
+    loadGroups();
+  }
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -28,11 +56,12 @@ export default function Index() {
   // Échec distinct de la liste vide : sans réseau, on ne dit pas « pas de groupe ».
   if (hasFailed) {
     return (
-      <View style={styles.content}>
-        <Text style={styles.empty} accessibilityRole="alert">
-          Impossible de charger tes groupes. Vérifie ton réseau.
-        </Text>
-      </View>
+      <ErrorScreen
+        title="Impossible de charger tes groupes"
+        message="Vérifie ton réseau et réessaie."
+        onRetry={retry}
+        canSignOut
+      />
     );
   }
 
