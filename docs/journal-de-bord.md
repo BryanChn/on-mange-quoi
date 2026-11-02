@@ -1,15 +1,13 @@
 # Journal de bord
 
-État du projet au **2026-10-30**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-02**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
-Session du 2026-10-30 : **la PR #15 est mergée à la demande de Bryan, avec 2 tests et la review encore à faire**. Tout part de `main`, à jour avec GitHub.
+Session du 2026-11-02 : **la tâche 1 est en PR sur `feat/groups-list`**. À la demande de Bryan, Claude a écrit « Réessayer », l'avertissement d'erreur, créer, rejoindre et partager (exception au mode habituel). Testés sur téléphone : créer (nom vide refusé), liste, partager, rejoindre avec `TESTJOIN`, code faux refusé, code en minuscules avec espace, rejoindre deux fois, « Réessayer » (mode avion).
 
-1. Finir les 2 tests restants : nom vide ou seulement des espaces, et champ visible avec le clavier ouvert. Pour revoir l'écran du nom : supprimer sa ligne dans `profiles` (tableau de bord Supabase), puis se reconnecter. Si un test échoue : correction sur une branche `fix/...`.
-2. Faire la review de `src/lib/profile.tsx` avec Claude. Bryan n'a pas écrit ce code : il doit pouvoir l'expliquer. Question en attente : sans le `if (!isStale)`, si la réponse tardive du compte A arrive après celle du compte B, le profil de qui reste en mémoire ? (à chercher : *race condition*)
-3. Retirer cette section, puis enchaîner sur la tâche 1 de la section 3 (liste des groupes). Bryan écrit de nouveau la logique, en petites étapes, en commençant par refaire un `useEffect` seul.
+1. Merge après validation de Bryan, puis retirer cette section et enchaîner sur la tâche 2 (session de vote), qui partira de l'écran `group/[id]`.
 
 ## 1. Où on en est
 
@@ -19,7 +17,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion terminée, choix du nom mergé (2 tests restants). La suite commence à la liste des groupes |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) en PR sur `feat/groups-list`, derniers tests à finir |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -41,25 +39,27 @@ Ordre de construction (`CLAUDE.md`) :
 | #12 | Journal de bord |
 | #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
 | #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
-| #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone au merge |
+| #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone au merge, les 2 derniers validés le 2026-11-02 |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
 Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau de bord) :
 - code OTP à **6 chiffres** (8 par défaut sur les nouveaux projets) ;
 - **SMTP Resend** (`smtp.resend.com:465`, expéditeur `onboarding@resend.dev`), limite 30 emails/heure ;
-- modèles « Confirm sign up » et « Magic link or OTP » avec `{{ .Token }}`, dans la charte.
+- modèles « Confirm sign up » et « Magic link or OTP » avec `{{ .Token }}`, dans la charte ;
+- compte fictif gardé pour les tests : « Testeur » (`00000000-0000-0000-0000-0000000000f1`), owner du groupe `TESTJOIN`. Pour le retirer : supprimer le groupe, puis l'utilisateur dans `auth.users`.
 
 ## 3. À faire, dans l'ordre
 
-1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native.
+1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native. En PR sur `feat/groups-list`, avec l'avertissement d'erreur demandé par Bryan (composant `ErrorScreen`).
 2. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
 3. **Temps réel** : votes visibles en direct (Supabase Realtime).
 4. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
 5. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-6. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
+6. **Refaire le design de la liste des groupes** (jugée très moche par Bryan) : une interface plus moderne, une fois le parcours de vote en place.
+7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
 
-Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP. Idées produit : `docs/backlog.md`.
+Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable). Idées produit : `docs/backlog.md`.
 
 ## 4. À vérifier en début de session
 
@@ -86,6 +86,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | Local et en ligne divergent | `supabase/config.toml` (local) ≠ réglages du projet en ligne (ex. OTP 6 contre 8). Vérifier les deux |
 | Modèles d'email | Non modifiables sur le SMTP intégré de Supabase : il faut un SMTP personnalisé (Resend) |
 | Docker « permission denied » | Le groupe `docker` n'est pris en compte qu'à l'ouverture de session : relancer VS Code ou `wsl --shutdown`. Jamais `sudo docker` |
+| Déconnexion inexpliquée (2026-11-02) | Vue une fois en enregistrant un fichier, non reproduite au 2e essai, cause non confirmée. Piste : rechargement pendant la rotation du refresh token. Si ça revient : erreur dans le terminal et Logs → Auth de Supabase (`refresh_token_already_used`). À vérifier avant d'inviter la famille |
 | Garde-fou de Claude Code | Il bloque les commandes destructives (`rm -rf`, suppression de branches distantes, modification de la config Supabase en ligne) : c'est Bryan qui les lance |
 
 ## 6. Mode de travail
@@ -99,4 +100,4 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 
 Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre.
 
-Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale`).
+Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02).
