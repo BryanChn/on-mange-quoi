@@ -5,9 +5,11 @@
 
 ## Reprendre ici
 
-Session du 2026-11-02 : **la tâche 1 est en PR sur `feat/groups-list`**. À la demande de Bryan, Claude a écrit « Réessayer », l'avertissement d'erreur, créer, rejoindre et partager (exception au mode habituel). Testés sur téléphone : créer (nom vide refusé), liste, partager, rejoindre avec `TESTJOIN`, code faux refusé, code en minuscules avec espace, rejoindre deux fois, « Réessayer » (mode avion).
+Session du 2026-11-02 : **PR #16 (groupes) mergée, tous les tests passés. La tâche 2 (session de vote) est écrite sur `feat/vote-session`, pas encore testée sur téléphone ni poussée**. À la demande de Bryan, Claude écrit le code et résume (exception au mode habituel).
 
-1. Merge après validation de Bryan, puis retirer cette section et enchaîner sur la tâche 2 (session de vote), qui partira de l'écran `group/[id]`.
+1. Tester sur téléphone : lancer un vote, proposer un plat (vide refusé, doublon refusé), cocher et décocher, retirer son plat, revenir au groupe (« Voter » remplace « Lancer un vote »).
+2. Si tout passe : pousser la branche et ouvrir la PR.
+3. Retirer cette section et enchaîner sur la tâche 3 (temps réel). La session lancée pendant les tests reste ouverte jusqu'à la tâche 4 (clôture) : elle bloque un second vote dans ce groupe, c'est normal.
 
 ## 1. Où on en est
 
@@ -17,7 +19,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) en PR sur `feat/groups-list`, derniers tests à finir |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote écrite sur `feat/vote-session`, à tester sur téléphone |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -40,6 +42,7 @@ Ordre de construction (`CLAUDE.md`) :
 | #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
 | #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
 | #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone au merge, les 2 derniers validés le 2026-11-02 |
+| #16 | Accueil avec la liste des groupes, créer, rejoindre avec un code, partager, `ErrorScreen` |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
