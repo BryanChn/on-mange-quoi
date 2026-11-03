@@ -1,16 +1,25 @@
 # Journal de bord
 
-État du projet au **2026-11-03**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-03** (fin de journée), pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
-Session du 2026-11-03 : **session de vote testée sur téléphone (6 tests sur 6), PR ouverte depuis `feat/vote-session`**. Le code a été écrit par Claude à la demande de Bryan : Bryan le parcourt, puis on en fait la review ensemble avant le merge.
+Session du 2026-11-03 : **PR #17 (session de vote) relue et mergée. Temps réel commencé sur `feat/realtime`, commité en local, pas encore poussé.**
 
-1. Review de la PR avec Bryan, puis merge après son « ok merge ». Au 2026-11-03 : **review terminée**, deux retours corrigés (`hasVote` → `wantVote` ; erreurs du champ séparées des erreurs d'action, testé sur téléphone). En attente du « ok merge ». Notions vues pendant la review : `.eq` / `.single()`, SQLSTATE `23505`, RLS qui filtre sans erreur (`count`) vs erreur réseau, idempotence (`setVote`), `useFocusEffect` vs `useEffect` dans une pile d'écrans, `useCallback` pour une référence stable, route dynamique `[id]`, mise à jour optimiste vs pessimiste, l'écran guide / la base protège. Notés pour plus tard : `fontSize: 30` en dur dans l'écran du vote (Design) ; ajout de plat dans une session clôturée affiche « Vérifie ton réseau » (Clôture). À consolider : `true`/`false` et non 1/0, distinguer état actuel et état voulu, un écran resté monté sous un autre n'est pas recréé.
-2. Retirer cette section et enchaîner sur le temps réel (section 3).
+Déjà fait sur `feat/realtime` (par Claude) :
+- migration `20261103131953_enable_realtime_votes.sql` : ajoute `proposals` et `votes` à la publication `supabase_realtime`. **Pas encore testée en local ni appliquée en ligne** (Docker Desktop n'était pas lancé) ;
+- `subscribeToSession(sessionId, onChange)` dans `src/lib/votes.ts` : un canal par session, `proposals` filtré sur la session, `votes` sans filtre (pas de `session_id`, la RLS limite aux groupes du membre), rechargement à chaque (re)connexion `SUBSCRIBED`, renvoie la fonction de désabonnement.
 
-La session lancée pendant les tests reste ouverte, même après le retrait de tous ses plats : « Voter » reste affiché. C'est voulu, seule la clôture ferme une session (vu par Bryan le 2026-11-03, d'abord pris pour un bug).
+Décisions (2026-11-03) : à chaque événement, on **recharge** avec `loadProposals()` au lieu d'appliquer le changement à la main (une seule source de vérité, un `DELETE` ne contient que l'id). Postgres Changes plutôt que Broadcast (suffisant à l'échelle d'un foyer).
+
+1. **Bryan** : écrire le `TODO(human)` de `src/app/session/[id].tsx` (s'abonner avec `subscribeToSession`, se désabonner dans le cleanup du `useEffect`, ajouter l'import en même temps). Claude relit.
+2. Lancer **Docker Desktop** (WSL ne trouvait pas `docker` : vérifier *Settings → Resources → WSL integration*), puis `npm run db:reset` + `npm run db:test` (57 scénarios) et vérifier la publication.
+3. `npx supabase db push --linked --dry-run`, puis `npm run db:push` : sans ça, l'app (base en ligne) ne reçoit aucun événement.
+4. Tester à deux appareils (téléphone + Expo Web, deux comptes) : vote, ajout et retrait de plat visibles en direct ; app en arrière-plan puis retour : la liste se rattrape.
+5. Après relecture : vérifier si des rechargements qui se chevauchent peuvent afficher une liste périmée (réponses dans le désordre) ; si oui, ignorer les réponses obsolètes. Puis pousser, PR, retirer cette section, enchaîner sur la Clôture.
+
+La session lancée pendant les tests reste ouverte, même après le retrait de tous ses plats : « Voter » reste affiché. C'est voulu, seule la clôture ferme une session. La branche distante `feat/vote-session` est à supprimer sur GitHub (bouton « Delete branch » de la PR #17).
 
 ## 1. Où on en est
 
@@ -20,7 +29,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) testée sur téléphone, PR ouverte |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) terminée. Temps réel en cours sur `feat/realtime` |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -44,8 +53,9 @@ Ordre de construction (`CLAUDE.md`) :
 | #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
 | #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone au merge, les 2 derniers validés le 2026-11-02 |
 | #16 | Accueil avec la liste des groupes, créer, rejoindre avec un code, partager, `ErrorScreen` |
+| #17 | Session de vote : lancer, proposer, cocher / décocher, retirer son plat ; « Voter » ou « Lancer un vote » sur le groupe. Review : `wantVote`, erreurs du champ séparées des erreurs d'action |
 
-Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
+Base : 7 migrations appliquées dans `supabase/migrations/` (une 8e, temps réel, sur `feat/realtime`), 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
 Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau de bord) :
 - code OTP à **6 chiffres** (8 par défaut sur les nouveaux projets) ;
@@ -57,11 +67,11 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 **Décision de Bryan (2026-11-02) : d'abord toutes les fonctionnalités du MVP, ensuite le design.** Tant qu'elles ne sont pas finies, les écrans restent fonctionnels et simples.
 
-1. **Session de vote** : testée, PR à relire et merger. Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
-2. **Temps réel** : votes visibles en direct (Supabase Realtime).
-3. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`). Cas limite à décider : clôturer une session **sans aucune proposition** (ni gagnant ni ex æquo), aujourd'hui non traité explicitement par `close_session`.
+1. ~~**Session de vote**~~ : mergée (PR #17). Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
+2. **Temps réel** : en cours, voir « Reprendre ici ».
+3. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`). Ajouter `vote_sessions` à la publication temps réel (tout le monde voit la clôture). Cas limite à décider : clôturer une session **sans aucune proposition** (ni gagnant ni ex æquo), aujourd'hui non traité explicitement par `close_session`. Ajout de plat dans une session clôturée : message « Vérifie ton réseau » trompeur, à corriger.
 4. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-5. **Design de toute l'app**, une fois le MVP complet : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
+5. **Design de toute l'app**, une fois le MVP complet (penser au `fontSize: 30` en dur dans l'écran du vote) : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
 6. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend) et déconnexion inexpliquée à surveiller (section 5).
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable). Idées produit : `docs/backlog.md`.
@@ -103,6 +113,8 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 
 ## 7. Notes d'apprentissage
 
-Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre ; JWT et `auth.uid()` (le serveur sait qui appelle), IDOR, `.then` / `.finally`, valeur de départ d'un state, feuille de partage native (Intent Android), lire une erreur TypeScript, ne changer qu'une chose à la fois quand on teste.
+Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre ; JWT et `auth.uid()` (le serveur sait qui appelle), IDOR, `.then` / `.finally`, valeur de départ d'un state, feuille de partage native (Intent Android), lire une erreur TypeScript, ne changer qu'une chose à la fois quand on teste. Le 2026-11-03 (review de la PR #17) : `.eq` = `WHERE`, `.single()` / `.maybeSingle()` = forme de la réponse, codes SQLSTATE (`23505`), RLS qui filtre en silence (`count`) contre erreur réseau (`error`), idempotence, `useFocusEffect` dans une pile d'écrans, `useCallback` pour une référence stable, route dynamique `[id]`, mise à jour optimiste vs pessimiste, **l'écran guide, la base protège**, distinguer bug et règle de la spec, vérifier l'état avant de réessayer après une erreur réseau, polling contre WebSocket.
 
-Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02).
+Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02). Au 2026-11-03 : `true` / `false` et non 1 / 0 en TypeScript, état actuel contre état voulu, un écran resté monté sous un autre n'est pas recréé (donc `useEffect` ne se relance pas), une requête qui n'arrive pas au serveur ne passe jamais par la RLS.
+
+Mode de travail ajusté le 2026-11-03 : Bryan préfère des recommandations directes et argumentées à une série de questions ; au plus une question de vérification quand un concept est vraiment nouveau.

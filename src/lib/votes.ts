@@ -31,6 +31,29 @@ export async function fetchOpenSessionId(groupId: string): Promise<string | null
   return data?.id ?? null;
 }
 
+// Appelle onChange à chaque plat ou vote ajouté, retiré, modifié (la RLS ne laisse passer
+// que ceux des groupes du membre). votes n'a pas de session_id, donc pas de filtre : un vote
+// dans un autre groupe déclenche un rechargement inutile, acceptable à l'échelle d'un foyer.
+// Renvoie la fonction de désabonnement, à appeler en quittant l'écran.
+export function subscribeToSession(sessionId: string, onChange: () => void): () => void {
+  const channel = supabase
+    .channel(`session:${sessionId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "proposals", filter: `session_id=eq.${sessionId}` },
+      onChange,
+    )
+    .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, onChange)
+    // (Re)connexion confirmée : rattrape les changements manqués pendant une coupure.
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") onChange();
+    });
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 // Si un autre membre vient de lancer un vote, l'index unique refuse le second :
 // on rejoint alors sa session au lieu d'afficher une erreur.
 export async function startSession(groupId: string): Promise<string> {

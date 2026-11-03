@@ -45,6 +45,13 @@ export default function SessionScreen() {
     loadProposals();
   }, [loadProposals]);
 
+  // Temps réel : la liste se recharge quand un membre vote, propose ou retire un plat.
+  useEffect(() => {
+    // TODO(human) : s'abonner avec subscribeToSession (src/lib/votes.ts) et se désabonner
+    // en quittant l'écran. Indice : relis ce que subscribeToSession renvoie, et ce que
+    // React fait de la fonction qu'un useEffect renvoie.
+  }, [id, loadProposals]);
+
   function retry() {
     setIsLoading(true);
     loadProposals();
