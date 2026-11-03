@@ -1,13 +1,16 @@
 # Journal de bord
 
-État du projet au **2026-11-02**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-03**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
-Session du 2026-11-02 : **la tâche 1 est en PR sur `feat/groups-list`**. À la demande de Bryan, Claude a écrit « Réessayer », l'avertissement d'erreur, créer, rejoindre et partager (exception au mode habituel). Testés sur téléphone : créer (nom vide refusé), liste, partager, rejoindre avec `TESTJOIN`, code faux refusé, code en minuscules avec espace, rejoindre deux fois, « Réessayer » (mode avion).
+Session du 2026-11-03 : **session de vote testée sur téléphone (6 tests sur 6), PR ouverte depuis `feat/vote-session`**. Le code a été écrit par Claude à la demande de Bryan : Bryan le parcourt, puis on en fait la review ensemble avant le merge.
 
-1. Merge après validation de Bryan, puis retirer cette section et enchaîner sur la tâche 2 (session de vote), qui partira de l'écran `group/[id]`.
+1. Review de la PR avec Bryan, puis merge après son « ok merge ». Au 2026-11-03 : **review terminée**, deux retours corrigés (`hasVote` → `wantVote` ; erreurs du champ séparées des erreurs d'action, testé sur téléphone). En attente du « ok merge ». Notions vues pendant la review : `.eq` / `.single()`, SQLSTATE `23505`, RLS qui filtre sans erreur (`count`) vs erreur réseau, idempotence (`setVote`), `useFocusEffect` vs `useEffect` dans une pile d'écrans, `useCallback` pour une référence stable, route dynamique `[id]`, mise à jour optimiste vs pessimiste, l'écran guide / la base protège. Notés pour plus tard : `fontSize: 30` en dur dans l'écran du vote (Design) ; ajout de plat dans une session clôturée affiche « Vérifie ton réseau » (Clôture). À consolider : `true`/`false` et non 1/0, distinguer état actuel et état voulu, un écran resté monté sous un autre n'est pas recréé.
+2. Retirer cette section et enchaîner sur le temps réel (section 3).
+
+La session lancée pendant les tests reste ouverte, même après le retrait de tous ses plats : « Voter » reste affiché. C'est voulu, seule la clôture ferme une session (vu par Bryan le 2026-11-03, d'abord pris pour un bug).
 
 ## 1. Où on en est
 
@@ -17,7 +20,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) en PR sur `feat/groups-list`, derniers tests à finir |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) testée sur téléphone, PR ouverte |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -40,6 +43,7 @@ Ordre de construction (`CLAUDE.md`) :
 | #13 | Écran du code : renvoi avec compte à rebours, « Changer d'email », composant `TextButton` |
 | #14 | Clavier : le champ reste visible sur Android (`behavior="padding"`, décalage de l'en-tête) |
 | #15 | Écran « Choisis ton nom », chargement du profil et aiguillage du layout ; 5 tests sur 7 passés sur téléphone au merge, les 2 derniers validés le 2026-11-02 |
+| #16 | Accueil avec la liste des groupes, créer, rejoindre avec un code, partager, `ErrorScreen` |
 
 Base : 7 migrations dans `supabase/migrations/`, 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
 
@@ -51,13 +55,14 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 ## 3. À faire, dans l'ordre
 
-1. **Remplacer l'accueil provisoire** (« Salut … ! ») **par la liste de mes groupes** (repéré par Bryan), avec en premier la création d'un groupe (`create_group`) ; puis rejoindre avec un code (`join_group`) et partager le code avec la feuille de partage native. En PR sur `feat/groups-list`, avec l'avertissement d'erreur demandé par Bryan (composant `ErrorScreen`).
-2. **Session de vote** : lancer une session, proposer des plats, cocher / décocher, scores (`get_session_result`).
-3. **Temps réel** : votes visibles en direct (Supabase Realtime).
-4. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
-5. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
-6. **Refaire le design de la liste des groupes** (jugée très moche par Bryan) : une interface plus moderne, une fois le parcours de vote en place.
-7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend).
+**Décision de Bryan (2026-11-02) : d'abord toutes les fonctionnalités du MVP, ensuite le design.** Tant qu'elles ne sont pas finies, les écrans restent fonctionnels et simples.
+
+1. **Session de vote** : testée, PR à relire et merger. Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
+2. **Temps réel** : votes visibles en direct (Supabase Realtime).
+3. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`). Cas limite à décider : clôturer une session **sans aucune proposition** (ni gagnant ni ex æquo), aujourd'hui non traité explicitement par `close_session`.
+4. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
+5. **Design de toute l'app**, une fois le MVP complet : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
+6. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend) et déconnexion inexpliquée à surveiller (section 5).
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable). Idées produit : `docs/backlog.md`.
 
@@ -98,6 +103,6 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 
 ## 7. Notes d'apprentissage
 
-Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre.
+Acquis pendant ces sessions : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre ; JWT et `auth.uid()` (le serveur sait qui appelle), IDOR, `.then` / `.finally`, valeur de départ d'un state, feuille de partage native (Intent Android), lire une erreur TypeScript, ne changer qu'une chose à la fois quand on teste.
 
 Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02).
