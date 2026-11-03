@@ -25,7 +25,9 @@ export default function SessionScreen() {
   const [dishName, setDishName] = useState("");
   // Une action à la fois : un double appui ne doit pas cocher puis décocher.
   const [isBusy, setIsBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Sous le champ : seulement ce qui concerne le nom tapé. Le reste (réseau, vote, retrait) à part.
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const loadProposals = useCallback(() => {
     return fetchProposals(id)
@@ -50,14 +52,15 @@ export default function SessionScreen() {
 
   // L'écran ne change qu'après confirmation du serveur : on recharge plutôt que de supposer.
   async function runAction(action: () => Promise<void>, failureMessage: string) {
-    setError(null);
+    setNameError(null);
+    setActionError(null);
     setIsBusy(true);
 
     try {
       await action();
       await loadProposals();
     } catch {
-      setError(failureMessage);
+      setActionError(failureMessage);
     } finally {
       setIsBusy(false);
     }
@@ -66,7 +69,7 @@ export default function SessionScreen() {
   function handlePropose() {
     const cleanName = dishName.trim();
     if (cleanName === "") {
-      setError("Entre le nom d’un plat.");
+      setNameError("Entre le nom d’un plat.");
       return;
     }
 
@@ -75,7 +78,7 @@ export default function SessionScreen() {
       if (isAdded) {
         setDishName("");
       } else {
-        setError("Ce plat est déjà proposé : coche-le dans la liste.");
+        setNameError("Ce plat est déjà proposé : coche-le dans la liste.");
       }
     }, "Impossible d’ajouter ce plat. Vérifie ton réseau et réessaie.");
   }
@@ -90,7 +93,8 @@ export default function SessionScreen() {
   function handleRemove(proposal: Proposal) {
     runAction(async () => {
       const isRemoved = await removeProposal(proposal.id);
-      if (!isRemoved) setError("Quelqu’un a déjà voté pour ce plat : il reste dans la liste.");
+      if (!isRemoved)
+        setActionError("Quelqu’un a déjà voté pour ce plat : il reste dans la liste.");
     }, "Impossible de retirer ce plat. Vérifie ton réseau et réessaie.");
   }
 
@@ -155,11 +159,16 @@ export default function SessionScreen() {
         />
 
         <View style={styles.form}>
+          {actionError ? (
+            <Text style={styles.error} accessibilityRole="alert">
+              {actionError}
+            </Text>
+          ) : null}
           <TextField
             label="Proposer un plat"
             value={dishName}
             onChangeText={setDishName}
-            error={error}
+            error={nameError}
             placeholder="Bolognaise"
             autoCapitalize="sentences"
             maxLength={PROPOSAL_NAME_MAX_LENGTH}
@@ -216,5 +225,6 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
+    error: { color: colors.danger, fontSize: fontSize.small },
   });
 }
