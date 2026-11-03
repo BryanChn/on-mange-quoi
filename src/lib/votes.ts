@@ -91,10 +91,10 @@ export async function removeProposal(proposalId: string): Promise<boolean> {
   return count === 1;
 }
 
-export async function setVote(proposalId: string, hasVote: boolean): Promise<void> {
+export async function setVote(proposalId: string, wantVote: boolean): Promise<void> {
   const userId = await getUserId();
 
-  if (hasVote) {
+  if (wantVote) {
     const { error } = await supabase
       .from("votes")
       .insert({ proposal_id: proposalId, profile_id: userId });
