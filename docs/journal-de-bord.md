@@ -1,15 +1,16 @@
 # Journal de bord
 
-État du projet au **2026-11-02**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-03**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
-Session du 2026-11-02 : **PR #16 (groupes) mergée, tous les tests passés. La tâche 2 (session de vote) est écrite sur `feat/vote-session`, pas encore testée sur téléphone ni poussée**. À la demande de Bryan, Claude écrit le code et résume (exception au mode habituel).
+Session du 2026-11-03 : **session de vote testée sur téléphone (6 tests sur 6), PR ouverte depuis `feat/vote-session`**. Le code a été écrit par Claude à la demande de Bryan : Bryan le parcourt, puis on en fait la review ensemble avant le merge.
 
-1. Tester sur téléphone : lancer un vote, proposer un plat (vide refusé, doublon refusé), cocher et décocher, retirer son plat, revenir au groupe (« Voter » remplace « Lancer un vote »).
-2. Si tout passe : pousser la branche et ouvrir la PR.
-3. Retirer cette section et enchaîner sur le temps réel (section 3). La session lancée pendant les tests reste ouverte jusqu'à la clôture : elle bloque un second vote dans ce groupe, c'est normal.
+1. Review de la PR avec Bryan, puis merge après son « ok merge ».
+2. Retirer cette section et enchaîner sur le temps réel (section 3).
+
+La session lancée pendant les tests reste ouverte, même après le retrait de tous ses plats : « Voter » reste affiché. C'est voulu, seule la clôture ferme une session (vu par Bryan le 2026-11-03, d'abord pris pour un bug).
 
 ## 1. Où on en est
 
@@ -19,7 +20,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote écrite sur `feat/vote-session`, à tester sur téléphone |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) testée sur téléphone, PR ouverte |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -56,9 +57,9 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 **Décision de Bryan (2026-11-02) : d'abord toutes les fonctionnalités du MVP, ensuite le design.** Tant qu'elles ne sont pas finies, les écrans restent fonctionnels et simples.
 
-1. **Session de vote** : écrite sur `feat/vote-session`, à tester sur téléphone. Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
+1. **Session de vote** : testée, PR à relire et merger. Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
 2. **Temps réel** : votes visibles en direct (Supabase Realtime).
-3. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`).
+3. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`). Cas limite à décider : clôturer une session **sans aucune proposition** (ni gagnant ni ex æquo), aujourd'hui non traité explicitement par `close_session`.
 4. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
 5. **Design de toute l'app**, une fois le MVP complet : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
 6. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend) et déconnexion inexpliquée à surveiller (section 5).
