@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -36,14 +36,24 @@ export default function SessionScreen() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Numéro du dernier rechargement lancé : seule sa réponse a le droit de modifier l'écran.
+  const latestRequestRef = useRef(0);
+
   const loadProposals = useCallback(() => {
+    latestRequestRef.current += 1;
+    const requestId = latestRequestRef.current;
     return fetchProposals(id)
       .then(
         (loadedProposals) => {
+          if (latestRequestRef.current !== requestId) return;
           setProposals(loadedProposals);
           setHasFailed(false);
         },
-        () => setHasFailed(true),
+
+        () => {
+          if (latestRequestRef.current !== requestId) return;
+          setHasFailed(true);
+        },
       )
       .finally(() => setIsLoading(false));
   }, [id]);
