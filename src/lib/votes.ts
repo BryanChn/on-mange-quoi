@@ -43,6 +43,9 @@ export function subscribeToSession(sessionId: string, onChange: () => void): () 
       { event: "*", schema: "public", table: "proposals", filter: `session_id=eq.${sessionId}` },
       onChange,
     )
+    // Un DELETE ne transporte que l'id de la ligne : le filtre sur session_id l'écarterait
+    // (limite de Supabase Realtime). On écoute donc les retraits de plats sans filtre.
+    .on("postgres_changes", { event: "DELETE", schema: "public", table: "proposals" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, onChange)
     // (Re)connexion confirmée : rattrape les changements manqués pendant une coupure.
     .subscribe((status) => {
