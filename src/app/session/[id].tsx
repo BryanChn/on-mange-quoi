@@ -8,7 +8,14 @@ import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
-import { addProposal, fetchProposals, removeProposal, setVote, subscribeToSession, type Proposal } from "@/lib/votes";
+import {
+  addProposal,
+  fetchProposals,
+  removeProposal,
+  setVote,
+  subscribeToSession,
+  type Proposal,
+} from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
