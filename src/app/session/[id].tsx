@@ -8,7 +8,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
-import { addProposal, fetchProposals, removeProposal, setVote, type Proposal } from "@/lib/votes";
+import { addProposal, fetchProposals, removeProposal, setVote, subscribeToSession, type Proposal } from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
@@ -47,9 +47,9 @@ export default function SessionScreen() {
 
   // Temps réel : la liste se recharge quand un membre vote, propose ou retire un plat.
   useEffect(() => {
-    // TODO(human) : s'abonner avec subscribeToSession (src/lib/votes.ts) et se désabonner
-    // en quittant l'écran. Indice : relis ce que subscribeToSession renvoie, et ce que
-    // React fait de la fonction qu'un useEffect renvoie.
+    const unsubscribe = subscribeToSession(id, loadProposals);
+    // React appelle cette fonction en quittant l'écran (ou avant de relancer l'effet) : le canal se ferme.
+    return unsubscribe;
   }, [id, loadProposals]);
 
   function retry() {
