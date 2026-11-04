@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -8,7 +8,14 @@ import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
-import { addProposal, fetchProposals, removeProposal, setVote, type Proposal } from "@/lib/votes";
+import {
+  addProposal,
+  fetchProposals,
+  removeProposal,
+  setVote,
+  subscribeToSession,
+  type Proposal,
+} from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
@@ -29,14 +36,24 @@ export default function SessionScreen() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Numéro du dernier rechargement lancé : seule sa réponse a le droit de modifier l'écran.
+  const latestRequestRef = useRef(0);
+
   const loadProposals = useCallback(() => {
+    latestRequestRef.current += 1;
+    const requestId = latestRequestRef.current;
     return fetchProposals(id)
       .then(
         (loadedProposals) => {
+          if (latestRequestRef.current !== requestId) return;
           setProposals(loadedProposals);
           setHasFailed(false);
         },
-        () => setHasFailed(true),
+
+        () => {
+          if (latestRequestRef.current !== requestId) return;
+          setHasFailed(true);
+        },
       )
       .finally(() => setIsLoading(false));
   }, [id]);
@@ -44,6 +61,13 @@ export default function SessionScreen() {
   useEffect(() => {
     loadProposals();
   }, [loadProposals]);
+
+  // Temps réel : la liste se recharge quand un membre vote, propose ou retire un plat.
+  useEffect(() => {
+    const unsubscribe = subscribeToSession(id, loadProposals);
+    // React appelle cette fonction en quittant l'écran (ou avant de relancer l'effet) : le canal se ferme.
+    return unsubscribe;
+  }, [id, loadProposals]);
 
   function retry() {
     setIsLoading(true);
