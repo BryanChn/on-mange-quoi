@@ -1,22 +1,27 @@
 # Journal de bord
 
-État du projet au **2026-11-04** (fin de session), pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-05** (fin de session), pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
-Session du 2026-11-04 : **temps réel terminé et testé à deux appareils (téléphone + Expo Web), PR ouverte depuis `feat/realtime`.** Prochaine étape après le merge : la **Clôture** (section 3).
+Session du 2026-11-05, **en mode « Claude code seul »** (Bryan absent, à la demande de Bryan pour cette session uniquement) : **clôture du vote codée et testée en local, PR ouverte depuis `feat/cloture`.** Rien n'a été testé sur téléphone.
 
-Fait sur `feat/realtime` :
-- migration `20261103131953_enable_realtime_votes.sql` testée en local (57 scénarios OK) et **appliquée en ligne** ;
-- écran du vote abonné à la session (`subscribeToSession`, cleanup du `useEffect`), écrit par Bryan ;
-- correctif : les retraits de plats n'arrivaient pas aux autres appareils (un `DELETE` ne passe pas un filtre, voir section 5) ;
-- correctif : réponses de rechargement périmées ignorées (compteur `useRef`, « la dernière demande gagne »), écrit par Bryan ;
-- correctif : `web.output` passé de `server` à `single`, le rendu serveur faisait planter Metro (voir section 5).
+À faire par Bryan, dans l'ordre :
+1. Relire la PR (points d'attention listés dans la description).
+2. Appliquer la migration en ligne : `npx supabase db push --linked --dry-run` (doit lister seulement `20261105123152_close_session_realtime_and_lock.sql`), puis `npm run db:push`.
+3. Tester sur téléphone + Expo Web avec deux comptes (voir « Comment tester » dans la PR), puis « ok merge ».
+
+Fait sur `feat/cloture` :
+- **course corrigée** entre un vote et la clôture (reproduite avant correctif : Curry 2, Pizza 1, gagnant « Pizza imposée par l'organisateur ») : verrou `for share` posé par des triggers, `npm run db:test:race` la rejoue ;
+- `vote_sessions` en temps réel : la clôture arrive sur tous les téléphones ;
+- écran du vote : clôturer (confirmation), égalité → « Tirer au sort » ou « Choisir moi-même », résultat final ; **roulette** jouée partout au moment d'un tirage ;
+- vote ou ajout dans une session close : le résultat s'affiche au lieu de « Vérifie ton réseau » ;
+- session sans plat : refus serveur conservé, bouton désactivé (décision du 2026-11-05) ;
+- écran du groupe : « Dernier vote : … » et « Voir le résultat » ;
+- une requête au lieu de deux pour charger l'écran du vote (`fetchSession`).
 
 Fiche de révision (points bloquants, exercices) : page Claude « Fiche de révision — On mange quoi ? », https://claude.ai/artifact/2tbQiqNqqRLpXF1NrTCCoG
-
-La branche distante `feat/vote-session` est à supprimer sur GitHub (bouton « Delete branch » de la PR #17).
 
 ## 1. Où on en est
 
@@ -26,7 +31,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) terminée. Temps réel terminé (PR depuis `feat/realtime`) |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) terminée. Temps réel terminé. Clôture codée, testée en local, à tester sur téléphone (PR depuis `feat/cloture`) |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -52,8 +57,9 @@ Ordre de construction (`CLAUDE.md`) :
 | #16 | Accueil avec la liste des groupes, créer, rejoindre avec un code, partager, `ErrorScreen` |
 | #17 | Session de vote : lancer, proposer, cocher / décocher, retirer son plat ; « Voter » ou « Lancer un vote » sur le groupe. Review : `wantVote`, erreurs du champ séparées des erreurs d'action |
 | #18 | Temps réel : votes, ajouts et retraits de plats visibles en direct ; réponses périmées ignorées ; web rendu dans le navigateur (`output: single`) |
+| #19 (ouverte) | Clôture : verrou contre la course vote / clôture, départage de l'égalité, roulette, résultat, dernier vote sur le groupe |
 
-Base : 8 migrations appliquées en ligne dans `supabase/migrations/` (la 8e, temps réel, depuis `feat/realtime`), 57 scénarios de test dans `supabase/scripts/` (`npm run db:test`).
+Base : 9 migrations dans `supabase/migrations/`, dont 8 appliquées en ligne (la 9e, clôture, à pousser après la review), 60 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
 Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau de bord) :
 - code OTP à **6 chiffres** (8 par défaut sur les nouveaux projets) ;
@@ -67,7 +73,9 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 1. ~~**Session de vote**~~ : mergée (PR #17). Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
 2. ~~**Temps réel**~~ : terminé (PR depuis `feat/realtime`).
-3. **Clôture** : gagnant, ou en cas d'égalité roulette animée ou choix manuel (`close_session`, indice `tie_needs_choice`). Ajouter `vote_sessions` à la publication temps réel (tout le monde voit la clôture). Cas limite à décider : clôturer une session **sans aucune proposition** (ni gagnant ni ex æquo), aujourd'hui non traité explicitement par `close_session`. Ajout de plat dans une session clôturée : message « Vérifie ton réseau » trompeur, à corriger.
+3. ~~**Clôture**~~ : codée (PR depuis `feat/cloture`), à tester sur téléphone. Test d'intégration de `votes.ts` sur la base locale : 20 cas sur 20 (script hors dépôt, à transformer en vrais tests automatisés).
+   - **Droits par colonne** (faille trouvée à l'audit du 2026-11-05, PR `fix/` dédiée) : un membre peut choisir `created_at` (et d'autres colonnes) à l'insertion ; une session datée de 2099 resterait « le dernier vote » du groupe. Correctif : `grant insert (colonnes utiles)`, comme pour `groups`.
+   - **`npm audit`** : 11 failles (3 hautes : `node-forge`, `zod`), toutes dans l'outillage d'Expo (CLI, Metro, ESLint), pas dans l'app embarquée. `npm audit fix` monte Expo à 58.0.23 : à faire avec la mise à jour d'Expo, sur une branche `chore/` dédiée.
 4. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
 5. **Design de toute l'app**, une fois le MVP complet (penser au `fontSize: 30` en dur dans l'écran du vote) : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
 6. **Écran de connexion** : journaliser la vraie erreur en dev (`console.warn`) et adapter le message (`429` → « Attends une minute », sinon « Envoi impossible pour le moment ») ; « Réessaie dans un instant » est faux pour un `500`. Exercice pour Bryan.
@@ -105,6 +113,8 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | `window is not defined` au démarrage web | Avec `web.output: server`, les pages sont rendues dans Node, sans `window` ; l'erreur tue Metro et le tunnel répond « gateway timeout » même au téléphone. On est en `single` |
 | `500` sur `/auth/v1/otp` | Resend a refusé l'adresse (sans domaine vérifié, seule l'adresse du compte Resend reçoit). Cause exacte : Supabase → Logs → Auth. Pour tester à deux appareils : le même compte des deux côtés |
 | « No API key found in request » | URL de Supabase ouverte dans un onglet (GET sans en-tête `apikey`) : ce n'est pas la vraie réponse. Lire la requête dans F12 → Network → Response |
+| Course entre un vote et la clôture | Une écriture validée par la RLS avant la clôture, mais pas encore commitée, échappait au comptage. Corrigé par un verrou `for share` (triggers) que `close_session` (`for update`) attend. Ne pas retirer ces triggers ; `npm run db:test:race` pour vérifier |
+| Trigger et cascades | Les triggers de verrou ne contrôlent que le rôle `authenticated` : la suppression d'un compte ou d'un groupe efface aussi des votes de sessions fermées, et doit passer |
 | Garde-fou de Claude Code | Il bloque les commandes destructives (`rm -rf`, suppression de branches distantes, modification de la config Supabase en ligne) : c'est Bryan qui les lance |
 
 ## 6. Mode de travail
@@ -119,5 +129,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 Acquis pendant ces sessions (2026-11-04 : cleanup de `useEffect` et ses deux déclenchements, trois sens de « session », lire une pile d'appels et l'environnement d'exécution, déboguer en comparant ce qui marche et ce qui casse, 502/504 = un intermédiaire qui attend) : relations SQL et `ON DELETE`, contraintes, RLS et `security definer`, transactions, migrations ; en React Native : state (`setState` différé, *UI = f(state)*), clauses de garde, fonctions pures, `try / catch / finally`, portée des variables, déstructuration avec renommage, design tokens et contraste WCAG ; échéance plutôt que compteur pour un délai, `Math.ceil` / `floor` / `max`, cleanup d'un timer, pureté du rendu (pas de `Date.now()`), hooks appelés dans le même ordre ; JWT et `auth.uid()` (le serveur sait qui appelle), IDOR, `.then` / `.finally`, valeur de départ d'un state, feuille de partage native (Intent Android), lire une erreur TypeScript, ne changer qu'une chose à la fois quand on teste. Le 2026-11-03 (review de la PR #17) : `.eq` = `WHERE`, `.single()` / `.maybeSingle()` = forme de la réponse, codes SQLSTATE (`23505`), RLS qui filtre en silence (`count`) contre erreur réseau (`error`), idempotence, `useFocusEffect` dans une pile d'écrans, `useCallback` pour une référence stable, route dynamique `[id]`, mise à jour optimiste vs pessimiste, **l'écran guide, la base protège**, distinguer bug et règle de la spec, vérifier l'état avant de réessayer après une erreur réseau, polling contre WebSocket.
 
 Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02). Au 2026-11-03 : `true` / `false` et non 1 / 0 en TypeScript, état actuel contre état voulu, un écran resté monté sous un autre n'est pas recréé (donc `useEffect` ne se relance pas), une requête qui n'arrive pas au serveur ne passe jamais par la RLS. Au 2026-11-04 : passer une fonction (`f`) ou l'appeler (`f()`), valeur contre callback (lire la signature `() => void`), `useRef` : la boîte (`ref`) contre son contenu (`ref.current`), syntaxe JavaScript à rendre fluide (exercices de la fiche de révision). `isStale` / « la dernière demande gagne » : écrit par Bryan avec un squelette à trous, à refaire seul.
+
+Le 2026-11-05 (session où Claude a codé seul, à revoir ensemble) : **condition de course** (*race condition*) et verrous de ligne (`for share` / `for update`), reproduire un bug avant de le corriger, trigger `before insert or delete`, `current_user` dans une fonction `security definer` ou non, assignation de masse (*mass assignment*), fonction pure testable (`buildSpin`), « latest ref » (`useRef` pour garder la dernière version d’un callback sans relancer un effet), jointures PostgREST (`!nom_de_fk`, `referencedTable`).
 
 Mode de travail ajusté le 2026-11-03 : Bryan préfère des recommandations directes et argumentées à une série de questions ; au plus une question de vérification quand un concept est vraiment nouveau.
