@@ -224,6 +224,9 @@ isOneToOne: false
 "leave_group":
 { Args: { "new_owner_id"?: string,"target_group_id": string }; Returns: undefined
                            },
+"lock_open_session":
+{ Args: { "target_session_id": string }; Returns: undefined
+                           },
 "proposal_has_votes":
 { Args: { "target_proposal_id": string }; Returns: boolean
                            },

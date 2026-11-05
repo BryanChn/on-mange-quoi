@@ -1,4 +1,4 @@
--- Scénarios de la logique de vote : get_session_result et close_session (11 cas).
+-- Scénarios de la logique de vote : get_session_result et close_session (14 cas).
 -- Transaction annulée à la fin : la base n'est pas modifiée.
 -- Lancer (Supabase local démarré) :
 --   docker exec -i supabase_db_on-mange-quoi psql -U postgres -tA < supabase/scripts/test-vote-functions.sql
@@ -62,8 +62,17 @@ insert into public.vote_sessions (id, group_id, organizer_id) values ('11111111-
 set local role authenticated;
 \echo '10. Clôture   (attendu : refus, sans plat)'
 savepoint t; select public.close_session('11111111-0000-0000-0000-000000000004', 'tirage'); rollback to t;
+
+\echo '=== Après une vraie clôture (session 1, Pizza gagnante)'
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
+\echo '11. Tonton coche Curry   (attendu : refus, hint session_closed)'
+savepoint t; insert into public.votes values ('22222222-0000-0000-0000-000000000012','00000000-0000-0000-0000-00000000000c'); rollback to t;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
+with d as (delete from public.votes where profile_id = '00000000-0000-0000-0000-00000000000a' and proposal_id = '22222222-0000-0000-0000-000000000011' returning 1) select '12. Bryan décoche Pizza : ' || count(*) || '   (attendu : 0)' from d;
+delete from public.groups where id = '99999999-0000-0000-0000-000000000001';
+select '13. Bryan (owner) supprime Famille, sessions fermées comprises -> groupe existe : ' || exists (select 1 from public.groups where id = '99999999-0000-0000-0000-000000000001') || '   (attendu : false)';
 rollback;
 
 \echo '=== Équité du tirage : 3 000 tirages entre 3 ex æquo (admin)'
-select '11. Répartition : ' || string_agg(n::text, ' / ') || '   (attendu : ~1000 chacun)' from (
+select '14. Répartition : ' || string_agg(n::text, ' / ') || '   (attendu : ~1000 chacun)' from (
   select count(*) n from (select 1 + floor(random() * 3)::int i from generate_series(1, 3000)) t group by i order by i) s;

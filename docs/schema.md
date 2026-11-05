@@ -149,6 +149,8 @@ Une ligne = « ce profil a coché ce plat ». Pas de compteur : le score se calc
 À couvrir par la RLS ou des fonctions, et à tester :
 
 - On ne propose, ne vote et ne retire un vote que si la session est `open`.
+- Plats et votes sont **figés à la clôture**, même en cas d'écriture simultanée : les triggers `proposals_lock_open_session` et `votes_lock_open_session` prennent un verrou partagé (`for share`) sur la session, que `close_session` (`for update`) attend avant de compter. Une écriture arrivée après la clôture échoue avec le hint `session_closed`. Rejouer la course : `npm run db:test:race`.
+- Une session sans plat ne se clôture pas (`close_session` refuse, décision du 2026-11-05) : l'app désactive le bouton, et n'importe quel membre peut ajouter un plat, donc le groupe n'est jamais bloqué.
 - L'auteur ne peut retirer sa proposition que si elle n'a encore reçu aucun vote (personne n'est lésé, rien à notifier).
 - Seul l'organisateur passe une session à `closed`, et `organisateur` n'est accepté qu'en cas d'égalité.
 - Avant de supprimer un compte owner : transfert au membre le plus ancien (`joined_at`), ou suppression du groupe s'il est seul.
