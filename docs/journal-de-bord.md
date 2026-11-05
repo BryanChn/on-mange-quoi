@@ -5,11 +5,11 @@
 
 ## Reprendre ici
 
-Session du 2026-11-05 : **clôture du vote (PR #19) et droits par colonne (PR #20) mergées, testées en local.** Rien n'a encore été testé sur téléphone, et les deux migrations ne sont **pas encore en ligne**.
+Session du 2026-11-05 : **clôture du vote (PR #19) et droits par colonne (PR #20) mergées ; écran « Mon compte » avec suppression du compte en PR depuis `feat/suppression-compte`.** Tout est testé en local, rien sur téléphone, et les deux migrations ne sont **pas encore en ligne**.
 
 À faire, dans l'ordre :
 1. Appliquer les migrations en ligne : `npx supabase db push --linked --dry-run` (doit lister `20261105123152_close_session_realtime_and_lock.sql` et `20261105124301_restrict_column_privileges.sql`), puis `npm run db:push`. Sans elles, l'app en ligne ne reçoit pas la clôture en direct.
-2. Tester sur téléphone + Expo Web avec deux comptes (« Comment tester » des PR #19 et #20). Un bug trouvé = une branche `fix/`.
+2. Tester sur téléphone + Expo Web avec deux comptes (« Comment tester » des PR #19, #20 et #21). Un bug trouvé = une branche `fix/`.
 
 Fait sur `feat/cloture` :
 - **course corrigée** entre un vote et la clôture (reproduite avant correctif : Curry 2, Pizza 1, gagnant « Pizza imposée par l'organisateur ») : verrou `for share` posé par des triggers, `npm run db:test:race` la rejoue ;
@@ -58,6 +58,7 @@ Ordre de construction (`CLAUDE.md`) :
 | #18 | Temps réel : votes, ajouts et retraits de plats visibles en direct ; réponses périmées ignorées ; web rendu dans le navigateur (`output: single`) |
 | #19 | Clôture : verrou contre la course vote / clôture, départage de l'égalité, roulette, résultat, dernier vote sur le groupe |
 | #20 | Droits par colonne : `insert` / `update` seulement sur les colonnes écrites par l'app (assignation de masse) |
+| #21 (ouverte) | « Mon compte » : déconnexion, suppression du compte avec ses conséquences annoncées ; variante `danger` du bouton principal |
 
 Base : 10 migrations dans `supabase/migrations/`, dont 8 appliquées en ligne (les 2 du 2026-11-05 à pousser), 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
@@ -76,10 +77,12 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 3. ~~**Clôture**~~ : mergée (PR #19), à tester sur téléphone. Test d'intégration de `votes.ts` sur la base locale : 20 cas sur 20 (script hors dépôt, à transformer en vrais tests automatisés).
    - ~~**Droits par colonne**~~ : mergé (PR #20). Règle pour toute nouvelle table ou colonne dans `docs/schema.md`.
    - **`npm audit`** : 11 failles (3 hautes : `node-forge`, `zod`), toutes dans l'outillage d'Expo (CLI, Metro, ESLint), pas dans l'app embarquée. `npm audit fix` monte Expo à 58.0.23 : à faire avec la mise à jour d'Expo, sur une branche `chore/` dédiée.
-4. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
+4. ~~**Suppression de compte**~~ : écran « Mon compte » (PR #21), testé en local (12 cas sur 12). Successeur automatique ; le choix du successeur est dans `docs/backlog.md`.
 5. **Design de toute l'app**, une fois le MVP complet (penser au `fontSize: 30` en dur dans l'écran du vote) : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
 6. **Écran de connexion** : journaliser la vraie erreur en dev (`console.warn`) et adapter le message (`429` → « Attends une minute », sinon « Envoi impossible pour le moment ») ; « Réessaie dans un instant » est faux pour un `500`. Exercice pour Bryan.
 7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend) et déconnexion inexpliquée à surveiller (section 5).
+8. **Installer l'app sur les téléphones de la famille** : avec Expo Go et `npm run dev`, l'app ne marche que si le PC tourne, donc le feu vert est impossible à mesurer. Build EAS en distribution interne (APK sur Android ; TestFlight et compte Apple Developer à 99 €/an si un iPhone), puis EAS Update pour les correctifs. Icône et écran de démarrage à ce moment-là. À vérifier : y a-t-il un iPhone dans la famille ?
+9. **Mesurer le feu vert** : 4 soirs sur 7, trois semaines de suite. Requête : nombre de jours distincts avec une session clôturée (`closed_at`), par semaine, pour le groupe du foyer.
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable), Supabase CLI v3 (version majeure, branche `chore/` dédiée). V1 (page web des invités) : si le rendu serveur revient (`output: server`), ne donner `AsyncStorage` au client Supabase que si `typeof window !== "undefined"`. Idées produit : `docs/backlog.md`.
 
