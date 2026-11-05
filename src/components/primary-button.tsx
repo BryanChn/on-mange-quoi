@@ -7,10 +7,17 @@ type PrimaryButtonProps = {
   label: string;
   onPress: () => void;
   isLoading?: boolean;
+  // danger : action irréversible (supprimer son compte). La couleur prévient avant le texte.
+  variant?: "primary" | "danger";
 };
 
 // Bouton d'action principal de l'écran : un seul par écran.
-export function PrimaryButton({ label, onPress, isLoading = false }: PrimaryButtonProps) {
+export function PrimaryButton({
+  label,
+  onPress,
+  isLoading = false,
+  variant = "primary",
+}: PrimaryButtonProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -23,7 +30,8 @@ export function PrimaryButton({ label, onPress, isLoading = false }: PrimaryButt
       accessibilityState={{ busy: isLoading, disabled: isLoading }}
       style={({ pressed }) => [
         styles.button,
-        pressed && styles.pressed,
+        variant === "danger" && styles.danger,
+        pressed && (variant === "danger" ? styles.dangerPressed : styles.pressed),
         isLoading && styles.loading,
       ]}
     >
@@ -46,6 +54,8 @@ function createStyles({ colors, radius, fonts, fontSize }: Theme) {
       justifyContent: "center",
     },
     pressed: { backgroundColor: colors.primaryStrong },
+    danger: { backgroundColor: colors.danger },
+    dangerPressed: { opacity: 0.85, backgroundColor: colors.danger },
     loading: { opacity: 0.7 },
     label: { color: colors.onPrimary, fontFamily: fonts.displayBold, fontSize: fontSize.button },
   });

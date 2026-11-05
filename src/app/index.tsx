@@ -7,7 +7,6 @@ import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { fetchGroups, type Group } from "@/lib/groups";
 import { useProfile } from "@/lib/profile";
-import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
 
 export default function Index() {
@@ -97,7 +96,7 @@ export default function Index() {
         <View style={styles.actions}>
           <PrimaryButton label="Créer un groupe" onPress={() => router.push("/create-group")} />
           <TextButton label="Rejoindre avec un code" onPress={() => router.push("/join-group")} />
-          <TextButton label="Se déconnecter" onPress={() => supabase.auth.signOut()} />
+          <TextButton label="Mon compte" onPress={() => router.push("/account")} />
         </View>
       }
     />
