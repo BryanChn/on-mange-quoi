@@ -5,12 +5,11 @@
 
 ## Reprendre ici
 
-Session du 2026-11-05 : **clôture du vote codée et testée en local, PR ouverte depuis `feat/cloture`.** Rien n'a été testé sur téléphone.
+Session du 2026-11-05 : **clôture du vote (PR #19) et droits par colonne (PR #20) mergées, testées en local.** Rien n'a encore été testé sur téléphone, et les deux migrations ne sont **pas encore en ligne**.
 
 À faire, dans l'ordre :
-1. Relire la PR (points d'attention listés dans la description).
-2. Appliquer la migration en ligne : `npx supabase db push --linked --dry-run` (doit lister seulement `20261105123152_close_session_realtime_and_lock.sql`), puis `npm run db:push`.
-3. Tester sur téléphone + Expo Web avec deux comptes (voir « Comment tester » dans la PR), puis « ok merge ».
+1. Appliquer les migrations en ligne : `npx supabase db push --linked --dry-run` (doit lister `20261105123152_close_session_realtime_and_lock.sql` et `20261105124301_restrict_column_privileges.sql`), puis `npm run db:push`. Sans elles, l'app en ligne ne reçoit pas la clôture en direct.
+2. Tester sur téléphone + Expo Web avec deux comptes (« Comment tester » des PR #19 et #20). Un bug trouvé = une branche `fix/`.
 
 Fait sur `feat/cloture` :
 - **course corrigée** entre un vote et la clôture (reproduite avant correctif : Curry 2, Pizza 1, gagnant « Pizza imposée par l'organisateur ») : verrou `for share` posé par des triggers, `npm run db:test:race` la rejoue ;
@@ -31,7 +30,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) terminée. Temps réel terminé. Clôture codée, testée en local, à tester sur téléphone (PR depuis `feat/cloture`) |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) terminée. Temps réel terminé. Clôture mergée (PR #19), testée en local, à tester sur téléphone |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -57,9 +56,10 @@ Ordre de construction (`CLAUDE.md`) :
 | #16 | Accueil avec la liste des groupes, créer, rejoindre avec un code, partager, `ErrorScreen` |
 | #17 | Session de vote : lancer, proposer, cocher / décocher, retirer son plat ; « Voter » ou « Lancer un vote » sur le groupe. Review : `wantVote`, erreurs du champ séparées des erreurs d'action |
 | #18 | Temps réel : votes, ajouts et retraits de plats visibles en direct ; réponses périmées ignorées ; web rendu dans le navigateur (`output: single`) |
-| #19 (ouverte) | Clôture : verrou contre la course vote / clôture, départage de l'égalité, roulette, résultat, dernier vote sur le groupe |
+| #19 | Clôture : verrou contre la course vote / clôture, départage de l'égalité, roulette, résultat, dernier vote sur le groupe |
+| #20 | Droits par colonne : `insert` / `update` seulement sur les colonnes écrites par l'app (assignation de masse) |
 
-Base : 9 migrations dans `supabase/migrations/`, dont 8 appliquées en ligne (la 9e, clôture, à pousser après la review), 60 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
+Base : 10 migrations dans `supabase/migrations/`, dont 8 appliquées en ligne (les 2 du 2026-11-05 à pousser), 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
 Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau de bord) :
 - code OTP à **6 chiffres** (8 par défaut sur les nouveaux projets) ;
@@ -73,8 +73,8 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 1. ~~**Session de vote**~~ : mergée (PR #17). Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
 2. ~~**Temps réel**~~ : terminé (PR depuis `feat/realtime`).
-3. ~~**Clôture**~~ : codée (PR depuis `feat/cloture`), à tester sur téléphone. Test d'intégration de `votes.ts` sur la base locale : 20 cas sur 20 (script hors dépôt, à transformer en vrais tests automatisés).
-   - **Droits par colonne** (faille trouvée à l'audit du 2026-11-05, PR `fix/` dédiée) : un membre peut choisir `created_at` (et d'autres colonnes) à l'insertion ; une session datée de 2099 resterait « le dernier vote » du groupe. Correctif : `grant insert (colonnes utiles)`, comme pour `groups`.
+3. ~~**Clôture**~~ : mergée (PR #19), à tester sur téléphone. Test d'intégration de `votes.ts` sur la base locale : 20 cas sur 20 (script hors dépôt, à transformer en vrais tests automatisés).
+   - ~~**Droits par colonne**~~ : mergé (PR #20). Règle pour toute nouvelle table ou colonne dans `docs/schema.md`.
    - **`npm audit`** : 11 failles (3 hautes : `node-forge`, `zod`), toutes dans l'outillage d'Expo (CLI, Metro, ESLint), pas dans l'app embarquée. `npm audit fix` monte Expo à 58.0.23 : à faire avec la mise à jour d'Expo, sur une branche `chore/` dédiée.
 4. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
 5. **Design de toute l'app**, une fois le MVP complet (penser au `fontSize: 30` en dur dans l'écran du vote) : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
