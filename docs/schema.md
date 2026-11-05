@@ -155,6 +155,7 @@ Une ligne = « ce profil a coché ce plat ». Pas de compteur : le score se calc
 - Organisateur parti (groupe quitté ou compte supprimé) : il ne peut plus clôturer ; l'owner du groupe le peut toujours.
 - À la suppression d'un compte, ses propositions **sans vote** dans les sessions **ouvertes** sont supprimées ; les autres restent (`proposed_by` à `null`). Jamais le gagnant d'une session fermée : la base le refuse (FK `no action`).
 - Parcours de suppression de compte : prévenir d'abord l'utilisateur (groupes dont il est owner, votes en cours qu'il organise) et lui proposer de choisir à qui transférer ; à défaut, transfert automatique.
+- **Droits par colonne** : la RLS choisit les lignes, pas les colonnes. `authenticated` n'a `insert` / `update` que sur les colonnes que l'app écrit (migration `restrict_column_privileges`) ; `id`, `created_at`, `status` et le résultat viennent des défauts et des fonctions. **Toute nouvelle table ou colonne** : révoquer `insert, update` puis accorder colonne par colonne (Supabase accorde tout par défaut).
 
 ## Ordre de création des migrations
 
