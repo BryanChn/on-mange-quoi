@@ -77,8 +77,9 @@ export async function fetchLatestSession(groupId: string): Promise<LatestSession
 }
 
 // Appelle onChange à chaque plat ou vote ajouté, retiré, modifié, et à la clôture (la RLS
-// ne laisse passer que ceux des groupes du membre). votes n'a pas de session_id, donc pas de filtre : un vote
-// dans un autre groupe déclenche un rechargement inutile, acceptable à l'échelle d'un foyer.
+// ne laisse passer que ceux des groupes du membre). votes n'a pas de session_id, donc pas
+// de filtre : un vote dans un autre groupe déclenche un rechargement inutile, acceptable
+// à l'échelle d'un foyer.
 // Renvoie la fonction de désabonnement, à appeler en quittant l'écran.
 export function subscribeToSession(sessionId: string, onChange: () => void): () => void {
   const channel = supabase
