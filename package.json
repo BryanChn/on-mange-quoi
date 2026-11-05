@@ -54,7 +54,8 @@
     "db:test": "for f in supabase/scripts/test-*.sql; do echo \"## $f\"; docker exec -i supabase_db_on-mange-quoi psql -U postgres -tA < \"$f\"; done",
     "db:push": "supabase db push --linked",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:test:race": "bash supabase/scripts/race-close-session.sh"
   },
   "private": true
 }

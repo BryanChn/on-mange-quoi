@@ -45,7 +45,7 @@ with d as (delete from public.proposals where name = 'Curry' returning 1) select
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
 with d as (delete from public.proposals where name = 'Pizza' returning 1) select ' 9. Maman retire Pizza (à elle, 1 vote) : ' || count(*) || '   (attendu : 0)' from d;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
-\echo '10. Tonton propose dans Famille   (attendu : refus RLS)'
+\echo '10. Tonton propose dans Famille   (attendu : refus, il n''est pas membre)'
 savepoint t; insert into public.proposals (session_id, name, proposed_by) values ('11111111-0000-0000-0000-000000000001','Kebab','00000000-0000-0000-0000-00000000000c'); rollback to t;
 select '11. Tonton voit ' || count(*) || ' proposition(s)   (attendu : 0)' from public.proposals;
 
@@ -68,9 +68,9 @@ reset role;
 update public.vote_sessions set status = 'closed', closed_at = now(), decided_by = 'vote', winner_proposal_id = '22222222-0000-0000-0000-000000000001';
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
-\echo '18. Bryan propose après clôture   (attendu : refus RLS)'
+\echo '18. Bryan propose après clôture   (attendu : refus, hint session_closed)'
 savepoint t; insert into public.proposals (session_id, name, proposed_by) values ('11111111-0000-0000-0000-000000000001','Sushi','00000000-0000-0000-0000-00000000000a'); rollback to t;
-\echo '19. Bryan vote Tacos après clôture   (attendu : refus RLS)'
+\echo '19. Bryan vote Tacos après clôture   (attendu : refus, hint session_closed)'
 savepoint t; insert into public.votes select id, '00000000-0000-0000-0000-00000000000a' from public.proposals where name = 'Tacos'; rollback to t;
 with d as (delete from public.votes where profile_id = '00000000-0000-0000-0000-00000000000a' returning 1) select '20. Bryan décoche après clôture : ' || count(*) || '   (attendu : 0)' from d;
 rollback;
