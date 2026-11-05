@@ -5,9 +5,9 @@
 
 ## Reprendre ici
 
-Session du 2026-11-05, **en mode « Claude code seul »** (Bryan absent, à la demande de Bryan pour cette session uniquement) : **clôture du vote codée et testée en local, PR ouverte depuis `feat/cloture`.** Rien n'a été testé sur téléphone.
+Session du 2026-11-05 : **clôture du vote codée et testée en local, PR ouverte depuis `feat/cloture`.** Rien n'a été testé sur téléphone.
 
-À faire par Bryan, dans l'ordre :
+À faire, dans l'ordre :
 1. Relire la PR (points d'attention listés dans la description).
 2. Appliquer la migration en ligne : `npx supabase db push --linked --dry-run` (doit lister seulement `20261105123152_close_session_realtime_and_lock.sql`), puis `npm run db:push`.
 3. Tester sur téléphone + Expo Web avec deux comptes (voir « Comment tester » dans la PR), puis « ok merge ».
@@ -130,6 +130,6 @@ Acquis pendant ces sessions (2026-11-04 : cleanup de `useEffect` et ses deux dé
 
 Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02). Au 2026-11-03 : `true` / `false` et non 1 / 0 en TypeScript, état actuel contre état voulu, un écran resté monté sous un autre n'est pas recréé (donc `useEffect` ne se relance pas), une requête qui n'arrive pas au serveur ne passe jamais par la RLS. Au 2026-11-04 : passer une fonction (`f`) ou l'appeler (`f()`), valeur contre callback (lire la signature `() => void`), `useRef` : la boîte (`ref`) contre son contenu (`ref.current`), syntaxe JavaScript à rendre fluide (exercices de la fiche de révision). `isStale` / « la dernière demande gagne » : écrit par Bryan avec un squelette à trous, à refaire seul.
 
-Le 2026-11-05 (session où Claude a codé seul, à revoir ensemble) : **condition de course** (*race condition*) et verrous de ligne (`for share` / `for update`), reproduire un bug avant de le corriger, trigger `before insert or delete`, `current_user` dans une fonction `security definer` ou non, assignation de masse (*mass assignment*), fonction pure testable (`buildSpin`), « latest ref » (`useRef` pour garder la dernière version d’un callback sans relancer un effet), jointures PostgREST (`!nom_de_fk`, `referencedTable`).
+Le 2026-11-05 (à revoir) : **condition de course** (*race condition*) et verrous de ligne (`for share` / `for update`), reproduire un bug avant de le corriger, trigger `before insert or delete`, `current_user` dans une fonction `security definer` ou non, assignation de masse (*mass assignment*), fonction pure testable (`buildSpin`), « latest ref » (`useRef` pour garder la dernière version d’un callback sans relancer un effet), jointures PostgREST (`!nom_de_fk`, `referencedTable`).
 
 Mode de travail ajusté le 2026-11-03 : Bryan préfère des recommandations directes et argumentées à une série de questions ; au plus une question de vérification quand un concept est vraiment nouveau.
