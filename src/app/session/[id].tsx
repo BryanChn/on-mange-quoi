@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
@@ -49,6 +49,12 @@ const DECISION_LABELS: Record<DecisionMethod, string> = {
 
 function voteCountLabel(count: number): string {
   return `${count} vote${count > 1 ? "s" : ""}`;
+}
+
+// dismissTo dépile jusqu'au groupe (ou le remplace s'il n'est pas dans la pile) :
+// avec push, la flèche retour du groupe ramènerait au résultat.
+function backToGroup(groupId: string) {
+  router.dismissTo({ pathname: "/group/[id]", params: { id: groupId } });
 }
 
 // Roulette à jouer pour une session qui vient d'être tirée au sort : les ex æquo
@@ -397,6 +403,9 @@ function SessionResult({ session, styles }: SessionResultProps) {
           </View>
         ))}
       </ScrollView>
+      <View style={styles.form}>
+        <PrimaryButton label="Retour au groupe" onPress={() => backToGroup(session.groupId)} />
+      </View>
     </SafeAreaView>
   );
 }
