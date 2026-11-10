@@ -3,6 +3,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { TextField } from "@/components/text-field";
 import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
+import type { AuthError } from "@supabase/supabase-js";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, StyleSheet, Text, View } from "react-native";
@@ -12,6 +13,13 @@ function getEmailError(cleanEmail: string): string | null {
   if (cleanEmail === "") return "Entre ton email pour recevoir le code de connexion";
   if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) return "Cet email ne me semble pas valide !";
   return null;
+}
+
+// Message montré à l'utilisateur quand Supabase refuse d'envoyer le code.
+function getSendErrorMessage(sendError: AuthError): string {
+  if (sendError.status === 429) return "Trop de demandes. Attends une minute avant de réessayer.";
+  // 500 ou autre : réessayer tout de suite ne changerait rien (ex. Resend refuse l'adresse).
+  return "Envoi impossible pour le moment.";
 }
 
 export default function SignIn() {
@@ -37,7 +45,9 @@ export default function SignIn() {
 
       // Échec prévu : Supabase a répondu, mais avec une erreur (trop de demandes…).
       if (sendError) {
-        setError("Impossible d’envoyer le code. Réessaie dans un instant.");
+        // La vraie cause, pour le développeur : absente des builds de production.
+        if (__DEV__) console.warn("signInWithOtp a échoué", sendError.status, sendError.message);
+        setError(getSendErrorMessage(sendError));
         return;
       }
       // L'écran du code a besoin de l'email pour le vérifier.
