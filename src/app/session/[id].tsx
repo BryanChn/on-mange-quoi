@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
@@ -64,6 +64,12 @@ function spinFor(session: VoteSession): Spin | null {
   const winnerIndex = leading.findIndex((proposal) => proposal.id === session.winnerProposalId);
   if (leading.length < 2 || winnerIndex === -1) return null;
   return { names: leading.map((proposal) => proposal.name), winnerIndex };
+}
+
+// Le nom du groupe en titre de l'en-tête : un membre de plusieurs groupes sait pour lequel
+// il vote. N'affiche rien à l'écran ; « Le vote » (layout) reste pendant le chargement.
+function GroupTitle({ name }: { name: string }) {
+  return <Stack.Screen options={{ title: name }} />;
 }
 
 export default function SessionScreen() {
@@ -209,7 +215,12 @@ export default function SessionScreen() {
     );
   }
   if (spin) {
-    return <Roulette names={spin.names} winnerIndex={spin.winnerIndex} onDone={handleSpinDone} />;
+    return (
+      <>
+        <GroupTitle name={session.groupName} />
+        <Roulette names={spin.names} winnerIndex={spin.winnerIndex} onDone={handleSpinDone} />
+      </>
+    );
   }
   if (!session.isOpen) {
     return <SessionResult session={session} styles={styles} />;
@@ -244,6 +255,7 @@ export default function SessionScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+      <GroupTitle name={session.groupName} />
       <KeyboardAvoidingView
         style={styles.safeArea}
         behavior="padding"
@@ -380,6 +392,7 @@ function SessionResult({ session, styles }: SessionResultProps) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+      <GroupTitle name={session.groupName} />
       <ScrollView contentContainerStyle={styles.list}>
         <Text style={styles.kicker} accessibilityRole="header">
           C’est réglé !

@@ -1,17 +1,22 @@
 # Journal de bord
 
-État du projet au **2026-11-05** (fin de session), pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-10**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
-Session du 2026-11-05 : **clôture du vote, droits par colonne, « Mon compte » (suppression du compte), bouton « Retour au groupe » et formateur des `.tsx` : PR #19 à #23 mergées.** Les deux migrations du jour sont **en ligne** (`db push --dry-run` : à jour).
+Session du 2026-11-10 : **PR #21 à #23 mergées** (le journal du 2026-11-05 les disait mergées, elles étaient encore ouvertes : toujours vérifier `gh pr list`). Ouvertes : **#24** (messages d'erreur de la connexion) et **#25** (nom du groupe dans l'en-tête du vote, avec ce journal).
 
-Tests sur téléphone : clôture validée (vote sans plat, roulette sur deux appareils, gagnant unique, choix manuel) et « Retour au groupe » validé. **Encore à confirmer sur téléphone** : vote après clôture (le résultat s'affiche), « Dernier vote » sur le groupe, choix du nom avec un nouveau compte (droits par colonne), et tout « Mon compte » (annuler, mode avion, suppression avec un **compte de test**). Un bug trouvé = une branche `fix/`.
+Tests sur téléphone : clôture et « Retour au groupe » validés. **Bloqués jusqu'au domaine Resend** (impossible de créer un 2e compte, voir point 7) : tout « Mon compte » (annuler, mode avion, suppression avec un **compte de test** : succession et votes effacés) et choix du nom avec un nouveau compte. Logique de suppression testée en local (12 cas sur 12), donc mergée. **À faire avec ton propre compte** : vote après clôture (le résultat s'affiche), « Dernier vote » sur le groupe, et le nom du groupe en titre de l'écran du vote. Un bug trouvé = une branche `fix/`.
 
-Prochaine étape : **messages d'erreur de l'écran de connexion** (section 3, point 6), exercice écrit par Bryan, puis le design.
+Prochaine étape : merger #24 et #25 après relecture, puis **décider du nom de domaine** (seul vrai bloquant avant la famille), puis le design (ou l'APK d'abord : voir la proposition au point 5).
 
-Fait ce jour :
+Fait le 2026-11-10 :
+- enquête sur un `500` à la connexion : passerelle (`unexpected_failure`) → service d'auth → **Resend `403`** : en mode test, seule l'adresse **exacte** du compte Resend passe. `bryan.chaine@gmail.com` (point) et `bryanchaine+test1@gmail.com` (alias) sont refusées, même si Gmail les livre dans la même boîte ;
+- écran de connexion : `429` → « Attends une minute », sinon « Envoi impossible pour le moment », vraie erreur en `console.warn` si `__DEV__` (PR #24) ;
+- nom du groupe en titre de l'écran du vote (`navigation.setOptions`, nom lu avec la session) (PR #25).
+
+Fait le 2026-11-05 :
 - **course corrigée** entre un vote et la clôture (reproduite avant correctif : Curry 2, Pizza 1, gagnant « Pizza imposée par l'organisateur ») : verrou `for share` posé par des triggers, `npm run db:test:race` la rejoue ;
 - `vote_sessions` en temps réel ; écran du vote : clôturer, départager l'égalité (tirage ou choix), résultat, **roulette** sur tous les téléphones ;
 - droits `insert` / `update` limités aux colonnes écrites par l'app (assignation de masse) ;
@@ -60,6 +65,8 @@ Ordre de construction (`CLAUDE.md`) :
 | #21 | « Mon compte » : déconnexion, suppression du compte avec ses conséquences annoncées ; variante `danger` du bouton principal |
 | #22 | Bouton « Retour au groupe » sur le résultat (`router.dismissTo`) |
 | #23 | Prettier imposé pour `.ts` et `.tsx` dans `.vscode/settings.json` |
+| #24 | Messages d'erreur de la connexion selon le statut, vraie erreur journalisée en dev |
+| #25 | Nom du groupe dans l'en-tête de l'écran du vote |
 
 Base : 10 migrations dans `supabase/migrations/`, toutes appliquées en ligne, 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
@@ -80,8 +87,9 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
    - **`npm audit`** : 11 failles (3 hautes : `node-forge`, `zod`), toutes dans l'outillage d'Expo (CLI, Metro, ESLint), pas dans l'app embarquée. `npm audit fix` monte Expo à 58.0.23 : à faire avec la mise à jour d'Expo, sur une branche `chore/` dédiée.
 4. ~~**Suppression de compte**~~ : écran « Mon compte » (PR #21), testé en local (12 cas sur 12), à tester sur téléphone. Successeur automatique ; le choix du successeur est dans `docs/backlog.md`.
 5. **Design de toute l'app**, une fois le MVP complet (penser au `fontSize: 30` en dur dans l'écran du vote) : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
-6. **Écran de connexion** : journaliser la vraie erreur en dev (`console.warn`) et adapter le message (`429` → « Attends une minute », sinon « Envoi impossible pour le moment ») ; « Réessaie dans un instant » est faux pour un `500`. Exercice pour Bryan.
-7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend) et déconnexion inexpliquée à surveiller (section 5).
+6. ~~**Écran de connexion**~~ : PR #24 (`429` → attendre, sinon « Envoi impossible pour le moment », `console.warn` en dev).
+7. **Avant d'inviter la famille** : **nom de domaine** (environ 10 €/an, aucun pour l'instant) vérifié chez Resend : sans lui, seule `bryanchaine@gmail.com` reçoit un code, donc personne d'autre ne peut se connecter. Puis **tests reportés** : « Mon compte » et suppression avec un compte de test, choix du nom avec un nouveau compte. Et déconnexion inexpliquée à surveiller (section 5).
+   - Proposition du 2026-11-10 (non tranchée) : faire le domaine et l'APK **avant** le design, pour démarrer les trois semaines du feu vert plus tôt et redessiner selon les retours de la famille.
 8. **Installer l'app sur les téléphones de la famille** : avec Expo Go et `npm run dev`, l'app ne marche que si le PC tourne, donc le feu vert est impossible à mesurer. Pas d'iPhone dans la famille (2026-11-05) : build EAS en distribution interne, **APK Android** seulement, sans compte Apple Developer. Puis EAS Update pour les correctifs. Icône et écran de démarrage à ce moment-là.
 9. **Mesurer le feu vert** : 4 soirs sur 7, trois semaines de suite. Requête : nombre de jours distincts avec une session clôturée (`closed_at`), par semaine, pour le groupe du foyer.
 
@@ -115,7 +123,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | Déconnexion inexpliquée (2026-11-02) | Vue une fois en enregistrant un fichier, non reproduite au 2e essai, cause non confirmée. Piste : rechargement pendant la rotation du refresh token. Si ça revient : erreur dans le terminal et Logs → Auth de Supabase (`refresh_token_already_used`). À vérifier avant d'inviter la famille |
 | Filtre Realtime et `DELETE` | Un `DELETE` ne transporte que l'id : un filtre (`session_id=eq.…`) l'écarte en silence. Écouter les `DELETE` sans filtre |
 | `window is not defined` au démarrage web | Avec `web.output: server`, les pages sont rendues dans Node, sans `window` ; l'erreur tue Metro et le tunnel répond « gateway timeout » même au téléphone. On est en `single` |
-| `500` sur `/auth/v1/otp` | Resend a refusé l'adresse (sans domaine vérifié, seule l'adresse du compte Resend reçoit). Cause exacte : Supabase → Logs → Auth. Pour tester à deux appareils : le même compte des deux côtés |
+| `500` sur `/auth/v1/otp` | Resend a refusé l'adresse : en mode test, comparaison **caractère par caractère** avec l'adresse du compte (`bryanchaine@gmail.com`) ; un point ou un `+alias` est refusé. Cause exacte : logs de Resend (ou Supabase → Logs → source **Auth**, pas API Gateway). Les logs Resend contiennent les codes OTP en clair : 2FA sur le compte Resend |
 | « No API key found in request » | URL de Supabase ouverte dans un onglet (GET sans en-tête `apikey`) : ce n'est pas la vraie réponse. Lire la requête dans F12 → Network → Response |
 | Course entre un vote et la clôture | Une écriture validée par la RLS avant la clôture, mais pas encore commitée, échappait au comptage. Corrigé par un verrou `for share` (triggers) que `close_session` (`for update`) attend. Ne pas retirer ces triggers ; `npm run db:test:race` pour vérifier |
 | Trigger et cascades | Les triggers de verrou ne contrôlent que le rôle `authenticated` : la suppression d'un compte ou d'un groupe efface aussi des votes de sessions fermées, et doit passer |
@@ -137,5 +145,7 @@ Acquis pendant ces sessions (2026-11-04 : cleanup de `useEffect` et ses deux dé
 Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02). Au 2026-11-03 : `true` / `false` et non 1 / 0 en TypeScript, état actuel contre état voulu, un écran resté monté sous un autre n'est pas recréé (donc `useEffect` ne se relance pas), une requête qui n'arrive pas au serveur ne passe jamais par la RLS. Au 2026-11-04 : passer une fonction (`f`) ou l'appeler (`f()`), valeur contre callback (lire la signature `() => void`), `useRef` : la boîte (`ref`) contre son contenu (`ref.current`), syntaxe JavaScript à rendre fluide (exercices de la fiche de révision). `isStale` / « la dernière demande gagne » : écrit par Bryan avec un squelette à trous, à refaire seul.
 
 Le 2026-11-05 (à revoir) : **condition de course** (*race condition*) et verrous de ligne (`for share` / `for update`), reproduire un bug avant de le corriger, trigger `before insert or delete`, `current_user` dans une fonction `security definer` ou non, assignation de masse (*mass assignment*), fonction pure testable (`buildSpin`), « latest ref » (`useRef` pour garder la dernière version d’un callback sans relancer un effet), jointures PostgREST (`!nom_de_fk`, `referencedTable`). Bouton retour écrit par Bryan : pile de navigation (`push` empile, `dismissTo` dépile), routes basées sur les fichiers, passer une fonction fléchée à `onPress`, imports automatiques et `any`, casse en JSX (`View` / `view`), lire une pile d'appels jusqu'au premier fichier à soi, priorité des réglages VS Code. À consolider : adapter un exemple au lieu de le copier (le `pathname` recopié), enregistrer le fichier avant de demander une relecture.
+
+Le 2026-11-10 : une erreur traverse plusieurs couches (app → passerelle → service d'auth → Resend), chacune a ses logs ; remonter jusqu'à celle qui a vraiment échoué. Erreur avalée (*swallowed error*) et message qui ment. `__DEV__`. *Plus addressing* de Gmail. Dette de test : un test reporté se note, avec la condition qui le débloque.
 
 Mode de travail ajusté le 2026-11-03 : Bryan préfère des recommandations directes et argumentées à une série de questions ; au plus une question de vérification quand un concept est vraiment nouveau.

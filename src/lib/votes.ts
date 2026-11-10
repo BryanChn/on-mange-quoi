@@ -21,6 +21,8 @@ export type Proposal = {
 
 export type VoteSession = {
   groupId: string;
+  // Rappelé dans l'en-tête : un membre de plusieurs groupes sait pour lequel il vote.
+  groupName: string;
   isOpen: boolean;
   // Organisateur ou owner du groupe : l'écran guide, close_session protège.
   canClose: boolean;
@@ -135,7 +137,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     .from("vote_sessions")
     .select(
       `group_id, status, organizer_id, winner_proposal_id, decided_by,
-      groups(owner_id),
+      groups(owner_id, name),
       proposals!proposals_session_id_fkey(id, name, proposed_by, votes(profile_id))`,
     )
     .eq("id", sessionId)
@@ -145,6 +147,8 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
   if (error) throw error;
   return {
     groupId: data.group_id,
+    // Toujours présent : la RLS ne montre une session qu'aux membres de son groupe.
+    groupName: data.groups?.name ?? "",
     isOpen: data.status === "open",
     canClose: data.organizer_id === userId || data.groups?.owner_id === userId,
     winnerProposalId: data.winner_proposal_id,
