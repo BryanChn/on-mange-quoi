@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
@@ -70,6 +70,7 @@ export default function SessionScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
+  const navigation = useNavigation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [session, setSession] = useState<VoteSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,6 +122,12 @@ export default function SessionScreen() {
     // React appelle cette fonction en quittant l'écran (ou avant de relancer l'effet) : le canal se ferme.
     return unsubscribe;
   }, [id, loadSession]);
+
+  // Le nom du groupe en titre, dès qu'il est connu ; « Le vote » (layout) pendant le chargement.
+  const groupName = session?.groupName;
+  useEffect(() => {
+    if (groupName) navigation.setOptions({ title: groupName });
+  }, [navigation, groupName]);
 
   const handleSpinDone = useCallback(() => setSpin(null), []);
 
