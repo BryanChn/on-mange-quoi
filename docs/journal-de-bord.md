@@ -5,20 +5,19 @@
 
 ## Reprendre ici
 
-Session du 2026-11-05 : **clôture du vote (PR #19) et droits par colonne (PR #20) mergées, testées en local.** Rien n'a encore été testé sur téléphone, et les deux migrations ne sont **pas encore en ligne**.
+Session du 2026-11-05 : **clôture du vote, droits par colonne, « Mon compte » (suppression du compte), bouton « Retour au groupe » et formateur des `.tsx` : PR #19 à #23 mergées.** Les deux migrations du jour sont **en ligne** (`db push --dry-run` : à jour).
 
-À faire, dans l'ordre :
-1. Appliquer les migrations en ligne : `npx supabase db push --linked --dry-run` (doit lister `20261105123152_close_session_realtime_and_lock.sql` et `20261105124301_restrict_column_privileges.sql`), puis `npm run db:push`. Sans elles, l'app en ligne ne reçoit pas la clôture en direct.
-2. Tester sur téléphone + Expo Web avec deux comptes (« Comment tester » des PR #19 et #20). Un bug trouvé = une branche `fix/`.
+Tests sur téléphone : clôture validée (vote sans plat, roulette sur deux appareils, gagnant unique, choix manuel) et « Retour au groupe » validé. **Encore à confirmer sur téléphone** : vote après clôture (le résultat s'affiche), « Dernier vote » sur le groupe, choix du nom avec un nouveau compte (droits par colonne), et tout « Mon compte » (annuler, mode avion, suppression avec un **compte de test**). Un bug trouvé = une branche `fix/`.
 
-Fait sur `feat/cloture` :
+Prochaine étape : **messages d'erreur de l'écran de connexion** (section 3, point 6), exercice écrit par Bryan, puis le design.
+
+Fait ce jour :
 - **course corrigée** entre un vote et la clôture (reproduite avant correctif : Curry 2, Pizza 1, gagnant « Pizza imposée par l'organisateur ») : verrou `for share` posé par des triggers, `npm run db:test:race` la rejoue ;
-- `vote_sessions` en temps réel : la clôture arrive sur tous les téléphones ;
-- écran du vote : clôturer (confirmation), égalité → « Tirer au sort » ou « Choisir moi-même », résultat final ; **roulette** jouée partout au moment d'un tirage ;
-- vote ou ajout dans une session close : le résultat s'affiche au lieu de « Vérifie ton réseau » ;
-- session sans plat : refus serveur conservé, bouton désactivé (décision du 2026-11-05) ;
-- écran du groupe : « Dernier vote : … » et « Voir le résultat » ;
-- une requête au lieu de deux pour charger l'écran du vote (`fetchSession`).
+- `vote_sessions` en temps réel ; écran du vote : clôturer, départager l'égalité (tirage ou choix), résultat, **roulette** sur tous les téléphones ;
+- droits `insert` / `update` limités aux colonnes écrites par l'app (assignation de masse) ;
+- « Mon compte » : déconnexion, suppression du compte avec ses conséquences annoncées ;
+- « Retour au groupe » sur le résultat (`router.dismissTo`), écrit par Bryan ;
+- `.vscode/settings.json` impose Prettier pour `.ts` et `.tsx` (un réglage utilisateur `[typescriptreact]` reformatait les écrans).
 
 Fiche de révision (points bloquants, exercices) : page Claude « Fiche de révision — On mange quoi ? », https://claude.ai/artifact/2tbQiqNqqRLpXF1NrTCCoG
 
@@ -58,8 +57,11 @@ Ordre de construction (`CLAUDE.md`) :
 | #18 | Temps réel : votes, ajouts et retraits de plats visibles en direct ; réponses périmées ignorées ; web rendu dans le navigateur (`output: single`) |
 | #19 | Clôture : verrou contre la course vote / clôture, départage de l'égalité, roulette, résultat, dernier vote sur le groupe |
 | #20 | Droits par colonne : `insert` / `update` seulement sur les colonnes écrites par l'app (assignation de masse) |
+| #21 | « Mon compte » : déconnexion, suppression du compte avec ses conséquences annoncées ; variante `danger` du bouton principal |
+| #22 | Bouton « Retour au groupe » sur le résultat (`router.dismissTo`) |
+| #23 | Prettier imposé pour `.ts` et `.tsx` dans `.vscode/settings.json` |
 
-Base : 10 migrations dans `supabase/migrations/`, dont 8 appliquées en ligne (les 2 du 2026-11-05 à pousser), 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
+Base : 10 migrations dans `supabase/migrations/`, toutes appliquées en ligne, 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
 Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau de bord) :
 - code OTP à **6 chiffres** (8 par défaut sur les nouveaux projets) ;
@@ -73,13 +75,15 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 
 1. ~~**Session de vote**~~ : mergée (PR #17). Les scores viennent de la requête sur `proposals` ; `close_session` reste seul à calculer le gagnant.
 2. ~~**Temps réel**~~ : terminé (PR depuis `feat/realtime`).
-3. ~~**Clôture**~~ : mergée (PR #19), à tester sur téléphone. Test d'intégration de `votes.ts` sur la base locale : 20 cas sur 20 (script hors dépôt, à transformer en vrais tests automatisés).
+3. ~~**Clôture**~~ : mergée (PR #19), testée sur téléphone (vote après clôture et « Dernier vote » encore à confirmer). Test d'intégration de `votes.ts` sur la base locale : 20 cas sur 20 (script hors dépôt, à transformer en vrais tests automatisés).
    - ~~**Droits par colonne**~~ : mergé (PR #20). Règle pour toute nouvelle table ou colonne dans `docs/schema.md`.
    - **`npm audit`** : 11 failles (3 hautes : `node-forge`, `zod`), toutes dans l'outillage d'Expo (CLI, Metro, ESLint), pas dans l'app embarquée. `npm audit fix` monte Expo à 58.0.23 : à faire avec la mise à jour d'Expo, sur une branche `chore/` dédiée.
-4. **Suppression de compte** dans l'app (exigée par Apple) : `delete_account` existe, il manque l'écran.
+4. ~~**Suppression de compte**~~ : écran « Mon compte » (PR #21), testé en local (12 cas sur 12), à tester sur téléphone. Successeur automatique ; le choix du successeur est dans `docs/backlog.md`.
 5. **Design de toute l'app**, une fois le MVP complet (penser au `fontSize: 30` en dur dans l'écran du vote) : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
 6. **Écran de connexion** : journaliser la vraie erreur en dev (`console.warn`) et adapter le message (`429` → « Attends une minute », sinon « Envoi impossible pour le moment ») ; « Réessaie dans un instant » est faux pour un `500`. Exercice pour Bryan.
 7. **Avant d'inviter la famille** : nom de domaine vérifié chez Resend (sans domaine, Resend n'envoie qu'à l'adresse du compte Resend) et déconnexion inexpliquée à surveiller (section 5).
+8. **Installer l'app sur les téléphones de la famille** : avec Expo Go et `npm run dev`, l'app ne marche que si le PC tourne, donc le feu vert est impossible à mesurer. Pas d'iPhone dans la famille (2026-11-05) : build EAS en distribution interne, **APK Android** seulement, sans compte Apple Developer. Puis EAS Update pour les correctifs. Icône et écran de démarrage à ce moment-là.
+9. **Mesurer le feu vert** : 4 soirs sur 7, trois semaines de suite. Requête : nombre de jours distincts avec une session clôturée (`closed_at`), par semaine, pour le groupe du foyer.
 
 Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable), Supabase CLI v3 (version majeure, branche `chore/` dédiée). V1 (page web des invités) : si le rendu serveur revient (`output: server`), ne donner `AsyncStorage` au client Supabase que si `typeof window !== "undefined"`. Idées produit : `docs/backlog.md`.
 
@@ -115,6 +119,8 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | « No API key found in request » | URL de Supabase ouverte dans un onglet (GET sans en-tête `apikey`) : ce n'est pas la vraie réponse. Lire la requête dans F12 → Network → Response |
 | Course entre un vote et la clôture | Une écriture validée par la RLS avant la clôture, mais pas encore commitée, échappait au comptage. Corrigé par un verrou `for share` (triggers) que `close_session` (`for update`) attend. Ne pas retirer ces triggers ; `npm run db:test:race` pour vérifier |
 | Trigger et cascades | Les triggers de verrou ne contrôlent que le rôle `authenticated` : la suppression d'un compte ou d'un groupe efface aussi des votes de sessions fermées, et doit passer |
+| Formatage parasite des `.tsx` | Un réglage utilisateur propre à un langage (`[typescriptreact]`) passe devant `editor.defaultFormatter` du projet. Corrigé dans `.vscode/settings.json` (PR #23) ; après un changement de réglages : `Developer: Reload Window` |
+| « Ça compile » ≠ « ça marche » | `<view>` (balise SVG) passe TypeScript mais plante sur Android ; un import automatique depuis `…/build/….js` est typé `any`. Toujours tester à l'écran et relire les imports ajoutés |
 | Garde-fou de Claude Code | Il bloque les commandes destructives (`rm -rf`, suppression de branches distantes, modification de la config Supabase en ligne) : c'est Bryan qui les lance |
 
 ## 6. Mode de travail
@@ -130,6 +136,6 @@ Acquis pendant ces sessions (2026-11-04 : cleanup de `useEffect` et ses deux dé
 
 Points à consolider : syntaxe JavaScript (une variable entre guillemets devient du texte, `return` sans valeur), adapter un exemple de doc au lieu de le copier, penser aux contraintes de chaque colonne, écrire un calcul à partir des paramètres plutôt qu'un résultat en dur, `useEffect` (timer, cleanup, tableau de dépendances : Claude l'a écrit, à refaire seul), ne changer l'état de l'écran qu'après confirmation du serveur, conditions de course (`isStale` : savoir dérouler les valeurs ligne par ligne, pas encore acquis au 2026-11-02). Au 2026-11-03 : `true` / `false` et non 1 / 0 en TypeScript, état actuel contre état voulu, un écran resté monté sous un autre n'est pas recréé (donc `useEffect` ne se relance pas), une requête qui n'arrive pas au serveur ne passe jamais par la RLS. Au 2026-11-04 : passer une fonction (`f`) ou l'appeler (`f()`), valeur contre callback (lire la signature `() => void`), `useRef` : la boîte (`ref`) contre son contenu (`ref.current`), syntaxe JavaScript à rendre fluide (exercices de la fiche de révision). `isStale` / « la dernière demande gagne » : écrit par Bryan avec un squelette à trous, à refaire seul.
 
-Le 2026-11-05 (à revoir) : **condition de course** (*race condition*) et verrous de ligne (`for share` / `for update`), reproduire un bug avant de le corriger, trigger `before insert or delete`, `current_user` dans une fonction `security definer` ou non, assignation de masse (*mass assignment*), fonction pure testable (`buildSpin`), « latest ref » (`useRef` pour garder la dernière version d’un callback sans relancer un effet), jointures PostgREST (`!nom_de_fk`, `referencedTable`).
+Le 2026-11-05 (à revoir) : **condition de course** (*race condition*) et verrous de ligne (`for share` / `for update`), reproduire un bug avant de le corriger, trigger `before insert or delete`, `current_user` dans une fonction `security definer` ou non, assignation de masse (*mass assignment*), fonction pure testable (`buildSpin`), « latest ref » (`useRef` pour garder la dernière version d’un callback sans relancer un effet), jointures PostgREST (`!nom_de_fk`, `referencedTable`). Bouton retour écrit par Bryan : pile de navigation (`push` empile, `dismissTo` dépile), routes basées sur les fichiers, passer une fonction fléchée à `onPress`, imports automatiques et `any`, casse en JSX (`View` / `view`), lire une pile d'appels jusqu'au premier fichier à soi, priorité des réglages VS Code. À consolider : adapter un exemple au lieu de le copier (le `pathname` recopié), enregistrer le fichier avant de demander une relecture.
 
 Mode de travail ajusté le 2026-11-03 : Bryan préfère des recommandations directes et argumentées à une série de questions ; au plus une question de vérification quand un concept est vraiment nouveau.
