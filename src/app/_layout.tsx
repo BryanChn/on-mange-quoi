@@ -10,6 +10,12 @@ import { ProfileProvider, useProfile } from "@/lib/profile";
 import { SessionProvider, useSession } from "@/lib/session";
 import { useTheme } from "@/theme";
 
+// Arrivée directe sur un écran (rechargement web, lien partagé) : l'accueil est placé
+// dessous, pour que la flèche de retour existe toujours.
+export const unstable_settings = {
+  initialRouteName: "index",
+};
+
 export default function RootLayout() {
   return (
     <SessionProvider>
