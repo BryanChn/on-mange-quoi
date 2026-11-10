@@ -5,16 +5,17 @@
 
 ## Reprendre ici
 
-Session du 2026-11-10 : **PR #21 à #23 mergées** (le journal du 2026-11-05 les disait mergées, elles étaient encore ouvertes : toujours vérifier `gh pr list`). Ouvertes : **#24** (messages d'erreur de la connexion) et **#25** (nom du groupe dans l'en-tête du vote, avec ce journal).
+Session du 2026-11-10 (terminée) : **PR #21 à #26 mergées**, aucune PR ouverte. Le journal du 2026-11-05 disait #21 à #23 mergées alors qu'elles étaient encore ouvertes : toujours vérifier `gh pr list` en début de session.
 
-Tests sur téléphone : clôture et « Retour au groupe » validés. **Bloqués jusqu'au domaine Resend** (impossible de créer un 2e compte, voir point 7) : tout « Mon compte » (annuler, mode avion, suppression avec un **compte de test** : succession et votes effacés) et choix du nom avec un nouveau compte. Logique de suppression testée en local (12 cas sur 12), donc mergée. **À faire avec ton propre compte** : vote après clôture (le résultat s'affiche), « Dernier vote » sur le groupe, et le nom du groupe en titre de l'écran du vote. Un bug trouvé = une branche `fix/`.
+Tests sur téléphone : clôture, « Retour au groupe » et nom du groupe en titre du vote validés ; carte « Dernier vote » visible sur le groupe. **Bloqués jusqu'au domaine Resend** (impossible de créer un 2e compte, voir point 7) : tout « Mon compte » (annuler, mode avion, suppression avec un **compte de test** : succession et votes effacés) et choix du nom avec un nouveau compte. Logique de suppression testée en local (12 cas sur 12), donc mergée. **Encore à faire avec ton propre compte** : « Voir le résultat » depuis la carte « Dernier vote » ; **vote après clôture** : sur le web, F12 → Network request blocking → motif `*realtime*`, F5 (le temps réel est coupé), clôturer le vote sur le téléphone, puis cocher un plat sur le web → le résultat doit s'afficher, sans erreur réseau. Un bug trouvé = une branche `fix/`.
 
-Prochaine étape : merger #24 et #25 après relecture, puis **décider du nom de domaine** (seul vrai bloquant avant la famille), puis le design (ou l'APK d'abord : voir la proposition au point 5).
+Prochaine étape : finir les deux tests ci-dessus, puis **décider du nom de domaine** (environ 10 €/an, seul vrai bloquant avant la famille), puis trancher l'ordre : design d'abord, ou domaine + APK d'abord (proposition au point 7).
 
 Fait le 2026-11-10 :
 - enquête sur un `500` à la connexion : passerelle (`unexpected_failure`) → service d'auth → **Resend `403`** : en mode test, seule l'adresse **exacte** du compte Resend passe. `bryan.chaine@gmail.com` (point) et `bryanchaine+test1@gmail.com` (alias) sont refusées, même si Gmail les livre dans la même boîte ;
 - écran de connexion : `429` → « Attends une minute », sinon « Envoi impossible pour le moment », vraie erreur en `console.warn` si `__DEV__` (PR #24) ;
-- nom du groupe en titre de l'écran du vote (`navigation.setOptions`, nom lu avec la session) (PR #25).
+- nom du groupe en titre de l'écran du vote, lu avec la session ; d'abord avec `navigation.setOptions` dans un `useEffect`, remplacé par `<Stack.Screen options>` (plus d'effet) (PR #25) ;
+- flèche de retour absente sur le web après un F5 (pile de navigation vide) : `unstable_settings.initialRouteName = "index"` place l'accueil dessous ; servira aussi aux liens partagés de la V1 (PR #26).
 
 Fait le 2026-11-05 :
 - **course corrigée** entre un vote et la clôture (reproduite avant correctif : Curry 2, Pizza 1, gagnant « Pizza imposée par l'organisateur ») : verrou `for share` posé par des triggers, `npm run db:test:race` la rejoue ;
@@ -34,7 +35,7 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : connexion et choix du nom terminés (7 tests sur 7). Groupes (liste, création, adhésion, partage) terminés. Session de vote (lancer, proposer, voter) terminée. Temps réel terminé. Clôture mergée (PR #19), testée en local, à tester sur téléphone |
+| 3. Écrans, testés sur téléphone | 🚧 En cours : toutes les fonctionnalités du MVP sont codées (connexion, groupes, vote, temps réel, clôture, Mon compte). Restent les tests listés dans « Reprendre ici » |
 
 **Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
 
@@ -66,7 +67,8 @@ Ordre de construction (`CLAUDE.md`) :
 | #22 | Bouton « Retour au groupe » sur le résultat (`router.dismissTo`) |
 | #23 | Prettier imposé pour `.ts` et `.tsx` dans `.vscode/settings.json` |
 | #24 | Messages d'erreur de la connexion selon le statut, vraie erreur journalisée en dev |
-| #25 | Nom du groupe dans l'en-tête de l'écran du vote |
+| #25 | Nom du groupe dans l'en-tête de l'écran du vote, sans `useEffect` (`<Stack.Screen options>`) |
+| #26 | Flèche de retour après une arrivée directe sur un écran (`initialRouteName`) |
 
 Base : 10 migrations dans `supabase/migrations/`, toutes appliquées en ligne, 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
@@ -112,6 +114,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | --- | --- |
 | Sous WSL, le téléphone ne voit pas le PC | Toujours `npm run dev` (tunnel). L'app vise la base **en ligne** : `127.0.0.1` sur le téléphone, c'est le téléphone |
 | `Stack.Protected` sans `redirectTo` | Expo Router choisit lui-même l'écran de repli (il prenait `verify`). Toujours un `redirectTo` explicite |
+| Pas de flèche de retour sur le web | Un rechargement (F5) ou une URL collée repart d'une pile vide. Corrigé par `unstable_settings.initialRouteName = "index"` (PR #26) : après F5 sur un vote, le retour mène à l'accueil, pas au groupe (accepté) |
 | `KeyboardAvoidingView` sous un en-tête | Il ne compte pas l'en-tête : passer `keyboardVerticalOffset={useHeaderHeight()}`. Sur Android, sans `behavior`, rien ne remonte |
 | `profile: null` ne veut pas dire « erreur » | Sans profil = demander le nom ; chargement raté = écran « Réessayer ». Les confondre redemanderait son nom à un membre déjà inscrit |
 | VS Code supprime les imports inutilisés à l'enregistrement | `organizeImports` : un import pas encore utilisé disparaît. `Ctrl+.` pour le remettre |
@@ -122,6 +125,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | Docker « permission denied » | Le groupe `docker` n'est pris en compte qu'à l'ouverture de session : relancer VS Code ou `wsl --shutdown`. Jamais `sudo docker` |
 | Déconnexion inexpliquée (2026-11-02) | Vue une fois en enregistrant un fichier, non reproduite au 2e essai, cause non confirmée. Piste : rechargement pendant la rotation du refresh token. Si ça revient : erreur dans le terminal et Logs → Auth de Supabase (`refresh_token_already_used`). À vérifier avant d'inviter la famille |
 | Filtre Realtime et `DELETE` | Un `DELETE` ne transporte que l'id : un filtre (`session_id=eq.…`) l'écarte en silence. Écouter les `DELETE` sans filtre |
+| Tester un cas de course côté app | Couper le temps réel : F12 → Network request blocking → `*realtime*`, puis F5. L'écran ne se met plus à jour en direct |
 | `window is not defined` au démarrage web | Avec `web.output: server`, les pages sont rendues dans Node, sans `window` ; l'erreur tue Metro et le tunnel répond « gateway timeout » même au téléphone. On est en `single` |
 | `500` sur `/auth/v1/otp` | Resend a refusé l'adresse : en mode test, comparaison **caractère par caractère** avec l'adresse du compte (`bryanchaine@gmail.com`) ; un point ou un `+alias` est refusé. Cause exacte : logs de Resend (ou Supabase → Logs → source **Auth**, pas API Gateway). Les logs Resend contiennent les codes OTP en clair : 2FA sur le compte Resend |
 | « No API key found in request » | URL de Supabase ouverte dans un onglet (GET sans en-tête `apikey`) : ce n'est pas la vraie réponse. Lire la requête dans F12 → Network → Response |
@@ -146,6 +150,6 @@ Points à consolider : syntaxe JavaScript (une variable entre guillemets devient
 
 Le 2026-11-05 (à revoir) : **condition de course** (*race condition*) et verrous de ligne (`for share` / `for update`), reproduire un bug avant de le corriger, trigger `before insert or delete`, `current_user` dans une fonction `security definer` ou non, assignation de masse (*mass assignment*), fonction pure testable (`buildSpin`), « latest ref » (`useRef` pour garder la dernière version d’un callback sans relancer un effet), jointures PostgREST (`!nom_de_fk`, `referencedTable`). Bouton retour écrit par Bryan : pile de navigation (`push` empile, `dismissTo` dépile), routes basées sur les fichiers, passer une fonction fléchée à `onPress`, imports automatiques et `any`, casse en JSX (`View` / `view`), lire une pile d'appels jusqu'au premier fichier à soi, priorité des réglages VS Code. À consolider : adapter un exemple au lieu de le copier (le `pathname` recopié), enregistrer le fichier avant de demander une relecture.
 
-Le 2026-11-10 : une erreur traverse plusieurs couches (app → passerelle → service d'auth → Resend), chacune a ses logs ; remonter jusqu'à celle qui a vraiment échoué. Erreur avalée (*swallowed error*) et message qui ment. `__DEV__`. *Plus addressing* de Gmail. Dette de test : un test reporté se note, avec la condition qui le débloque.
+Le 2026-11-10 : une erreur traverse plusieurs couches (app → passerelle → service d'auth → Resend), chacune a ses logs ; remonter jusqu'à celle qui a vraiment échoué. Erreur avalée (*swallowed error*) et message qui ment. `__DEV__`. *Plus addressing* de Gmail. Dette de test : un test reporté se note, avec la condition qui le débloque. `useEffect` : seulement pour se brancher sur un système extérieur à React (abonnement, timer) ; sinon une valeur calculée, un gestionnaire d'événement ou un composant déclaratif (*You Might Not Need an Effect*). Pile de navigation et arrivée directe sur un écran (`initialRouteName`). Formuler une hypothèse et la confirmer par un test rapide avant de corriger.
 
 Mode de travail ajusté le 2026-11-03 : Bryan préfère des recommandations directes et argumentées à une série de questions ; au plus une question de vérification quand un concept est vraiment nouveau.
