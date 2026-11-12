@@ -1,19 +1,27 @@
 # Journal de bord
 
-État du projet au **2026-11-10**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-12**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
-Session du 2026-11-12 : **PR #27 à #29 mergées**, PR de la refonte design ouverte en brouillon (`feat/refonte-design`).
+Session du 2026-11-12 (terminée) : **PR #27 à #31 mergées**, aucune PR ouverte à la fin hormis celle de ce journal. Toujours vérifier `gh pr list` en début de session.
 
-- **APK Android** (PR #28) : build EAS, profil `preview`, variables Supabase dans l'environnement EAS `preview` (le `.env` n'est pas envoyé au build). Installé et vérifié sur le téléphone, sans le PC. Pas encore d'EAS Update : chaque changement demande un nouvel APK.
-- **Quitter / supprimer un groupe** (PR #29) : entré dans le MVP. Testé sur téléphone, sauf la transmission de la couronne (pas de 2e compte), couverte par les tests SQL (14 sur 14).
-- **Refonte design** (maquette : https://claude.ai/artifact/YKPtzb7kcq25hqW4Uv16h8) : tokens, accueil avec la carte « Ce soir », vote, résultat, groupe. Écrite d'une traite par Claude à ma demande, revue sur téléphone en mode sombre (deux passes de retours), puis revue du code avec un doc récap (https://claude.ai/artifact/FT2iBmXVv1GhuwSRnGiFaZ). Pas encore vue en mode clair. Profil refait avec « Changer mon nom » ; photo de profil notée dans le backlog. Reportés : barre d'onglets, « Cette semaine », squelettes de chargement, bandeau hors ligne.
-- Premiers tests automatisés de l'app : `npm test` (16 cas : fonctions pures de `tonight.ts`, `members.ts`, `avatar.ts`). Les types Node ne servent qu'aux tests (`tsconfig.test.json`) : dans l'app, `Buffer` ou `fs` sont refusés par TypeScript.
-- Membres : un seul module `src/lib/members.ts` (`toMembers`, `pickSuccessor`) au lieu de quatre copies ; `getUserId` vit dans `supabase.ts`.
+**À faire en premier, dans l'ordre :**
+1. **Installer le nouvel APK** (build `eef848d8`, commit `e519142`, avec EAS Update), lancé le 2026-11-12 vers 15 h 40 dans la file gratuite (~40 min) : https://expo.dev/accounts/bryanchns-team/projects/on-mange-quoi/builds/eef848d8-4a2d-48b9-8c22-f8fdf8b6cc81. L'installer par-dessus l'app actuelle (même clé, données gardées). L'ancien build `302ebc59` (sans EAS Update) a été annulé : ne pas l'installer.
+2. **Tester une première mise à jour** de bout en bout : changer un petit texte sur une branche, `npm run update -- --message "test"`, fermer complètement l'app et la rouvrir **deux fois**. Le texte doit avoir changé. Si rien : piège « Une mise à jour n'apparaît pas » (section 5).
+3. **Envoi des codes sans domaine : SMTP Gmail** (décidé le 2026-11-12, pas encore fait). Compte Gmail **dédié** (`onmangequoi.app@gmail.com` ou proche), validation en deux étapes, **mot de passe d'application** (secret : uniquement dans Supabase, jamais dans le code ni dans Git). Supabase → Authentication → SMTP : `smtp.gmail.com`, port `465`, identifiant et expéditeur = l'adresse Gmail, nom `On mange quoi ?`. Puis connexion avec l'adresse de ma compagne (1er email possiblement en spam). Remplace Resend pour le MVP ; un vrai domaine reste nécessaire avant les stores.
+4. Ensuite seulement : installer l'APK sur le téléphone de ma compagne et commencer les **trois semaines du feu vert**.
 
-Prochaine étape : review de la refonte sur téléphone, puis EAS Update + nouvel APK, puis le **nom de domaine** (toujours le seul bloquant pour qu'une autre personne se connecte). Test reporté le 2026-11-12 : vote après clôture avec le temps réel coupé (voir ci-dessous).
+Fait le 2026-11-12 :
+- **APK Android** (PR #28) : EAS Build, profil `preview`, identifiant `com.bryanchn.onmangequoi`, variables Supabase dans l'environnement EAS `preview` (le `.env` n'est pas envoyé au build), keystore gardé par EAS. Vérifié sur téléphone sans le PC.
+- **Quitter / supprimer un groupe** (PR #29) : entré dans le MVP. Testé sur téléphone, sauf la transmission de la couronne (pas de 2e compte), couverte par les tests SQL (14 sur 14). `deleteGroup` traite « 0 ligne supprimée » comme un échec (RLS qui filtre sans erreur).
+- **Refonte design** (PR #30, maquette https://claude.ai/artifact/YKPtzb7kcq25hqW4Uv16h8) : tokens (boutons en tomate foncée pour le contraste), composants `Card`, `Chip`, `Avatar`, `ListCard` / `ListRow`, accueil avec la carte « Ce soir » et le temps réel, vote, résultat, groupe, profil avec « Changer mon nom ». Écrite par Claude à ma demande, revue sur téléphone en **mode sombre** (deux passes de retours), revue du code avec un doc récap : https://claude.ai/artifact/FT2iBmXVv1GhuwSRnGiFaZ. **Pas encore vue en mode clair.**
+- Après la revue du code : un seul module `src/lib/members.ts` (il y avait deux types `Member` et quatre copies de la mise en forme), `getUserId` dans `supabase.ts`, rechargements du temps réel regroupés (300 ms), types Node réservés aux tests (`tsconfig.test.json`).
+- **Premiers tests automatisés de l'app** : `npm test` (16 cas, `node --test`).
+- **EAS Update** (PR #31) : canal `preview`, politique runtime `fingerprint` (une mise à jour incompatible n'atteint pas les anciens APK au lieu de les faire planter), `npm run update`.
+
+Reportés le 2026-11-12 : barre d'onglets, « Cette semaine », squelettes de chargement, bandeau hors ligne, photo de profil (backlog), annuler un vote ouvert et vide (question posée, non tranchée), bouton rouge pâle en mode sombre (jugé correct pour l'instant). Retour design prévu plus tard. Test toujours reporté : vote après clôture avec le temps réel coupé (voir 2026-11-10).
 
 Session du 2026-11-10 (terminée) : **PR #21 à #26 mergées**, aucune PR ouverte. Le journal du 2026-11-05 disait #21 à #23 mergées alors qu'elles étaient encore ouvertes : toujours vérifier `gh pr list` en début de session.
 
@@ -45,9 +53,9 @@ Ordre de construction (`CLAUDE.md`) :
 | --- | --- |
 | 1. Schéma SQL + RLS, testés | ✅ Terminé |
 | 2. Logique de décision en SQL, testée | ✅ Terminé |
-| 3. Écrans, testés sur téléphone | 🚧 En cours : toutes les fonctionnalités du MVP sont codées (connexion, groupes, vote, temps réel, clôture, Mon compte). Restent les tests listés dans « Reprendre ici » |
+| 3. Écrans, testés sur téléphone | ✅ Fonctionnalités et design du MVP terminés (connexion, groupes, quitter / supprimer, vote, temps réel, clôture, profil). Restent : mode clair à revoir, tests à deux comptes, puis le feu vert |
 
-**Ce qui marche aujourd'hui sur le téléphone (Android, Expo Go) :** ouvrir l'app → écran de connexion (charte OMQ, clair et sombre) → email → code à 6 chiffres reçu par email, avec renvoi possible après 60 s et retour pour changer d'email → à la première connexion, choix du nom → accueil provisoire « Salut … ! » + déconnexion. La session survit à la fermeture de l'app. Profil impossible à charger : écran d'erreur avec « Réessayer ».
+**Ce qui marche aujourd'hui sur le téléphone (APK Android, sans le PC) :** connexion par code à 6 chiffres (seule mon adresse le reçoit tant que le SMTP Gmail n'est pas en place), choix du nom, accueil avec la carte « Ce soir » (vote en cours, plat décidé, rien de prévu) mise à jour en direct, groupes (créer, rejoindre, inviter, quitter, supprimer), vote (proposer, cocher, retirer, clôturer, égalité et roulette), résultat, profil (changer de nom, déconnexion, suppression du compte).
 
 ## 2. Ce qui a été fait
 
@@ -79,6 +87,11 @@ Ordre de construction (`CLAUDE.md`) :
 | #24 | Messages d'erreur de la connexion selon le statut, vraie erreur journalisée en dev |
 | #25 | Nom du groupe dans l'en-tête de l'écran du vote, sans `useEffect` (`<Stack.Screen options>`) |
 | #26 | Flèche de retour après une arrivée directe sur un écran (`initialRouteName`) |
+| #27 | Journal du 2026-11-10 |
+| #28 | APK Android avec EAS Build (profil `preview`, variables dans l'environnement EAS) |
+| #29 | Quitter un groupe (couronne au plus ancien) ; l'owner peut le supprimer pour tous |
+| #30 | Refonte design : tokens, composants partagés, accueil « Ce soir », vote, résultat, groupe, profil ; `members.ts` ; premiers tests de l'app (`npm test`) |
+| #31 | EAS Update : canal `preview`, runtime `fingerprint`, `npm run update` |
 
 Base : 10 migrations dans `supabase/migrations/`, toutes appliquées en ligne, 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
@@ -86,6 +99,7 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
 - code OTP à **6 chiffres** (8 par défaut sur les nouveaux projets) ;
 - **SMTP Resend** (`smtp.resend.com:465`, expéditeur `onboarding@resend.dev`), limite 30 emails/heure ;
 - modèles « Confirm sign up » et « Magic link or OTP » avec `{{ .Token }}`, dans la charte ;
+- **EAS** (projet `@bryanchns-team/on-mange-quoi`) : variables `EXPO_PUBLIC_SUPABASE_URL` (en clair) et `EXPO_PUBLIC_SUPABASE_ANON_KEY` (sensible) dans l'environnement `preview` ; keystore Android ; canal et branche EAS Update `preview` ;
 - compte fictif gardé pour les tests : « Testeur » (`00000000-0000-0000-0000-0000000000f1`), owner du groupe `TESTJOIN`. Pour le retirer : supprimer le groupe, puis l'utilisateur dans `auth.users`.
 
 ## 3. À faire, dans l'ordre
@@ -98,15 +112,14 @@ Hors dépôt, sur le projet Supabase en ligne (fait à la main dans le tableau d
    - ~~**Droits par colonne**~~ : mergé (PR #20). Règle pour toute nouvelle table ou colonne dans `docs/schema.md`.
    - **`npm audit`** : 11 failles (3 hautes : `node-forge`, `zod`), toutes dans l'outillage d'Expo (CLI, Metro, ESLint), pas dans l'app embarquée. `npm audit fix` monte Expo à 58.0.23 : à faire avec la mise à jour d'Expo, sur une branche `chore/` dédiée.
 4. ~~**Suppression de compte**~~ : écran « Mon compte » (PR #21), testé en local (12 cas sur 12), à tester sur téléphone. Successeur automatique ; le choix du successeur est dans `docs/backlog.md`.
-4 bis. **Quitter / supprimer un groupe** (décision de Bryan, 2026-11-12, sur `feat/quitter-groupe`) : indispensable, sans lui on reste coincé dans un groupe de test. Quitter : `leave_group` (couronne au membre le plus ancien, groupe supprimé si on est seul). Supprimer pour tous : owner seulement, politique RLS existante, cascade vérifiée en local, votes de sessions fermées compris (cas 12 à 14 de `test-leave-and-delete.sql`, 14 sur 14). Notification des membres : backlog.
-5. **Design de toute l'app**, juste après « Quitter / supprimer un groupe » (penser au `fontSize: 30` en dur dans l'écran du vote) : liste des groupes (jugée très moche par Bryan), créer et rejoindre un groupe, lancer un vote, écran du vote, résultat. Interface plus moderne ; décider à ce moment-là de la navigation (onglets ou menu latéral, voir `docs/backlog.md`).
+4 bis. ~~**Quitter / supprimer un groupe**~~ : mergé (PR #29). Décision de Bryan (2026-11-12) : indispensable, sans lui on reste coincé dans un groupe de test. Quitter : `leave_group` (couronne au membre le plus ancien, groupe supprimé si on est seul). Supprimer pour tous : owner seulement, politique RLS existante, cascade vérifiée en local, votes de sessions fermées compris (cas 12 à 14 de `test-leave-and-delete.sql`, 14 sur 14). Notification des membres : backlog.
+5. ~~**Design de toute l'app**~~ : mergé (PR #30). Reste à revoir en **mode clair** ; retour design prévu plus tard. Navigation : pas d'onglets pour l'instant (l'avatar ouvre le profil), à reprendre en V1 avec l'onglet « Cuisine ».
 6. ~~**Écran de connexion**~~ : PR #24 (`429` → attendre, sinon « Envoi impossible pour le moment », `console.warn` en dev).
-7. **Avant d'inviter la famille** : **nom de domaine** (environ 10 €/an, aucun pour l'instant) vérifié chez Resend : sans lui, seule `bryanchaine@gmail.com` reçoit un code, donc personne d'autre ne peut se connecter. Puis **tests reportés** : « Mon compte » et suppression avec un compte de test, choix du nom avec un nouveau compte. Et déconnexion inexpliquée à surveiller (section 5).
-   - Proposition du 2026-11-10 (non tranchée) : faire le domaine et l'APK **avant** le design, pour démarrer les trois semaines du feu vert plus tôt et redessiner selon les retours de la famille.
-8. **Installer l'app sur les téléphones de la famille** : avec Expo Go et `npm run dev`, l'app ne marche que si le PC tourne, donc le feu vert est impossible à mesurer. Pas d'iPhone dans la famille (2026-11-05) : build EAS en distribution interne, **APK Android** seulement, sans compte Apple Developer. Puis EAS Update pour les correctifs. Icône et écran de démarrage à ce moment-là.
+7. **Avant d'inviter la famille** : **envoi des codes à d'autres adresses**. Décision du 2026-11-12 : **SMTP Gmail** (compte dédié, mot de passe d'application) à la place de Resend pour le MVP, gratuit, sans domaine (étapes dans « Reprendre ici »). Le **nom de domaine** reste nécessaire avant les stores (expéditeur crédible, volume). Puis **tests reportés** : « Mon compte » et suppression avec un compte de test, choix du nom avec un nouveau compte. Et déconnexion inexpliquée à surveiller (section 5).
+8. **Installer l'app sur les téléphones de la famille** : APK Android (PR #28) et EAS Update (PR #31) prêts ; le dernier APK (`eef848d8`) est celui à installer. Reste : icône et écran de démarrage (encore ceux d'Expo), qui demanderont un nouvel APK.
 9. **Mesurer le feu vert** : 4 soirs sur 7, trois semaines de suite. Requête : nombre de jours distincts avec une session clôturée (`closed_at`), par semaine, pour le groupe du foyer.
 
-Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests automatisés côté app (aucun aujourd'hui), garde `isStale` dans `createProfile` (cas très improbable), Supabase CLI v3 (version majeure, branche `chore/` dédiée). V1 (page web des invités) : si le rendu serveur revient (`output: server`), ne donner `AsyncStorage` au client Supabase que si `typeof window !== "undefined"`. Idées produit : `docs/backlog.md`.
+Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à faire au premier build), mise à jour Expo 58.0.21 sur une branche dédiée, tests SQL en pgTAP, tests des écrans et des requêtes côté app (seule la logique pure est testée, `npm test`), garde `isStale` dans `saveDisplayName` (cas très improbable), Supabase CLI v3 (version majeure, branche `chore/` dédiée). V1 (page web des invités) : si le rendu serveur revient (`output: server`), ne donner `AsyncStorage` au client Supabase que si `typeof window !== "undefined"`. Idées produit : `docs/backlog.md`.
 
 ## 4. À vérifier en début de session
 
@@ -144,6 +157,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | Trigger et cascades | Les triggers de verrou ne contrôlent que le rôle `authenticated` : la suppression d'un compte ou d'un groupe efface aussi des votes de sessions fermées, et doit passer |
 | Formatage parasite des `.tsx` | Un réglage utilisateur propre à un langage (`[typescriptreact]`) passe devant `editor.defaultFormatter` du projet. Corrigé dans `.vscode/settings.json` (PR #23) ; après un changement de réglages : `Developer: Reload Window` |
 | « Ça compile » ≠ « ça marche » | `<view>` (balise SVG) passe TypeScript mais plante sur Android ; un import automatique depuis `…/build/….js` est typé `any`. Toujours tester à l'écran et relire les imports ajoutés |
+| File d'attente gratuite d'EAS | Environ 40 min d'attente, et **un seul build à la fois** (« waiting for concurrency ») : annuler un build devenu inutile (`npx eas-cli@latest build:cancel <id>`) libère la place. Après l'upload, le PC peut s'éteindre |
 | EAS Update : JavaScript ou natif ? | `npm run update -- --message "…"` publie le JavaScript (écrans, textes, styles) sur les APK installés. Un module natif, une permission, l'icône, le nom de l'app ou une mise à jour du SDK demandent un **nouvel APK**. Politique runtime `fingerprint` : si le natif a changé, la mise à jour n'atteint pas les anciens APK (rien ne casse, mais il faut rebuilder) |
 | Une mise à jour n'apparaît pas | Fermer complètement l'app et la rouvrir **deux fois** : le 1er lancement télécharge, le 2e applique. Puis vérifier canal (`preview`), plateforme et version runtime sur expo.dev |
 | Garde-fou de Claude Code | Il bloque les commandes destructives (`rm -rf`, suppression de branches distantes, modification de la config Supabase en ligne) : c'est Bryan qui les lance |
@@ -164,5 +178,9 @@ Points à consolider : syntaxe JavaScript (une variable entre guillemets devient
 Le 2026-11-05 (à revoir) : **condition de course** (*race condition*) et verrous de ligne (`for share` / `for update`), reproduire un bug avant de le corriger, trigger `before insert or delete`, `current_user` dans une fonction `security definer` ou non, assignation de masse (*mass assignment*), fonction pure testable (`buildSpin`), « latest ref » (`useRef` pour garder la dernière version d’un callback sans relancer un effet), jointures PostgREST (`!nom_de_fk`, `referencedTable`). Bouton retour écrit par Bryan : pile de navigation (`push` empile, `dismissTo` dépile), routes basées sur les fichiers, passer une fonction fléchée à `onPress`, imports automatiques et `any`, casse en JSX (`View` / `view`), lire une pile d'appels jusqu'au premier fichier à soi, priorité des réglages VS Code. À consolider : adapter un exemple au lieu de le copier (le `pathname` recopié), enregistrer le fichier avant de demander une relecture.
 
 Le 2026-11-10 : une erreur traverse plusieurs couches (app → passerelle → service d'auth → Resend), chacune a ses logs ; remonter jusqu'à celle qui a vraiment échoué. Erreur avalée (*swallowed error*) et message qui ment. `__DEV__`. *Plus addressing* de Gmail. Dette de test : un test reporté se note, avec la condition qui le débloque. `useEffect` : seulement pour se brancher sur un système extérieur à React (abonnement, timer) ; sinon une valeur calculée, un gestionnaire d'événement ou un composant déclaratif (*You Might Not Need an Effect*). Pile de navigation et arrivée directe sur un écran (`initialRouteName`). Formuler une hypothèse et la confirmer par un test rapide avant de corriger.
+
+Le 2026-11-12 : **build** natif contre **mise à jour** JavaScript (OTA, EAS Update), version runtime et politique `fingerprint`, canal ; variables `EXPO_PUBLIC_*` embarquées dans l'APK (lisibles par tous : seule la clé publique y va) ; identifiant d'application définitif sur les stores ; keystore (signature de l'APK). **RLS qui filtre en silence** : un `delete` refusé renvoie 0 ligne et `error: null`, donc vérifier le nombre de lignes (`.select()`) ; cascade exécutée avec les droits du propriétaire de la table (cas 13). Un état se pose **avant** l'action qu'il décrit (`leaving` avant l'`await`). Message d'erreur : ce qui a raté, puis quoi faire, sans inventer de cause (« Vous ne pouvez pas » mentait). Fonction pure et heure en paramètre (testable), union discriminée (`Tonight`), problème N+1 et jointures PostgREST, `Children.toArray`, debounce, contraste AA 4,5:1 (la tomate vive échouait à 3,98:1), tokens par rôle. Revue de code : repérer la duplication (deux types `Member`, quatre copies).
+
+À consolider (2026-11-12) : `handleLeave` écrit avec les étapes dans le mauvais ordre (« leaving » posé après l'`await`), puis terminé par Claude : à refaire seul. La refonte et ses corrections ont été écrites par Claude à ma demande : relire `src/lib/tonight.ts` et ses tests pour pouvoir l'expliquer en entretien.
 
 Mode de travail ajusté le 2026-11-03 : Bryan préfère des recommandations directes et argumentées à une série de questions ; au plus une question de vérification quand un concept est vraiment nouveau.
