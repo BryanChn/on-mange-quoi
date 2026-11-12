@@ -144,6 +144,8 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | Trigger et cascades | Les triggers de verrou ne contrôlent que le rôle `authenticated` : la suppression d'un compte ou d'un groupe efface aussi des votes de sessions fermées, et doit passer |
 | Formatage parasite des `.tsx` | Un réglage utilisateur propre à un langage (`[typescriptreact]`) passe devant `editor.defaultFormatter` du projet. Corrigé dans `.vscode/settings.json` (PR #23) ; après un changement de réglages : `Developer: Reload Window` |
 | « Ça compile » ≠ « ça marche » | `<view>` (balise SVG) passe TypeScript mais plante sur Android ; un import automatique depuis `…/build/….js` est typé `any`. Toujours tester à l'écran et relire les imports ajoutés |
+| EAS Update : JavaScript ou natif ? | `npm run update -- --message "…"` publie le JavaScript (écrans, textes, styles) sur les APK installés. Un module natif, une permission, l'icône, le nom de l'app ou une mise à jour du SDK demandent un **nouvel APK**. Politique runtime `fingerprint` : si le natif a changé, la mise à jour n'atteint pas les anciens APK (rien ne casse, mais il faut rebuilder) |
+| Une mise à jour n'apparaît pas | Fermer complètement l'app et la rouvrir **deux fois** : le 1er lancement télécharge, le 2e applique. Puis vérifier canal (`preview`), plateforme et version runtime sur expo.dev |
 | Garde-fou de Claude Code | Il bloque les commandes destructives (`rm -rf`, suppression de branches distantes, modification de la config Supabase en ligne) : c'est Bryan qui les lance |
 
 ## 6. Mode de travail

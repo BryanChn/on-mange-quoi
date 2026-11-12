@@ -44,6 +44,12 @@
         "projectId": "7034dd8e-b1ce-49ec-a974-1238e406f711"
       }
     },
-    "owner": "bryanchns-team"
+    "owner": "bryanchns-team",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7034dd8e-b1ce-49ec-a974-1238e406f711"
+    }
   }
 }
