@@ -7,10 +7,17 @@ type TextButtonProps = {
   label: string;
   onPress: () => void;
   isDisabled?: boolean;
+  // danger : action destructive (supprimer un groupe). La couleur prévient avant le texte.
+  variant?: "default" | "danger";
 };
 
 // Action secondaire, sans fond : ne concurrence pas le bouton principal de l'écran.
-export function TextButton({ label, onPress, isDisabled = false }: TextButtonProps) {
+export function TextButton({
+  label,
+  onPress,
+  isDisabled = false,
+  variant = "default",
+}: TextButtonProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -23,7 +30,15 @@ export function TextButton({ label, onPress, isDisabled = false }: TextButtonPro
       accessibilityState={{ disabled: isDisabled }}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
-      <Text style={[styles.label, isDisabled && styles.labelDisabled]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          variant === "danger" && styles.labelDanger,
+          isDisabled && styles.labelDisabled,
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -34,6 +49,7 @@ function createStyles({ colors, fontSize }: Theme) {
     button: { minHeight: 48, alignItems: "center", justifyContent: "center" },
     pressed: { opacity: 0.6 },
     label: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
+    labelDanger: { color: colors.danger },
     labelDisabled: { color: colors.textMuted, fontWeight: "400" },
   });
 }

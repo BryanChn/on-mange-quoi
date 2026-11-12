@@ -55,14 +55,14 @@ On ne passe à la version suivante qu'une fois son feu vert atteint ; sinon on a
 
 ## MVP · Décider : périmètre exact
 
-1. Un membre crée un groupe et y invite les autres membres.
+1. Un membre crée un groupe et y invite les autres membres. Il peut **quitter** un groupe : l'owner qui part transmet la couronne au membre le plus ancien ; seul, il emporte le groupe. **Seul l'owner peut supprimer** le groupe pour tous (ajouté le 2026-11-12).
 2. Un membre lance une session de vote et propose plusieurs plats (ex. 3 à 5).
 3. **Vote par approbation** : chaque membre coche autant de plats qu'il veut.
 4. Le plat avec le plus de votes gagne.
 5. En cas d'égalité : l'organisateur choisit entre tirage au sort (parmi les ex æquo) ou décision manuelle (« ok, on fait ça »).
 6. Votes visibles en temps réel par tout le groupe.
 
-Hors MVP, volontairement : présence, heure limite et notifications, commande groupée, invités, liste de courses, recettes, stock.
+Hors MVP, volontairement : présence, heure limite et notifications (dont « ce groupe a été supprimé »), commande groupée, invités, liste de courses, recettes, stock.
 
 ### Règles du vote (tranchées le 2026-10-26)
 
