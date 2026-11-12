@@ -71,7 +71,8 @@ function RootNavigator() {
       }}
     >
       <Stack.Protected guard={hasProfile} redirectTo={homeRoute}>
-        <Stack.Screen name="index" options={{ title: "On mange quoi ?" }} />
+        {/* L'accueil porte son propre titre ; « Accueil » sert au libellé du bouton retour. */}
+        <Stack.Screen name="index" options={{ title: "Accueil", headerShown: false }} />
         <Stack.Screen name="create-group" options={{ title: "Nouveau groupe" }} />
         <Stack.Screen name="join-group" options={{ title: "Rejoindre un groupe" }} />
         <Stack.Screen name="group/[id]" options={{ title: "Groupe" }} />

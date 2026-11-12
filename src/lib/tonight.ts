@@ -105,6 +105,20 @@ export function summarizeParticipation(
   };
 }
 
+// « 3 propositions · 2 personnes sur 3 ont voté ».
+export function voteProgressLabel(proposalCount: number, participation: Participation): string {
+  const proposals =
+    proposalCount === 0
+      ? "Aucune proposition"
+      : `${proposalCount} proposition${proposalCount > 1 ? "s" : ""}`;
+  const { votedCount, memberCount } = participation;
+  const voters =
+    votedCount > 1
+      ? `${votedCount} personnes sur ${memberCount} ont voté`
+      : `${votedCount} personne sur ${memberCount} a voté`;
+  return `${proposals} · ${voters}`;
+}
+
 export function memberCountLabel(count: number): string {
   return `${count} membre${count > 1 ? "s" : ""}`;
 }

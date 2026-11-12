@@ -83,7 +83,15 @@ const fonts = {
   displayBold: "BricolageGrotesque_700Bold",
 } as const;
 
-const fontSize = { caption: 13, small: 14, body: 17, button: 18, heading: 26, title: 38 } as const;
+const fontSize = {
+  caption: 13,
+  small: 14,
+  body: 17,
+  button: 18,
+  heading: 26,
+  screenTitle: 32,
+  title: 38,
+} as const;
 
 const lightTheme = {
   scheme: "light" as const,

@@ -8,6 +8,7 @@ import {
   leadingTitle,
   pickTonight,
   summarizeParticipation,
+  voteProgressLabel,
   type ClosedHomeSession,
   type HomeGroup,
   type OpenHomeSession,
@@ -102,6 +103,15 @@ test("summarizeParticipation : qui a voté et qui on attend", () => {
 
 test("summarizeParticipation : le vote d'un ancien membre n'est pas compté", () => {
   assert.equal(summarizeParticipation(members, [ME, "parti"], ME).votedCount, 1);
+});
+
+test("voteProgressLabel : singulier, pluriel, aucune proposition", () => {
+  const two = { votedCount: 2, memberCount: 3, pendingLabel: "" };
+  const one = { votedCount: 1, memberCount: 3, pendingLabel: "" };
+  const zero = { votedCount: 0, memberCount: 2, pendingLabel: "" };
+  assert.equal(voteProgressLabel(3, two), "3 propositions · 2 personnes sur 3 ont voté");
+  assert.equal(voteProgressLabel(1, one), "1 proposition · 1 personne sur 3 a voté");
+  assert.equal(voteProgressLabel(0, zero), "Aucune proposition · 0 personne sur 2 a voté");
 });
 
 test("groupSubtitle : sans vote, en cours, ce soir, cette semaine, plus ancien", () => {

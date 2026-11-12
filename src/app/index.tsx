@@ -1,123 +1,440 @@
-import { Link, router, useFocusEffect } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useRef, useState, type ComponentProps } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Avatar } from "@/components/avatar";
+import { Card } from "@/components/card";
+import { Chip } from "@/components/chip";
 import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
-import { fetchGroups, type Group } from "@/lib/groups";
+import { getInitial } from "@/lib/avatar";
+import { fetchHome, subscribeToHome, type Home } from "@/lib/home";
 import { useProfile } from "@/lib/profile";
+import {
+  groupSubtitle,
+  leadingTitle,
+  pickTonight,
+  summarizeParticipation,
+  voteProgressLabel,
+  type HomeGroup,
+  type Tonight,
+} from "@/lib/tonight";
+import { startSession } from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
+
+// Au-delà, les avatars déborderaient de la carte : le texte à côté dit qui manque.
+const MAX_AVATARS = 5;
+
+// loadedAt : « aujourd'hui » au moment du chargement. Lire l'horloge pendant le rendu le
+// rendrait impur ; la date voyage donc avec les données.
+type LoadedHome = Home & { loadedAt: Date };
+
+type Styles = ReturnType<typeof createStyles>;
+
+function openSession(sessionId: string) {
+  router.push({ pathname: "/session/[id]", params: { id: sessionId } });
+}
 
 export default function Index() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
   const { profile } = useProfile();
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [home, setHome] = useState<LoadedHome | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
-  const loadGroups = useCallback(() => {
-    // Si on quitte l'écran pendant l'appel, sa réponse arrive trop tard : on l'ignore.
-    let isStale = false;
+  // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran
+  // (le temps réel peut en lancer plusieurs coup sur coup).
+  const latestRequestRef = useRef(0);
 
-    fetchGroups()
-      .then(
-        (loadedGroups) => {
-          if (isStale) return;
-          setGroups(loadedGroups);
-          setHasFailed(false);
-        },
-        () => {
-          if (!isStale) setHasFailed(true);
-        },
-      )
-      .finally(() => {
-        if (!isStale) setIsLoading(false);
-      });
+  const loadHome = useCallback(() => {
+    latestRequestRef.current += 1;
+    const requestId = latestRequestRef.current;
 
-    return () => {
-      isStale = true;
-    };
+    fetchHome().then(
+      (loadedHome) => {
+        if (latestRequestRef.current !== requestId) return;
+        setHome({ ...loadedHome, loadedAt: new Date() });
+        setHasFailed(false);
+      },
+      () => {
+        if (latestRequestRef.current !== requestId) return;
+        setHasFailed(true);
+      },
+    );
   }, []);
 
-  // À chaque retour sur l'écran, et pas une seule fois : un groupe créé ou rejoint
-  // depuis un autre écran doit apparaître dans la liste.
-  useFocusEffect(loadGroups);
+  // À chaque retour sur l'écran : recharger (un groupe créé, un vote clôturé ailleurs),
+  // puis suivre les votes en direct. Le désabonnement se fait en quittant l'écran.
+  useFocusEffect(
+    useCallback(() => {
+      loadHome();
+      return subscribeToHome(loadHome);
+    }, [loadHome]),
+  );
 
   function retry() {
-    setIsLoading(true);
-    loadGroups();
+    setHasFailed(false);
+    loadHome();
   }
 
-  if (isLoading) {
-    return <LoadingScreen />;
+  async function handleStart(group: HomeGroup) {
+    setStartError(null);
+    setIsStarting(true);
+
+    try {
+      openSession(await startSession(group.id));
+    } catch {
+      setStartError("Impossible de lancer le vote. Vérifie ton réseau et réessaie.");
+    } finally {
+      setIsStarting(false);
+    }
   }
-  // Échec distinct de la liste vide : sans réseau, on ne dit pas « pas de groupe ».
-  if (hasFailed) {
-    return (
+
+  // Un rechargement raté alors que l'écran est déjà affiché ne le remplace pas par une
+  // erreur : on garde les dernières données, le prochain changement réessaiera.
+  if (!home) {
+    return hasFailed ? (
       <ErrorScreen
-        title="Impossible de charger tes groupes"
+        title="Impossible de charger l’accueil"
         message="Vérifie ton réseau et réessaie."
         onRetry={retry}
         canSignOut
       />
+    ) : (
+      <LoadingScreen />
     );
   }
 
+  const displayName = profile?.display_name ?? "";
+  const hasGroups = home.groups.length > 0;
+
   return (
-    <FlatList
+    <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
-      data={groups}
-      keyExtractor={(group) => group.id}
-      ListHeaderComponent={
-        <Text style={styles.title} accessibilityRole="header">
-          Salut {profile?.display_name} !
-        </Text>
-      }
-      renderItem={({ item }) => (
-        <Link href={{ pathname: "/group/[id]", params: { id: item.id } }} asChild>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Ouvrir le groupe ${item.name}`}
-            style={({ pressed }) => [styles.group, pressed && styles.groupPressed]}
-          >
-            <Text style={styles.groupName}>{item.name}</Text>
-          </Pressable>
-        </Link>
-      )}
-      ListEmptyComponent={
-        <Text style={styles.empty}>
-          Tu n’as pas encore de groupe. Crée le tien ou rejoins-en un avec un code.
-        </Text>
-      }
-      ListFooterComponent={
-        <View style={styles.actions}>
-          <PrimaryButton label="Créer un groupe" onPress={() => router.push("/create-group")} />
-          <TextButton label="Rejoindre avec un code" onPress={() => router.push("/join-group")} />
-          <TextButton label="Mon compte" onPress={() => router.push("/account")} />
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingTop: insets.top + theme.spacing.xl,
+          paddingBottom: insets.bottom + theme.spacing.xl,
+        },
+        !hasGroups && styles.contentEmpty,
+      ]}
+    >
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.greeting}>Salut {displayName}</Text>
+          {hasGroups ? (
+            <Text style={styles.title} accessibilityRole="header">
+              On mange quoi ce soir ?
+            </Text>
+          ) : null}
         </View>
-      }
-    />
+        <Pressable
+          onPress={() => router.push("/account")}
+          accessibilityRole="button"
+          accessibilityLabel="Mon compte"
+          hitSlop={8}
+          style={({ pressed }) => pressed && styles.pressed}
+        >
+          <Avatar name={displayName} size={44} />
+        </Pressable>
+      </View>
+
+      {hasGroups ? (
+        <>
+          <TonightCard
+            tonight={pickTonight(home.groups, home.userId, home.loadedAt)}
+            userId={home.userId}
+            isStarting={isStarting}
+            error={startError}
+            onStart={handleStart}
+            styles={styles}
+          />
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              Tes groupes
+            </Text>
+            <View style={styles.list}>
+              {home.groups.map((group) => {
+                const subtitle = groupSubtitle(group, home.loadedAt);
+                return (
+                  <View key={group.id}>
+                    <Pressable
+                      onPress={() =>
+                        router.push({ pathname: "/group/[id]", params: { id: group.id } })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`${group.name}, ${subtitle}`}
+                      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                    >
+                      <View style={styles.tile}>
+                        <Text style={styles.tileInitial}>{getInitial(group.name)}</Text>
+                      </View>
+                      <View style={styles.rowText}>
+                        <Text style={styles.rowName} numberOfLines={1}>
+                          {group.name}
+                        </Text>
+                        <Text style={styles.rowSubtitle} numberOfLines={1}>
+                          {subtitle}
+                        </Text>
+                      </View>
+                      <Feather name="chevron-right" size={20} color={theme.colors.textMuted} />
+                    </Pressable>
+                    <View style={styles.separator} />
+                  </View>
+                );
+              })}
+              <ActionRow
+                icon="plus"
+                label="Créer un groupe"
+                onPress={() => router.push("/create-group")}
+                styles={styles}
+              />
+              <View style={styles.separator} />
+              <ActionRow
+                icon="hash"
+                label="Rejoindre avec un code"
+                onPress={() => router.push("/join-group")}
+                styles={styles}
+              />
+            </View>
+          </View>
+        </>
+      ) : (
+        <EmptyHome styles={styles} />
+      )}
+    </ScrollView>
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
+type TonightCardProps = {
+  tonight: Tonight;
+  userId: string;
+  isStarting: boolean;
+  error: string | null;
+  onStart: (group: HomeGroup) => void;
+  styles: Styles;
+};
+
+// La carte « Ce soir » : l'action du moment, en un appui.
+function TonightCard({ tonight, userId, isStarting, error, onStart, styles }: TonightCardProps) {
+  if (tonight.kind === "open") {
+    const { group, session, hasMyVote } = tonight;
+    const participation = summarizeParticipation(group.members, session.voterIds, userId);
+
+    return (
+      <Card>
+        <Chip label={`${group.name} · vote en cours`} hasDot />
+        <Text style={styles.cardTitle} accessibilityRole="header">
+          {leadingTitle(session.proposals)}
+        </Text>
+        <Text style={styles.muted}>
+          {voteProgressLabel(session.proposals.length, participation)}
+        </Text>
+        <View style={styles.voters}>
+          <View style={styles.avatars}>
+            {group.members.slice(0, MAX_AVATARS).map((member, index) => (
+              <View key={member.id} style={[styles.avatarRing, index > 0 && styles.avatarOverlap]}>
+                <Avatar name={member.name} isPending={!session.voterIds.includes(member.id)} />
+              </View>
+            ))}
+          </View>
+          <Text style={[styles.muted, styles.votersLabel]}>{participation.pendingLabel}</Text>
+        </View>
+        <PrimaryButton
+          label={hasMyVote ? "Voir le vote" : "Voter"}
+          variant={hasMyVote ? "secondary" : "primary"}
+          onPress={() => openSession(session.id)}
+        />
+      </Card>
+    );
+  }
+
+  if (tonight.kind === "decided") {
+    const { group, session } = tonight;
+
+    return (
+      <Card>
+        <Chip label={`${group.name} · c’est réglé`} variant="accent" />
+        <Text style={styles.cardTitle} accessibilityRole="header">
+          Ce soir, c’est {session.winnerName} !
+        </Text>
+        <PrimaryButton
+          label="Voir le résultat"
+          variant="secondary"
+          onPress={() => openSession(session.id)}
+        />
+      </Card>
+    );
+  }
+
+  const { groupToStart } = tonight;
+
+  return (
+    <Card>
+      <Text style={styles.cardTitle} accessibilityRole="header">
+        Rien de prévu ce soir
+      </Text>
+      {groupToStart ? (
+        <>
+          <Text style={styles.muted}>Lance le vote : chacun coche ce qui lui fait envie.</Text>
+          <PrimaryButton
+            label="Lancer le vote"
+            onPress={() => onStart(groupToStart)}
+            isLoading={isStarting}
+          />
+        </>
+      ) : (
+        <Text style={styles.muted}>Choisis un groupe ci-dessous pour lancer le vote.</Text>
+      )}
+      {error ? (
+        <Text style={styles.error} accessibilityRole="alert">
+          {error}
+        </Text>
+      ) : null}
+    </Card>
+  );
+}
+
+type ActionRowProps = {
+  icon: ComponentProps<typeof Feather>["name"];
+  label: string;
+  onPress: () => void;
+  styles: Styles;
+};
+
+function ActionRow({ icon, label, onPress, styles }: ActionRowProps) {
+  const { colors } = useTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    >
+      <View style={[styles.tile, styles.tileAction]}>
+        <Feather name={icon} size={20} color={colors.text} />
+      </View>
+      <Text style={[styles.rowName, styles.rowText]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+// Premier lancement : aucun groupe. Une assiette vide, et les deux façons d'en avoir un.
+function EmptyHome({ styles }: { styles: Styles }) {
+  return (
+    <View style={styles.empty}>
+      <View style={styles.plate}>
+        <View style={styles.plateInner} />
+      </View>
+      <Text style={styles.emptyTitle} accessibilityRole="header">
+        Il te manque{"\n"}une tablée
+      </Text>
+      <Text style={styles.emptyText}>
+        Crée ton foyer et invite ceux qui mangent avec toi. Ça prend 20 secondes.
+      </Text>
+      <View style={styles.emptyActions}>
+        <PrimaryButton label="Créer un groupe" onPress={() => router.push("/create-group")} />
+        <TextButton label="J’ai un code d’invitation" onPress={() => router.push("/join-group")} />
+      </View>
+    </View>
+  );
+}
+
+function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     screen: { backgroundColor: colors.background },
-    content: { padding: spacing.xl, gap: spacing.md },
-    title: { fontFamily: fonts.display, fontSize: 30, color: colors.text },
-    group: {
-      padding: spacing.lg,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
+    content: { paddingHorizontal: spacing.xl, gap: spacing.xl },
+    contentEmpty: { flexGrow: 1 },
+    pressed: { opacity: 0.6 },
+    header: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
+    headerText: { flex: 1, gap: spacing.xs },
+    greeting: { color: colors.textMuted, fontSize: fontSize.small },
+    title: {
+      color: colors.text,
+      fontFamily: fonts.display,
+      fontSize: fontSize.screenTitle,
+      lineHeight: 36,
     },
-    groupPressed: { borderColor: colors.brand },
-    groupName: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
-    empty: { color: colors.textMuted, fontSize: fontSize.body, lineHeight: 26 },
-    actions: { marginTop: spacing.lg, gap: spacing.xs },
+    cardTitle: {
+      color: colors.text,
+      fontFamily: fonts.display,
+      fontSize: fontSize.heading,
+      lineHeight: 30,
+    },
+    muted: { color: colors.textMuted, fontSize: fontSize.small },
+    voters: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    votersLabel: { flex: 1 },
+    avatars: { flexDirection: "row" },
+    // Anneau de la couleur de la carte : sépare deux avatars qui se chevauchent.
+    avatarRing: { borderWidth: 2, borderColor: colors.surface, borderRadius: radius.pill },
+    avatarOverlap: { marginLeft: -spacing.sm },
+    error: { color: colors.danger, fontSize: fontSize.small },
+    section: { gap: spacing.md },
+    sectionTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
+    list: { borderRadius: radius.lg, backgroundColor: colors.surface, boxShadow: cardShadow },
+    row: {
+      minHeight: 64,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+    },
+    rowText: { flex: 1, gap: 2 },
+    rowName: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
+    rowSubtitle: { color: colors.textMuted, fontSize: fontSize.caption },
+    // Aligné sur le texte des lignes : tuile (40) + espace (12) + marge (16).
+    separator: { height: 1, marginLeft: 68, backgroundColor: colors.border },
+    tile: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 14,
+      backgroundColor: colors.chipBg,
+    },
+    tileAction: { backgroundColor: colors.surface2 },
+    tileInitial: { color: colors.chipText, fontFamily: fonts.display, fontSize: fontSize.button },
+    empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },
+    plate: {
+      width: 150,
+      height: 150,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: radius.pill,
+      borderWidth: 6,
+      borderColor: colors.brand,
+    },
+    plateInner: {
+      width: 86,
+      height: 86,
+      borderRadius: radius.pill,
+      borderWidth: 6,
+      borderColor: colors.brand,
+    },
+    emptyTitle: {
+      color: colors.text,
+      fontFamily: fonts.display,
+      fontSize: fontSize.screenTitle,
+      lineHeight: 36,
+      textAlign: "center",
+    },
+    emptyText: {
+      maxWidth: 300,
+      color: colors.textMuted,
+      fontSize: fontSize.body,
+      lineHeight: 24,
+      textAlign: "center",
+    },
+    emptyActions: { alignSelf: "stretch", gap: spacing.xs, marginTop: spacing.lg },
   });
 }
