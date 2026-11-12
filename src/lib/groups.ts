@@ -1,9 +1,13 @@
 import { getUserId, pickSuccessor } from "./account";
 import type { Tables } from "./database.types";
 import { supabase } from "./supabase";
+import type { Member } from "./tonight";
 
 export type Group = Pick<Tables<"groups">, "id" | "name">;
-export type GroupDetail = Pick<Tables<"groups">, "id" | "name" | "invite_code" | "owner_id">;
+export type GroupDetail = Pick<Tables<"groups">, "id" | "name" | "invite_code" | "owner_id"> & {
+  // Du plus ancien au plus récent.
+  members: Member[];
+};
 
 // Ce qui se passe si l'utilisateur quitte le groupe (règle de leave_group) :
 // - member : simple membre, le groupe continue sans lui ;
@@ -30,12 +34,24 @@ export async function fetchGroups(): Promise<Group[]> {
 export async function fetchGroup(groupId: string): Promise<GroupDetail> {
   const { data, error } = await supabase
     .from("groups")
-    .select("id, name, invite_code, owner_id")
+    .select(
+      "id, name, invite_code, owner_id, group_members(profile_id, joined_at, profiles(display_name))",
+    )
     .eq("id", groupId)
+    .order("joined_at", { referencedTable: "group_members", ascending: true })
     .single();
 
   if (error) throw error;
-  return data;
+  return {
+    id: data.id,
+    name: data.name,
+    invite_code: data.invite_code,
+    owner_id: data.owner_id,
+    members: data.group_members.map((member) => ({
+      id: member.profile_id,
+      name: member.profiles?.display_name ?? "Un membre",
+    })),
+  };
 }
 
 // Passe par la fonction SQL : le code est généré côté serveur et l'owner inscrit
