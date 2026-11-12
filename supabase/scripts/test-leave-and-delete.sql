@@ -1,4 +1,4 @@
--- Scénarios de départ et de suppression de compte : leave_group, delete_account (11 cas).
+-- Scénarios de départ et de suppression de compte : leave_group, delete_account, suppression d'un groupe par son owner (14 cas).
 -- Transaction annulée à la fin : la base n'est pas modifiée.
 -- Lancer (Supabase local démarré) :
 --   docker exec -i supabase_db_on-mange-quoi psql -U postgres -tA < supabase/scripts/test-leave-and-delete.sql
@@ -76,4 +76,18 @@ select ' 8. Compte Bryan existe : ' || exists(select 1 from auth.users where id 
 select ' 9. Owner de Famille : ' || p.display_name || ', Solo existe : ' || exists(select 1 from public.groups where name = 'Solo') || '   (attendu : Maman, false)' from public.groups g join public.profiles p on p.id = g.owner_id where g.name = 'Famille';
 select '10. Plats restants : ' || string_agg(name || coalesce(' (par ' || proposed_by::text || ')', ' (auteur effacé)'), ', ' order by name) || '   (attendu : Kebab et Tacos, auteur effacé ; Curry supprimé)' from public.proposals where name in ('Tacos','Curry','Kebab');
 select '11. Session ouverte : organisateur ' || coalesce(organizer_id::text, 'null') || ', toujours ' || status || '   (attendu : null, open)' from public.vote_sessions where id = '11111111-0000-0000-0000-000000000002';
+
+\echo '=== suppression du groupe par son owner (Maman depuis le départ de Bryan)'
+reset role;
+-- Intrus rejoint Famille ; Maman vote Tacos dans la session FERMÉE : la cascade doit passer
+-- les triggers de verrou (ils ne contrôlent que les écritures directes de l'app).
+insert into public.group_members (group_id, profile_id) values ('99999999-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000d');
+insert into public.votes values ('22222222-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}';
+with d as (delete from public.groups where id = '99999999-0000-0000-0000-000000000001' returning 1) select '12. Intrus (membre, pas owner) supprime Famille : ' || count(*) || '   (attendu : 0)' from d;
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
+with d as (delete from public.groups where id = '99999999-0000-0000-0000-000000000001' returning 1) select '13. Maman (owner) supprime Famille, vote de session fermée compris : ' || count(*) || '   (attendu : 1)' from d;
+reset role;
+select '14. Restes de Famille : ' || (select count(*) from public.group_members where group_id = '99999999-0000-0000-0000-000000000001') || ' membre(s), ' || (select count(*) from public.vote_sessions where group_id = '99999999-0000-0000-0000-000000000001') || ' session(s), ' || (select count(*) from public.proposals where name in ('Tacos','Kebab')) || ' plat(s), ' || (select count(*) from public.votes where proposal_id in ('22222222-0000-0000-0000-000000000001','22222222-0000-0000-0000-000000000003')) || ' vote(s)   (attendu : 0, 0, 0, 0)';
 rollback;
