@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import { getInitial, pickAvatarColor } from "./avatar.ts";
 import {
+  dayLabel,
   formatTime,
   groupSubtitle,
   leadingTitle,
@@ -52,6 +53,12 @@ test("pickAvatarColor : stable pour un même nom, toujours dans la palette", () 
 test("formatTime : deux chiffres pour les heures et les minutes", () => {
   assert.equal(formatTime(new Date(2026, 0, 1, 7, 5)), "07:05");
   assert.equal(formatTime(new Date(2026, 0, 1, 18, 42)), "18:42");
+});
+
+test("dayLabel : ce soir, jour de la semaine, puis date", () => {
+  assert.equal(dayLabel(new Date(at(12, 13)), now), "ce soir");
+  assert.equal(dayLabel(new Date(at(10)), now), "mardi");
+  assert.equal(dayLabel(new Date(at(1)), now), "le 01/11");
 });
 
 test("leadingTitle : aucun plat, aucun vote, un plat en tête, égalités", () => {

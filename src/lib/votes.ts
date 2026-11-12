@@ -1,6 +1,6 @@
 import type { Enums } from "./database.types";
 import { supabase } from "./supabase";
-import type { Member } from "./tonight";
+import { summarizeParticipation, type Member, type Participation } from "./tonight";
 
 // Code Postgres d'une contrainte d'unicité violée.
 const UNIQUE_VIOLATION = "23505";
@@ -31,8 +31,8 @@ export type VoteSession = {
   organizerName: string | null;
   createdAt: string;
   closedAt: string | null;
-  // Membres ou anciens membres ayant coché au moins un plat.
-  voterIds: string[];
+  // Qui a voté parmi les membres actuels, et qui on attend.
+  participation: Participation;
   isOpen: boolean;
   // Organisateur ou owner du groupe : l'écran guide, close_session protège.
   canClose: boolean;
@@ -175,7 +175,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     organizerName: data.organizer_id ? (nameById.get(data.organizer_id) ?? null) : null,
     createdAt: data.created_at,
     closedAt: data.closed_at,
-    voterIds: [...voterIds],
+    participation: summarizeParticipation(members, [...voterIds], userId),
     isOpen: data.status === "open",
     canClose: data.organizer_id === userId || data.groups?.owner_id === userId,
     winnerProposalId: data.winner_proposal_id,

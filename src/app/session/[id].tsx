@@ -1,22 +1,18 @@
+import { Feather } from "@expo/vector-icons";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Card } from "@/components/card";
+import { Chip } from "@/components/chip";
 import { PrimaryButton } from "@/components/primary-button";
 import { Roulette } from "@/components/roulette";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
+import { dayLabel, formatTime, isSameDay, type Participation } from "@/lib/tonight";
 import {
   addProposal,
   closeSession,
@@ -42,13 +38,20 @@ type CloseStep = "idle" | "confirm" | "tie" | "choose";
 type Spin = { names: string[]; winnerIndex: number };
 
 const DECISION_LABELS: Record<DecisionMethod, string> = {
-  vote: "Le plus voté par le groupe.",
-  tirage: "Tiré au sort parmi les ex æquo.",
-  organisateur: "Départagé à la main parmi les ex æquo.",
+  vote: "Gagné au vote",
+  tirage: "Tiré au sort parmi les ex æquo",
+  organisateur: "Départagé à la main parmi les ex æquo",
 };
 
 function voteCountLabel(count: number): string {
+  if (count === 0) return "aucun vote";
   return `${count} vote${count > 1 ? "s" : ""}`;
+}
+
+// « 2 sur 3 ont voté · Léa n’a pas encore voté ».
+function participationLine({ votedCount, memberCount, pendingLabel }: Participation): string {
+  if (votedCount === memberCount) return pendingLabel;
+  return `${votedCount} sur ${memberCount} ${votedCount > 1 ? "ont" : "a"} voté · ${pendingLabel}`;
 }
 
 // dismissTo dépile jusqu'au groupe (ou le remplace s'il n'est pas dans la pile) :
@@ -78,6 +81,8 @@ export default function SessionScreen() {
   const headerHeight = useHeaderHeight();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [session, setSession] = useState<VoteSession | null>(null);
+  // « Aujourd'hui » au moment du chargement : l'horloge n'est jamais lue pendant le rendu.
+  const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasFailed, setHasFailed] = useState(false);
   const [dishName, setDishName] = useState("");
@@ -87,6 +92,8 @@ export default function SessionScreen() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [closeStep, setCloseStep] = useState<CloseStep>("idle");
+  // Le champ « Proposer un plat » n'apparaît qu'à la demande : la zone basse reste à l'action.
+  const [isProposing, setIsProposing] = useState(false);
   const [spin, setSpin] = useState<Spin | null>(null);
 
   // Numéro du dernier rechargement lancé : seule sa réponse a le droit de modifier l'écran.
@@ -107,6 +114,7 @@ export default function SessionScreen() {
           }
           wasOpenRef.current = loadedSession.isOpen;
           setSession(loadedSession);
+          setLoadedAt(new Date());
           setHasFailed(false);
         },
         () => {
@@ -205,7 +213,7 @@ export default function SessionScreen() {
   if (isLoading) {
     return <LoadingScreen />;
   }
-  if (hasFailed || !session) {
+  if (hasFailed || !session || !loadedAt) {
     return (
       <ErrorScreen
         title="Impossible de charger le vote"
@@ -223,34 +231,22 @@ export default function SessionScreen() {
     );
   }
   if (!session.isOpen) {
-    return <SessionResult session={session} styles={styles} />;
+    return <SessionResult session={session} now={loadedAt} styles={styles} />;
   }
 
   const { proposals, canClose } = session;
   const leading = getLeadingProposals(proposals);
   const tiedNames = leading.map((proposal) => proposal.name).join(", ");
+  const hasVotes = proposals.some((proposal) => proposal.voteCount > 0);
+  const leadLabel = leading.length > 1 ? "Ex æquo" : "En tête";
+  const startedAt = formatTime(new Date(session.createdAt));
+  // Clôturer devient l'action principale dès qu'il y a de quoi décider.
+  const canCloseNow = canClose && proposals.length > 0;
 
-  // Sous la liste : le bouton de clôture pour qui peut clôturer, sinon qui le fera.
-  let closeHint: ReactElement | undefined;
-  if (closeStep === "idle" && canClose) {
-    closeHint = (
-      <View>
-        <TextButton
-          label="Clôturer le vote"
-          onPress={() => setCloseStep("confirm")}
-          isDisabled={isBusy || proposals.length === 0}
-        />
-        {proposals.length === 0 ? (
-          <Text style={styles.hint}>Ajoute au moins un plat pour pouvoir clôturer.</Text>
-        ) : null}
-      </View>
-    );
-  } else if (closeStep === "idle") {
-    closeHint = (
-      <Text style={styles.hint}>
-        L’organisateur clôturera le vote quand tout le monde aura voté.
-      </Text>
-    );
+  function stopProposing() {
+    setIsProposing(false);
+    setDishName("");
+    setNameError(null);
   }
 
   return (
@@ -261,55 +257,84 @@ export default function SessionScreen() {
         behavior="padding"
         keyboardVerticalOffset={headerHeight}
       >
-        <FlatList
-          contentContainerStyle={styles.list}
-          data={proposals}
-          keyExtractor={(proposal) => proposal.id}
-          keyboardShouldPersistTaps="handled"
-          ListHeaderComponent={
-            <Text style={styles.title} accessibilityRole="header">
-              On mange quoi ce soir ?
-            </Text>
-          }
-          ListEmptyComponent={
-            <Text style={styles.empty}>Pas encore de plat. Propose le premier !</Text>
-          }
-          ListFooterComponent={closeHint}
-          renderItem={({ item }) => (
-            <View style={[styles.row, item.hasMyVote && styles.rowChecked]}>
-              <Pressable
-                style={styles.vote}
-                onPress={() => handleToggleVote(item)}
-                disabled={isBusy}
-                accessibilityRole="checkbox"
-                accessibilityLabel={`${item.name}, ${voteCountLabel(item.voteCount)}`}
-                accessibilityState={{ checked: item.hasMyVote, disabled: isBusy }}
-              >
-                <View style={[styles.checkbox, item.hasMyVote && styles.checkboxChecked]}>
-                  {item.hasMyVote ? <Text style={styles.checkmark}>✓</Text> : null}
-                </View>
-                <Text style={styles.dish}>{item.name}</Text>
-                <Text style={styles.count}>{item.voteCount}</Text>
-              </Pressable>
-              {item.isMine && item.voteCount === 0 ? (
-                <TextButton
-                  label="Retirer"
-                  onPress={() => handleRemove(item)}
-                  isDisabled={isBusy}
-                />
-              ) : null}
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Card>
+            <View style={styles.cardHeader}>
+              <Chip label="Vote en direct" hasDot />
+              <Text style={styles.caption}>
+                {session.organizerName
+                  ? `lancé par ${session.organizerName} · ${startedAt}`
+                  : `lancé à ${startedAt}`}
+              </Text>
             </View>
-          )}
-        />
+            <Text style={styles.muted}>
+              {proposals.length === 0
+                ? "Pas encore de plat. Propose le premier !"
+                : "Coche tout ce qui te tente."}
+            </Text>
 
-        <View style={styles.form}>
+            {proposals.map((item) => {
+              const isLeading = hasVotes && leading.includes(item);
+              return (
+                <View key={item.id} style={[styles.row, item.hasMyVote && styles.rowChecked]}>
+                  <Pressable
+                    style={styles.vote}
+                    onPress={() => handleToggleVote(item)}
+                    disabled={isBusy}
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={`${item.name}, ${voteCountLabel(item.voteCount)}${
+                      isLeading ? `, ${leadLabel.toLowerCase()}` : ""
+                    }`}
+                    accessibilityState={{ checked: item.hasMyVote, disabled: isBusy }}
+                  >
+                    <View style={[styles.checkbox, item.hasMyVote && styles.checkboxChecked]}>
+                      {item.hasMyVote ? (
+                        <Feather name="check" size={18} color={theme.colors.onPrimary} />
+                      ) : null}
+                    </View>
+                    <View style={styles.dishText}>
+                      <View style={styles.dishLine}>
+                        <Text style={styles.dish}>{item.name}</Text>
+                        {isLeading ? (
+                          <Chip label={leadLabel} variant="accent" style={styles.leadChip} />
+                        ) : null}
+                      </View>
+                      <Text style={styles.caption}>
+                        {item.voterNames.length > 0
+                          ? item.voterNames.join(", ")
+                          : "Aucun vote pour l’instant"}
+                      </Text>
+                    </View>
+                    <Text style={styles.count}>{item.voteCount}</Text>
+                  </Pressable>
+                  {item.isMine && item.voteCount === 0 ? (
+                    <TextButton
+                      label="Retirer"
+                      onPress={() => handleRemove(item)}
+                      isDisabled={isBusy}
+                    />
+                  ) : null}
+                </View>
+              );
+            })}
+          </Card>
+
+          <Text style={styles.status}>{participationLine(session.participation)}</Text>
+          {canClose ? null : (
+            <Text style={styles.status}>
+              L’organisateur clôturera le vote quand tout le monde aura voté.
+            </Text>
+          )}
+        </ScrollView>
+
+        <View style={styles.footer}>
           {actionError ? (
             <Text style={styles.error} accessibilityRole="alert">
               {actionError}
             </Text>
           ) : null}
 
-          {closeStep === "idle" ? (
+          {closeStep === "idle" && isProposing ? (
             <>
               <TextField
                 label="Proposer un plat"
@@ -318,12 +343,32 @@ export default function SessionScreen() {
                 error={nameError}
                 placeholder="Bolognaise"
                 autoCapitalize="sentences"
+                autoFocus
                 maxLength={PROPOSAL_NAME_MAX_LENGTH}
                 editable={!isBusy}
                 onSubmitEditing={handlePropose}
                 submitBehavior="submit"
               />
               <PrimaryButton label="Ajouter ce plat" onPress={handlePropose} isLoading={isBusy} />
+              <TextButton label="Fermer" onPress={stopProposing} isDisabled={isBusy} />
+            </>
+          ) : null}
+
+          {closeStep === "idle" && !isProposing ? (
+            <>
+              {canCloseNow ? (
+                <PrimaryButton
+                  label="Clôturer le vote"
+                  onPress={() => setCloseStep("confirm")}
+                  isDisabled={isBusy}
+                />
+              ) : null}
+              <PrimaryButton
+                label="Proposer un plat"
+                variant={canCloseNow ? "secondary" : "primary"}
+                onPress={() => setIsProposing(true)}
+                isDisabled={isBusy}
+              />
             </>
           ) : null}
 
@@ -384,40 +429,84 @@ export default function SessionScreen() {
 
 type SessionResultProps = {
   session: VoteSession;
+  now: Date;
   styles: ReturnType<typeof createStyles>;
 };
 
-function SessionResult({ session, styles }: SessionResultProps) {
+function SessionResult({ session, now, styles }: SessionResultProps) {
+  const { colors } = useTheme();
   const winner = session.proposals.find((proposal) => proposal.id === session.winnerProposalId);
+  const winnerName = winner?.name ?? "Plat introuvable";
+  const closedAt = session.closedAt ? new Date(session.closedAt) : null;
+  const isTonight = closedAt !== null && isSameDay(closedAt, now);
+  // Échelle des barres : le nombre de membres, ou plus si d'anciens membres avaient voté.
+  const scale = Math.max(
+    session.members.length,
+    ...session.proposals.map((proposal) => proposal.voteCount),
+    1,
+  );
+
+  let decision = session.decidedBy ? DECISION_LABELS[session.decidedBy] : null;
+  if (session.decidedBy === "vote" && winner) {
+    decision = `${decision} · ${voteCountLabel(winner.voteCount)}`;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <GroupTitle name={session.groupName} />
-      <ScrollView contentContainerStyle={styles.list}>
-        <Text style={styles.kicker} accessibilityRole="header">
-          C’est réglé !
-        </Text>
-        <Text style={styles.winner}>{winner?.name ?? "Plat introuvable"}</Text>
-        {session.decidedBy ? (
-          <Text style={styles.empty}>{DECISION_LABELS[session.decidedBy]}</Text>
-        ) : null}
-
-        {session.proposals.map((proposal) => (
-          <View
-            key={proposal.id}
-            style={[styles.row, styles.resultRow, proposal.id === winner?.id && styles.rowChecked]}
-            accessible
-            accessibilityLabel={`${proposal.name}, ${voteCountLabel(proposal.voteCount)}${
-              proposal.id === winner?.id ? ", gagnant" : ""
-            }`}
-          >
-            <Text style={styles.dish}>{proposal.name}</Text>
-            <Text style={styles.count}>{proposal.voteCount}</Text>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <View style={styles.badge}>
+            <Feather name="check" size={64} color={colors.onAccent} />
           </View>
-        ))}
+          <Text style={styles.muted}>
+            {closedAt ? `${session.groupName} · ${dayLabel(closedAt, now)}` : session.groupName}
+          </Text>
+          <Text style={styles.winner} accessibilityRole="header">
+            {isTonight ? `Ce soir, c’est\n${winnerName} !` : winnerName}
+          </Text>
+          {decision ? <Chip label={decision} variant="accent" style={styles.leadChip} /> : null}
+        </View>
+
+        <Card>
+          {session.proposals.map((proposal) => {
+            const isWinner = proposal.id === winner?.id;
+            return (
+              <View
+                key={proposal.id}
+                style={styles.result}
+                accessible
+                accessibilityLabel={`${proposal.name}, ${voteCountLabel(proposal.voteCount)}${
+                  isWinner ? ", gagnant" : ""
+                }`}
+              >
+                <View style={styles.resultLine}>
+                  <Text style={[styles.resultName, isWinner && styles.resultNameWinner]}>
+                    {proposal.name}
+                  </Text>
+                  <Text style={styles.caption}>{voteCountLabel(proposal.voteCount)}</Text>
+                </View>
+                <View style={styles.track}>
+                  <View
+                    style={[
+                      styles.bar,
+                      isWinner && styles.barWinner,
+                      { width: `${Math.round((proposal.voteCount / scale) * 100)}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+            );
+          })}
+          <Text style={styles.caption}>
+            Barres sur {scale} personne{scale > 1 ? "s" : ""} : chacun pouvait cocher plusieurs
+            plats.
+          </Text>
+        </Card>
       </ScrollView>
-      <View style={styles.form}>
-        <PrimaryButton label="Retour au groupe" onPress={() => backToGroup(session.groupId)} />
+      <View style={styles.footer}>
+        <PrimaryButton label="C’est réglé" onPress={() => router.dismissTo("/")} />
+        <TextButton label="Retour au groupe" onPress={() => backToGroup(session.groupId)} />
       </View>
     </SafeAreaView>
   );
@@ -426,50 +515,100 @@ function SessionResult({ session, styles }: SessionResultProps) {
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     safeArea: { flex: 1 },
-    list: { padding: spacing.xl, gap: spacing.md },
-    title: { fontFamily: fonts.display, fontSize: 30, color: colors.text },
-    kicker: { color: colors.textMuted, fontSize: fontSize.body, fontWeight: "600" },
-    winner: { fontFamily: fonts.display, fontSize: fontSize.title, color: colors.text },
-    empty: { color: colors.textMuted, fontSize: fontSize.body, lineHeight: 26 },
-    hint: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
+    content: { padding: spacing.xl, gap: spacing.lg },
+    cardHeader: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+    },
+    muted: { color: colors.textMuted, fontSize: fontSize.small },
+    caption: { color: colors.textMuted, fontSize: fontSize.caption },
+    status: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
     row: {
       flexDirection: "row",
       alignItems: "center",
       paddingRight: spacing.sm,
-      borderRadius: radius.md,
-      borderWidth: 1,
+      borderRadius: 18,
+      borderWidth: 1.5,
       borderColor: colors.border,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surface2,
     },
-    rowChecked: { borderColor: colors.brand },
-    resultRow: { padding: spacing.lg },
+    rowChecked: { borderColor: colors.brand, backgroundColor: colors.chipBg },
     vote: {
       flex: 1,
+      minHeight: 68,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
-      padding: spacing.lg,
+      paddingVertical: spacing.md,
+      paddingLeft: spacing.lg,
+      paddingRight: spacing.sm,
     },
     checkbox: {
-      width: 28,
-      height: 28,
+      width: 30,
+      height: 30,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: spacing.sm,
+      borderRadius: 10,
       borderWidth: 2,
       borderColor: colors.inputBorder,
     },
     checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
-    checkmark: { color: colors.onPrimary, fontSize: fontSize.body, fontWeight: "700" },
-    dish: { flex: 1, color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
-    count: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
-    form: {
-      gap: spacing.md,
-      padding: spacing.xl,
+    dishText: { flex: 1, gap: spacing.xs },
+    dishLine: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm },
+    dish: { flexShrink: 1, color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
+    leadChip: { alignSelf: "center" },
+    count: {
+      minWidth: 28,
+      color: colors.text,
+      fontFamily: fonts.display,
+      fontSize: fontSize.heading,
+      textAlign: "right",
+    },
+    footer: {
+      gap: spacing.sm,
+      paddingHorizontal: spacing.xl,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
     panelText: { color: colors.text, fontSize: fontSize.body, lineHeight: 26 },
     error: { color: colors.danger, fontSize: fontSize.small },
+    hero: { alignItems: "center", gap: spacing.md },
+    badge: {
+      width: 132,
+      height: 132,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: radius.pill,
+      backgroundColor: colors.accent,
+    },
+    winner: {
+      color: colors.text,
+      fontFamily: fonts.display,
+      fontSize: fontSize.title,
+      lineHeight: 42,
+      textAlign: "center",
+    },
+    result: { gap: 6 },
+    resultLine: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      gap: spacing.sm,
+    },
+    resultName: { flexShrink: 1, color: colors.text, fontSize: fontSize.body, fontWeight: "500" },
+    resultNameWinner: { fontWeight: "700" },
+    track: {
+      height: 10,
+      overflow: "hidden",
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface2,
+    },
+    bar: { height: "100%", borderRadius: radius.pill, backgroundColor: colors.inputBorder },
+    barWinner: { backgroundColor: colors.brand },
   });
 }

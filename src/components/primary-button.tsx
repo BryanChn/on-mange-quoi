@@ -7,6 +7,8 @@ type PrimaryButtonProps = {
   label: string;
   onPress: () => void;
   isLoading?: boolean;
+  // Indisponible pour l'instant, sans indicateur : une autre action est en cours.
+  isDisabled?: boolean;
   // secondary : l'action reste possible mais n'est plus l'étape attendue (« Voir le vote »
   // une fois qu'on a voté). danger : action irréversible, la couleur prévient avant le texte.
   variant?: "primary" | "secondary" | "danger";
@@ -17,6 +19,7 @@ export function PrimaryButton({
   label,
   onPress,
   isLoading = false,
+  isDisabled = false,
   variant = "primary",
 }: PrimaryButtonProps) {
   const theme = useTheme();
@@ -25,16 +28,16 @@ export function PrimaryButton({
   return (
     <Pressable
       onPress={onPress}
-      disabled={isLoading}
+      disabled={isLoading || isDisabled}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ busy: isLoading, disabled: isLoading }}
+      accessibilityState={{ busy: isLoading, disabled: isLoading || isDisabled }}
       style={({ pressed }) => [
         styles.button,
         variant === "secondary" && styles.secondary,
         variant === "danger" && styles.danger,
         pressed && (variant === "primary" ? styles.pressed : styles.dimmed),
-        isLoading && styles.loading,
+        (isLoading || isDisabled) && styles.loading,
       ]}
     >
       {isLoading ? (

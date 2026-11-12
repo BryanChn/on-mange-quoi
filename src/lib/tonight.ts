@@ -59,6 +59,17 @@ export function formatTime(date: Date): string {
   return `${hours}:${minutes}`;
 }
 
+// Quand un vote a été clôturé : « ce soir », « mardi », puis la date au-delà de six jours
+// (le nom du jour tromperait).
+export function dayLabel(date: Date, now: Date): string {
+  if (isSameDay(date, now)) return "ce soir";
+  if (now.getTime() - date.getTime() < 6 * DAY_IN_MS) return weekdayName(date);
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `le ${day}/${month}`;
+}
+
 // Titre du vote en cours. Même règle que close_session : plusieurs plats au maximum
 // de votes = égalité.
 export function leadingTitle(proposals: ProposalScore[]): string {
