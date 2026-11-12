@@ -1,13 +1,34 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Share, StyleSheet, Text, View } from "react-native";
+import { ScrollView, Share, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
-import { fetchGroup, type GroupDetail } from "@/lib/groups";
+import {
+  fetchGroup,
+  fetchLeaveImpact,
+  leaveGroup,
+  type GroupDetail,
+  type LeaveImpact,
+} from "@/lib/groups";
 import { fetchLatestSession, startSession, type LatestSession } from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
+
+// idle → loading (calcul des conséquences) → confirm → leaving. Un départ réussi
+// renvoie à l'accueil : le groupe n'y apparaît plus.
+type LeaveStep = "idle" | "loading" | "confirm" | "leaving";
+
+function leaveMessage(impact: LeaveImpact): string {
+  switch (impact.kind) {
+    case "member":
+      return "Tu ne verras plus ce groupe. Tu pourras revenir avec le code d’invitation.";
+    case "transfer":
+      return `${impact.successorName} deviendra responsable du groupe.`;
+    case "delete":
+      return "Tu es seul dans ce groupe : il sera supprimé avec tout son historique de votes.";
+  }
+}
 
 export default function GroupScreen() {
   const theme = useTheme();
@@ -18,6 +39,9 @@ export default function GroupScreen() {
   const [hasFailed, setHasFailed] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaveStep, setLeaveStep] = useState<LeaveStep>("idle");
+  const [leaveImpact, setLeaveImpact] = useState<LeaveImpact | null>(null);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   const loadGroup = useCallback(() => {
     let isStale = false;
@@ -76,6 +100,41 @@ export default function GroupScreen() {
     }
   }
 
+  async function handleAskLeave() {
+    setLeaveError(null);
+    setLeaveStep("loading");
+
+    try {
+      setLeaveImpact(await fetchLeaveImpact(id));
+      setLeaveStep("confirm");
+    } catch {
+      setLeaveStep("idle");
+      setLeaveError("Impossible de préparer ton départ du groupe. Vérifie ton réseau et réessaie.");
+    }
+  }
+
+  async function handleLeave() {
+    setLeaveError(null);
+    setLeaveStep("leaving");
+
+    try {
+      await leaveGroup(id);
+      router.dismissTo("/");
+    } catch {
+      // Rien n'a changé : leave_group est une seule transaction.
+      setLeaveStep("confirm");
+      setLeaveError(
+        "Le départ a échoué, tu es toujours membre du groupe. Vérifie ton réseau et réessaie.",
+      );
+    }
+  }
+
+  function handleCancel() {
+    setLeaveStep("idle");
+    setLeaveImpact(null);
+    setLeaveError(null);
+  }
+
   if (hasFailed) {
     return (
       <ErrorScreen
@@ -90,7 +149,7 @@ export default function GroupScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title} accessibilityRole="header">
         {group.name}
       </Text>
@@ -124,13 +183,49 @@ export default function GroupScreen() {
         </Text>
         <TextButton label="Partager le code" onPress={() => handleShare(group)} />
       </View>
-    </View>
+
+      <View style={styles.leave}>
+        {leaveStep === "idle" || leaveStep === "loading" ? (
+          <TextButton
+            label={leaveStep === "loading" ? "Chargement…" : "Quitter le groupe"}
+            onPress={handleAskLeave}
+            isDisabled={leaveStep === "loading"}
+          />
+        ) : null}
+
+        {(leaveStep === "confirm" || leaveStep === "leaving") && leaveImpact ? (
+          <>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              Quitter « {group.name} » ?
+            </Text>
+            <Text style={styles.leaveText}>{leaveMessage(leaveImpact)}</Text>
+            <PrimaryButton
+              label={leaveImpact.kind === "delete" ? "Quitter et supprimer" : "Quitter"}
+              variant="danger"
+              onPress={handleLeave}
+              isLoading={leaveStep === "leaving"}
+            />
+            <TextButton
+              label="Annuler"
+              onPress={handleCancel}
+              isDisabled={leaveStep === "leaving"}
+            />
+          </>
+        ) : null}
+
+        {leaveError ? (
+          <Text style={styles.error} accessibilityRole="alert">
+            {leaveError}
+          </Text>
+        ) : null}
+      </View>
+    </ScrollView>
   );
 }
 
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
-    container: { flex: 1, padding: spacing.xl, gap: spacing.xl },
+    container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
     title: { fontFamily: fonts.display, fontSize: 30, color: colors.text },
     invite: {
       alignItems: "center",
@@ -160,5 +255,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     },
     inviteHint: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
     error: { color: colors.danger, fontSize: fontSize.small },
+    leave: { alignItems: "center", gap: spacing.md, marginTop: "auto" },
+    sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.body },
+    leaveText: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
   });
 }
