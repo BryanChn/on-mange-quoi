@@ -15,6 +15,7 @@ import { fetchHome, subscribeToHome, type Home } from "@/lib/home";
 import { useProfile } from "@/lib/profile";
 import {
   groupSubtitle,
+  idleLine,
   leadingTitle,
   pickTonight,
   summarizeParticipation,
@@ -128,12 +129,10 @@ export default function Index() {
     >
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={styles.greeting}>Salut {displayName}</Text>
-          {hasGroups ? (
-            <Text style={styles.title} accessibilityRole="header">
-              On mange quoi ce soir ?
-            </Text>
-          ) : null}
+          <Text style={styles.title} accessibilityRole="header">
+            <Text style={styles.titleName}>Salut {displayName}</Text>
+            {hasGroups ? ",\non mange quoi ce soir ?" : null}
+          </Text>
         </View>
         <Pressable
           onPress={() => router.push("/account")}
@@ -151,6 +150,7 @@ export default function Index() {
           <TonightCard
             tonight={pickTonight(home.groups, home.userId, home.loadedAt)}
             userId={home.userId}
+            now={home.loadedAt}
             isStarting={isStarting}
             error={startError}
             onStart={handleStart}
@@ -217,6 +217,7 @@ export default function Index() {
 type TonightCardProps = {
   tonight: Tonight;
   userId: string;
+  now: Date;
   isStarting: boolean;
   error: string | null;
   onStart: (group: HomeGroup) => void;
@@ -224,10 +225,22 @@ type TonightCardProps = {
 };
 
 // La carte « Ce soir » : l'action du moment, en un appui.
-function TonightCard({ tonight, userId, isStarting, error, onStart, styles }: TonightCardProps) {
+function TonightCard({
+  tonight,
+  userId,
+  now,
+  isStarting,
+  error,
+  onStart,
+  styles,
+}: TonightCardProps) {
   if (tonight.kind === "open") {
     const { group, session, hasMyVote } = tonight;
     const participation = summarizeParticipation(group.members, session.voterIds, userId);
+    const hasProposals = session.proposals.length > 0;
+    // Sans plat, personne ne peut voter ; seul dans le groupe, il n'y a personne à attendre.
+    const showVoters = hasProposals && group.members.length > 1;
+    const isDone = hasProposals && hasMyVote;
 
     return (
       <Card>
@@ -238,19 +251,24 @@ function TonightCard({ tonight, userId, isStarting, error, onStart, styles }: To
         <Text style={styles.muted}>
           {voteProgressLabel(session.proposals.length, participation)}
         </Text>
-        <View style={styles.voters}>
-          <View style={styles.avatars}>
-            {group.members.slice(0, MAX_AVATARS).map((member, index) => (
-              <View key={member.id} style={[styles.avatarRing, index > 0 && styles.avatarOverlap]}>
-                <Avatar name={member.name} isPending={!session.voterIds.includes(member.id)} />
-              </View>
-            ))}
+        {showVoters ? (
+          <View style={styles.voters}>
+            <View style={styles.avatars}>
+              {group.members.slice(0, MAX_AVATARS).map((member, index) => (
+                <View
+                  key={member.id}
+                  style={[styles.avatarRing, index > 0 && styles.avatarOverlap]}
+                >
+                  <Avatar name={member.name} isPending={!session.voterIds.includes(member.id)} />
+                </View>
+              ))}
+            </View>
+            <Text style={[styles.muted, styles.votersLabel]}>{participation.pendingLabel}</Text>
           </View>
-          <Text style={[styles.muted, styles.votersLabel]}>{participation.pendingLabel}</Text>
-        </View>
+        ) : null}
         <PrimaryButton
-          label={hasMyVote ? "Voir le vote" : "Voter"}
-          variant={hasMyVote ? "secondary" : "primary"}
+          label={!hasProposals ? "Proposer un plat" : isDone ? "Voir le vote" : "Voter"}
+          variant={isDone ? "secondary" : "primary"}
           onPress={() => openSession(session.id)}
         />
       </Card>
@@ -284,7 +302,7 @@ function TonightCard({ tonight, userId, isStarting, error, onStart, styles }: To
       </Text>
       {groupToStart ? (
         <>
-          <Text style={styles.muted}>Lance le vote : chacun coche ce qui lui fait envie.</Text>
+          <Text style={styles.muted}>{idleLine(now)}</Text>
           <PrimaryButton
             label="Lancer le vote"
             onPress={() => onStart(groupToStart)}
@@ -357,13 +375,14 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     pressed: { opacity: 0.6 },
     header: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
     headerText: { flex: 1, gap: spacing.xs },
-    greeting: { color: colors.textMuted, fontSize: fontSize.small },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
       lineHeight: 36,
     },
+    // Le prénom en tomate : la seule touche de couleur du titre.
+    titleName: { color: colors.brand },
     cardTitle: {
       color: colors.text,
       fontFamily: fonts.display,

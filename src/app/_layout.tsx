@@ -75,7 +75,8 @@ function RootNavigator() {
         <Stack.Screen name="index" options={{ title: "Accueil", headerShown: false }} />
         <Stack.Screen name="create-group" options={{ title: "Nouveau groupe" }} />
         <Stack.Screen name="join-group" options={{ title: "Rejoindre un groupe" }} />
-        <Stack.Screen name="group/[id]" options={{ title: "Groupe" }} />
+        {/* Le nom du groupe est le grand titre de l'écran : l'en-tête ne garde que le retour. */}
+        <Stack.Screen name="group/[id]" options={{ title: "" }} />
         <Stack.Screen name="session/[id]" options={{ title: "Le vote" }} />
         <Stack.Screen name="account" options={{ title: "Mon compte" }} />
       </Stack.Protected>

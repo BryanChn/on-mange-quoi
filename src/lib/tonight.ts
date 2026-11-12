@@ -73,10 +73,10 @@ export function dayLabel(date: Date, now: Date): string {
 // Titre du vote en cours. Même règle que close_session : plusieurs plats au maximum
 // de votes = égalité.
 export function leadingTitle(proposals: ProposalScore[]): string {
-  if (proposals.length === 0) return "Aucun plat proposé";
+  if (proposals.length === 0) return "À toi de proposer";
 
   const maxVotes = Math.max(...proposals.map((proposal) => proposal.voteCount));
-  if (maxVotes === 0) return "Personne n’a encore voté";
+  if (maxVotes === 0) return "À vos votes !";
 
   const leading = proposals.filter((proposal) => proposal.voteCount === maxVotes);
   if (leading.length === 1) return `${leading[0].name} en tête`;
@@ -116,18 +116,33 @@ export function summarizeParticipation(
   };
 }
 
-// « 3 propositions · 2 personnes sur 3 ont voté ».
+// « 3 plats proposés · 2 personnes sur 3 ont voté ». Sans plat, personne ne peut voter ;
+// seul dans le groupe, le décompte des votants n'apprend rien : on ne l'affiche pas.
 export function voteProgressLabel(proposalCount: number, participation: Participation): string {
-  const proposals =
-    proposalCount === 0
-      ? "Aucune proposition"
-      : `${proposalCount} proposition${proposalCount > 1 ? "s" : ""}`;
+  if (proposalCount === 0) return "Aucun plat pour l’instant. Lance les idées !";
+
+  const proposals = `${proposalCount} plat${proposalCount > 1 ? "s proposés" : " proposé"}`;
   const { votedCount, memberCount } = participation;
-  const voters =
-    votedCount > 1
-      ? `${votedCount} personnes sur ${memberCount} ont voté`
-      : `${votedCount} personne sur ${memberCount} a voté`;
+  if (memberCount <= 1) return proposals;
+
+  let voters: string;
+  if (votedCount === 0) voters = "personne n’a encore voté";
+  else if (votedCount === 1) voters = `1 personne sur ${memberCount} a voté`;
+  else voters = `${votedCount} personnes sur ${memberCount} ont voté`;
   return `${proposals} · ${voters}`;
+}
+
+const IDLE_LINES = [
+  "Le frigo attend tes ordres.",
+  "Quelqu’un a forcément une idée.",
+  "Une envie ? Mets-la au vote.",
+  "Deux minutes, et c’est réglé.",
+];
+
+// Petite phrase de la carte quand rien n'est prévu : elle change chaque jour, mais reste
+// la même toute la journée (choisie par la date, pas au hasard).
+export function idleLine(now: Date): string {
+  return IDLE_LINES[now.getDate() % IDLE_LINES.length];
 }
 
 export function memberCountLabel(count: number): string {

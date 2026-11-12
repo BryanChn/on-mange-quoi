@@ -6,6 +6,7 @@ import {
   dayLabel,
   formatTime,
   groupSubtitle,
+  idleLine,
   leadingTitle,
   pickTonight,
   summarizeParticipation,
@@ -62,8 +63,8 @@ test("dayLabel : ce soir, jour de la semaine, puis date", () => {
 });
 
 test("leadingTitle : aucun plat, aucun vote, un plat en tête, égalités", () => {
-  assert.equal(leadingTitle([]), "Aucun plat proposé");
-  assert.equal(leadingTitle([{ name: "Pizza", voteCount: 0 }]), "Personne n’a encore voté");
+  assert.equal(leadingTitle([]), "À toi de proposer");
+  assert.equal(leadingTitle([{ name: "Pizza", voteCount: 0 }]), "À vos votes !");
   assert.equal(
     leadingTitle([
       { name: "Bolognaise", voteCount: 2 },
@@ -112,13 +113,22 @@ test("summarizeParticipation : le vote d'un ancien membre n'est pas compté", ()
   assert.equal(summarizeParticipation(members, [ME, "parti"], ME).votedCount, 1);
 });
 
-test("voteProgressLabel : singulier, pluriel, aucune proposition", () => {
-  const two = { votedCount: 2, memberCount: 3, pendingLabel: "" };
-  const one = { votedCount: 1, memberCount: 3, pendingLabel: "" };
-  const zero = { votedCount: 0, memberCount: 2, pendingLabel: "" };
-  assert.equal(voteProgressLabel(3, two), "3 propositions · 2 personnes sur 3 ont voté");
-  assert.equal(voteProgressLabel(1, one), "1 proposition · 1 personne sur 3 a voté");
-  assert.equal(voteProgressLabel(0, zero), "Aucune proposition · 0 personne sur 2 a voté");
+test("voteProgressLabel : sans plat, seul, personne, singulier, pluriel", () => {
+  const of = (votedCount: number, memberCount: number) => ({
+    votedCount,
+    memberCount,
+    pendingLabel: "",
+  });
+  assert.equal(voteProgressLabel(0, of(0, 3)), "Aucun plat pour l’instant. Lance les idées !");
+  assert.equal(voteProgressLabel(1, of(0, 1)), "1 plat proposé");
+  assert.equal(voteProgressLabel(2, of(0, 3)), "2 plats proposés · personne n’a encore voté");
+  assert.equal(voteProgressLabel(1, of(1, 3)), "1 plat proposé · 1 personne sur 3 a voté");
+  assert.equal(voteProgressLabel(3, of(2, 3)), "3 plats proposés · 2 personnes sur 3 ont voté");
+});
+
+test("idleLine : la même phrase toute la journée", () => {
+  assert.equal(idleLine(new Date(2026, 10, 12, 8)), idleLine(new Date(2026, 10, 12, 22)));
+  assert.ok(idleLine(new Date(2026, 10, 13)).length > 0);
 });
 
 test("groupSubtitle : sans vote, en cours, ce soir, cette semaine, plus ancien", () => {

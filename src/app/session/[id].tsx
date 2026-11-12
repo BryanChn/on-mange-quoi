@@ -243,6 +243,9 @@ export default function SessionScreen() {
   // Clôturer devient l'action principale dès qu'il y a de quoi décider.
   const canCloseNow = canClose && proposals.length > 0;
 
+  // Sans aucun plat, il n'y a rien d'autre à faire que proposer : le champ est déjà ouvert.
+  const showField = isProposing || proposals.length === 0;
+
   function stopProposing() {
     setIsProposing(false);
     setDishName("");
@@ -308,18 +311,25 @@ export default function SessionScreen() {
                     <Text style={styles.count}>{item.voteCount}</Text>
                   </Pressable>
                   {item.isMine && item.voteCount === 0 ? (
-                    <TextButton
-                      label="Retirer"
+                    <Pressable
                       onPress={() => handleRemove(item)}
-                      isDisabled={isBusy}
-                    />
+                      disabled={isBusy}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Retirer ${item.name}`}
+                      accessibilityState={{ disabled: isBusy }}
+                      style={({ pressed }) => [styles.remove, pressed && styles.pressed]}
+                    >
+                      <Feather name="x" size={20} color={theme.colors.textMuted} />
+                    </Pressable>
                   ) : null}
                 </View>
               );
             })}
           </Card>
 
-          <Text style={styles.status}>{participationLine(session.participation)}</Text>
+          {proposals.length > 0 && session.members.length > 1 ? (
+            <Text style={styles.status}>{participationLine(session.participation)}</Text>
+          ) : null}
           {canClose ? null : (
             <Text style={styles.status}>
               L’organisateur clôturera le vote quand tout le monde aura voté.
@@ -334,7 +344,7 @@ export default function SessionScreen() {
             </Text>
           ) : null}
 
-          {closeStep === "idle" && isProposing ? (
+          {closeStep === "idle" && showField ? (
             <>
               <TextField
                 label="Proposer un plat"
@@ -350,11 +360,13 @@ export default function SessionScreen() {
                 submitBehavior="submit"
               />
               <PrimaryButton label="Ajouter ce plat" onPress={handlePropose} isLoading={isBusy} />
-              <TextButton label="Fermer" onPress={stopProposing} isDisabled={isBusy} />
+              {proposals.length > 0 ? (
+                <TextButton label="Fermer" onPress={stopProposing} isDisabled={isBusy} />
+              ) : null}
             </>
           ) : null}
 
-          {closeStep === "idle" && !isProposing ? (
+          {closeStep === "idle" && !showField ? (
             <>
               {canCloseNow ? (
                 <PrimaryButton
@@ -556,6 +568,9 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       borderColor: colors.inputBorder,
     },
     checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
+    // 44 : taille minimale d'une zone tactile.
+    remove: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+    pressed: { opacity: 0.6 },
     dishText: { flex: 1, gap: spacing.xs },
     dishLine: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm },
     dish: { flexShrink: 1, color: colors.text, fontSize: fontSize.body, fontWeight: "700" },

@@ -1,6 +1,7 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
@@ -45,6 +46,7 @@ export default function GroupScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useSession();
+  const insets = useSafeAreaInsets();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [latestSession, setLatestSession] = useState<LatestSession | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
@@ -190,7 +192,13 @@ export default function GroupScreen() {
   const isOwner = group.owner_id === session?.user.id;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      // Sans cette marge, « Supprimer le groupe » passe sous les boutons du téléphone.
+      contentContainerStyle={[
+        styles.container,
+        { paddingBottom: insets.bottom + theme.spacing.xl },
+      ]}
+    >
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">
           {group.name}
