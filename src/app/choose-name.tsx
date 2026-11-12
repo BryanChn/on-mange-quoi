@@ -82,7 +82,7 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     safeArea: { flex: 1, backgroundColor: colors.background },
     container: { flex: 1, padding: spacing.xl, gap: spacing.xl, justifyContent: "center" },
     intro: { gap: spacing.sm },
-    title: { fontFamily: fonts.display, fontSize: 30, color: colors.text },
+    title: { fontFamily: fonts.display, fontSize: fontSize.screenTitle, color: colors.text },
     subtitle: { fontSize: fontSize.body, lineHeight: 26, color: colors.textMuted },
   });
 }

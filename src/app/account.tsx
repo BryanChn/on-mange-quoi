@@ -131,7 +131,7 @@ export default function AccountScreen() {
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     content: { padding: spacing.xl, gap: spacing.xl },
-    title: { fontFamily: fonts.display, fontSize: 30, color: colors.text },
+    title: { fontFamily: fonts.display, fontSize: fontSize.screenTitle, color: colors.text },
     dangerZone: {
       gap: spacing.md,
       padding: spacing.xl,
