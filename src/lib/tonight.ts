@@ -1,7 +1,9 @@
 // Logique d'affichage de l'accueil et du vote, en fonctions pures : aucune requête, aucune
 // horloge cachée (la date du jour est un paramètre). Testées dans tonight.test.ts.
 
-export type Member = { id: string; name: string };
+import type { Member } from "./members";
+
+export type { Member };
 
 export type ProposalScore = { name: string; voteCount: number };
 

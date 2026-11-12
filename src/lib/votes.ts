@@ -1,6 +1,7 @@
 import type { Enums } from "./database.types";
-import { supabase } from "./supabase";
-import { summarizeParticipation, type Member, type Participation } from "./tonight";
+import { MEMBER_COLUMNS, toMembers, type Member } from "./members";
+import { getUserId, supabase } from "./supabase";
+import { summarizeParticipation, type Participation } from "./tonight";
 
 // Code Postgres d'une contrainte d'unicité violée.
 const UNIQUE_VIOLATION = "23505";
@@ -51,14 +52,6 @@ export type LatestSession =
 export type CloseOutcome = "closed" | "tie" | "not_tied";
 
 export type TieBreak = { method: "tirage" } | { method: "organisateur"; proposalId: string };
-
-async function getUserId(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const userId = data.session?.user.id;
-
-  if (!userId) throw new Error("Aucun compte connecté.");
-  return userId;
-}
 
 export async function fetchOpenSessionId(groupId: string): Promise<string | null> {
   const { data, error } = await supabase
@@ -147,7 +140,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     .from("vote_sessions")
     .select(
       `group_id, status, organizer_id, winner_proposal_id, decided_by, created_at, closed_at,
-      groups(owner_id, name, group_members(profile_id, joined_at, profiles(display_name))),
+      groups(owner_id, name, ${MEMBER_COLUMNS}),
       proposals!proposals_session_id_fkey(id, name, proposed_by, votes(profile_id))`,
     )
     .eq("id", sessionId)
@@ -156,12 +149,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
 
   if (error) throw error;
 
-  const members = [...(data.groups?.group_members ?? [])]
-    .sort((a, b) => a.joined_at.localeCompare(b.joined_at))
-    .map((member) => ({
-      id: member.profile_id,
-      name: member.profiles?.display_name ?? "Un membre",
-    }));
+  const members = toMembers(data.groups?.group_members ?? []);
   const nameById = new Map(members.map((member) => [member.id, member.name]));
   const voterIds = new Set(
     data.proposals.flatMap((proposal) => proposal.votes.map((vote) => vote.profile_id)),

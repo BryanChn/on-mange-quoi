@@ -47,7 +47,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --test \"src/**/*.test.ts\"",
+    "test": "tsc -p tsconfig.test.json && node --test \"src/**/*.test.ts\"",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "dev": "expo start --tunnel",
     "db:start": "supabase start",

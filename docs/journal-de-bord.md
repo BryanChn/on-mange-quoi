@@ -9,8 +9,9 @@ Session du 2026-11-12 : **PR #27 à #29 mergées**, PR de la refonte design ouve
 
 - **APK Android** (PR #28) : build EAS, profil `preview`, variables Supabase dans l'environnement EAS `preview` (le `.env` n'est pas envoyé au build). Installé et vérifié sur le téléphone, sans le PC. Pas encore d'EAS Update : chaque changement demande un nouvel APK.
 - **Quitter / supprimer un groupe** (PR #29) : entré dans le MVP. Testé sur téléphone, sauf la transmission de la couronne (pas de 2e compte), couverte par les tests SQL (14 sur 14).
-- **Refonte design** (maquette : https://claude.ai/artifact/YKPtzb7kcq25hqW4Uv16h8) : tokens, accueil avec la carte « Ce soir », vote, résultat, groupe. Écrite d'une traite par Claude à ma demande, **pas encore vue sur un téléphone** : tout est à vérifier à l'écran, en clair et en sombre, avant le merge. Reportés : barre d'onglets, « Cette semaine », squelettes de chargement, bandeau hors ligne.
-- Premiers tests automatisés de l'app : `npm test` (fonctions pures de `src/lib/tonight.ts` et `avatar.ts`).
+- **Refonte design** (maquette : https://claude.ai/artifact/YKPtzb7kcq25hqW4Uv16h8) : tokens, accueil avec la carte « Ce soir », vote, résultat, groupe. Écrite d'une traite par Claude à ma demande, revue sur téléphone en mode sombre (deux passes de retours), puis revue du code avec un doc récap (https://claude.ai/artifact/FT2iBmXVv1GhuwSRnGiFaZ). Pas encore vue en mode clair. Profil refait avec « Changer mon nom » ; photo de profil notée dans le backlog. Reportés : barre d'onglets, « Cette semaine », squelettes de chargement, bandeau hors ligne.
+- Premiers tests automatisés de l'app : `npm test` (16 cas : fonctions pures de `tonight.ts`, `members.ts`, `avatar.ts`). Les types Node ne servent qu'aux tests (`tsconfig.test.json`) : dans l'app, `Buffer` ou `fs` sont refusés par TypeScript.
+- Membres : un seul module `src/lib/members.ts` (`toMembers`, `pickSuccessor`) au lieu de quatre copies ; `getUserId` vit dans `supabase.ts`.
 
 Prochaine étape : review de la refonte sur téléphone, puis EAS Update + nouvel APK, puis le **nom de domaine** (toujours le seul bloquant pour qu'une autre personne se connecte). Test reporté le 2026-11-12 : vote après clôture avec le temps réel coupé (voir ci-dessous).
 

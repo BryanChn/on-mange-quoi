@@ -1,7 +1,6 @@
-import { getUserId, pickSuccessor } from "./account";
 import type { Tables } from "./database.types";
-import { supabase } from "./supabase";
-import type { Member } from "./tonight";
+import { MEMBER_COLUMNS, pickSuccessor, toMembers, type Member } from "./members";
+import { getUserId, supabase } from "./supabase";
 
 export type Group = Pick<Tables<"groups">, "id" | "name">;
 export type GroupDetail = Pick<Tables<"groups">, "id" | "name" | "invite_code" | "owner_id"> & {
@@ -34,11 +33,8 @@ export async function fetchGroups(): Promise<Group[]> {
 export async function fetchGroup(groupId: string): Promise<GroupDetail> {
   const { data, error } = await supabase
     .from("groups")
-    .select(
-      "id, name, invite_code, owner_id, group_members(profile_id, joined_at, profiles(display_name))",
-    )
+    .select(`id, name, invite_code, owner_id, ${MEMBER_COLUMNS}`)
     .eq("id", groupId)
-    .order("joined_at", { referencedTable: "group_members", ascending: true })
     .single();
 
   if (error) throw error;
@@ -47,10 +43,7 @@ export async function fetchGroup(groupId: string): Promise<GroupDetail> {
     name: data.name,
     invite_code: data.invite_code,
     owner_id: data.owner_id,
-    members: data.group_members.map((member) => ({
-      id: member.profile_id,
-      name: member.profiles?.display_name ?? "Un membre",
-    })),
+    members: toMembers(data.group_members),
   };
 }
 
@@ -77,23 +70,16 @@ export async function fetchLeaveImpact(groupId: string): Promise<LeaveImpact> {
   const userId = await getUserId();
   const { data, error } = await supabase
     .from("groups")
-    .select("owner_id, group_members(profile_id, joined_at, profiles(display_name))")
+    .select(`owner_id, ${MEMBER_COLUMNS}`)
     .eq("id", groupId)
     .single();
 
   if (error) throw error;
   if (data.owner_id !== userId) return { kind: "member" };
 
-  const members = data.group_members.map((member) => ({
-    profileId: member.profile_id,
-    displayName: member.profiles?.display_name ?? "Un membre",
-    joinedAt: member.joined_at,
-  }));
-  const successor = pickSuccessor(members, userId);
+  const successor = pickSuccessor(toMembers(data.group_members), userId);
 
-  return successor
-    ? { kind: "transfer", successorName: successor.displayName }
-    : { kind: "delete" };
+  return successor ? { kind: "transfer", successorName: successor.name } : { kind: "delete" };
 }
 
 // Une seule transaction côté serveur : en cas d'erreur, l'utilisateur est toujours membre.

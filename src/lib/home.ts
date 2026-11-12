@@ -1,5 +1,5 @@
-import { getUserId } from "./account";
-import { supabase } from "./supabase";
+import { MEMBER_COLUMNS, toMembers } from "./members";
+import { getUserId, supabase } from "./supabase";
 import type { HomeGroup } from "./tonight";
 
 export type Home = { userId: string; groups: HomeGroup[] };
@@ -13,13 +13,12 @@ export async function fetchHome(): Promise<Home> {
     .from("groups")
     .select(
       `id, name,
-      group_members(profile_id, joined_at, profiles(display_name)),
+      ${MEMBER_COLUMNS},
       vote_sessions(id, status, created_at, closed_at,
         winner:proposals!vote_sessions_winner_fk(name),
         proposals!proposals_session_id_fkey(name, votes(profile_id)))`,
     )
     .order("created_at", { ascending: true })
-    .order("joined_at", { referencedTable: "group_members", ascending: true })
     // La plus récente seulement : c'est l'ouverte s'il y en a une (une seule par groupe).
     .order("created_at", { referencedTable: "vote_sessions", ascending: false })
     .limit(1, { referencedTable: "vote_sessions" });
@@ -27,10 +26,7 @@ export async function fetchHome(): Promise<Home> {
   if (error) throw error;
 
   const groups = data.map((group): HomeGroup => {
-    const members = group.group_members.map((member) => ({
-      id: member.profile_id,
-      name: member.profiles?.display_name ?? "Un membre",
-    }));
+    const members = toMembers(group.group_members);
     const session = group.vote_sessions.at(0);
 
     if (!session) return { id: group.id, name: group.name, members, latestSession: null };
@@ -73,19 +69,35 @@ export async function fetchHome(): Promise<Home> {
   return { userId, groups };
 }
 
-// Appelle onChange dès qu'un vote, un plat ou une session change dans un groupe du membre
-// (la RLS ne laisse passer que ceux-là). Pas de filtre : un DELETE ne transporte que l'id
-// de la ligne, un filtre l'écarterait (limite de Supabase Realtime).
-// Renvoie la fonction de désabonnement.
+// Plusieurs membres qui cochent en même temps déclenchent une rafale d'événements : on
+// attend ce délai sans nouvel événement avant de recharger, une seule fois.
+const RELOAD_DELAY_MS = 300;
+
+// Appelle onChange quand un vote, un plat ou une session change dans un groupe du membre
+// (la RLS ne laisse passer que ceux-là), regroupés par RELOAD_DELAY_MS. Pas de filtre :
+// un DELETE ne transporte que l'id de la ligne, un filtre l'écarterait (limite de
+// Supabase Realtime). Renvoie la fonction de désabonnement.
 export function subscribeToHome(onChange: () => void): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  function scheduleReload() {
+    clearTimeout(timer);
+    timer = setTimeout(onChange, RELOAD_DELAY_MS);
+  }
+
   const channel = supabase
     .channel("home")
-    .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "proposals" }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "vote_sessions" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, scheduleReload)
+    .on("postgres_changes", { event: "*", schema: "public", table: "proposals" }, scheduleReload)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "vote_sessions" },
+      scheduleReload,
+    )
     .subscribe();
 
   return () => {
+    clearTimeout(timer);
     supabase.removeChannel(channel);
   };
 }

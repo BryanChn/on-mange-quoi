@@ -2,7 +2,8 @@
 
 // Initiale affichée dans le rond : « bryan » → « B », «  léa » → « L », nom vide → « ? ».
 export function getInitial(name: string): string {
-  const firstLetter = name.trim().charAt(0);
+  // Array.from découpe par caractère : un emoji (deux unités de code) reste entier.
+  const firstLetter = Array.from(name.trim())[0] ?? "";
   return firstLetter === "" ? "?" : firstLetter.toUpperCase();
 }
 
