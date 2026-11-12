@@ -13,11 +13,7 @@ export function LoadingScreen() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator
-        color={theme.colors.primary}
-        size="large"
-        accessibilityLabel="Chargement"
-      />
+      <ActivityIndicator color={theme.colors.brand} size="large" accessibilityLabel="Chargement" />
     </View>
   );
 }

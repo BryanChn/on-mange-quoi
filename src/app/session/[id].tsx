@@ -441,7 +441,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       borderColor: colors.border,
       backgroundColor: colors.surface,
     },
-    rowChecked: { borderColor: colors.primary },
+    rowChecked: { borderColor: colors.brand },
     resultRow: { padding: spacing.lg },
     vote: {
       flex: 1,

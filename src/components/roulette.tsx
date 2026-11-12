@@ -111,7 +111,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       borderColor: colors.border,
       backgroundColor: colors.surface,
     },
-    cardStopped: { borderColor: colors.primary },
+    cardStopped: { borderColor: colors.brand },
     name: {
       color: colors.text,
       fontFamily: fonts.display,

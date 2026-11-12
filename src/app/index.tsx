@@ -115,7 +115,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       borderColor: colors.border,
       backgroundColor: colors.surface,
     },
-    groupPressed: { borderColor: colors.primary },
+    groupPressed: { borderColor: colors.brand },
     groupName: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
     empty: { color: colors.textMuted, fontSize: fontSize.body, lineHeight: 26 },
     actions: { marginTop: spacing.lg, gap: spacing.xs },
