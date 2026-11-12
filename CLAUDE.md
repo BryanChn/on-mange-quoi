@@ -87,6 +87,7 @@ npm run db:test      # scénarios SQL de supabase/scripts/
 npm run db:push      # pousser les migrations en ligne (dry-run avant)
 npx tsc --noEmit     # vérification des types
 npm run lint         # ESLint
+npm test             # tests des fonctions pures (node --test)
 ```
 
 ## Ordre de construction
