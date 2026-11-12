@@ -78,7 +78,7 @@ function RootNavigator() {
         {/* Le nom du groupe est le grand titre de l'écran : l'en-tête ne garde que le retour. */}
         <Stack.Screen name="group/[id]" options={{ title: "" }} />
         <Stack.Screen name="session/[id]" options={{ title: "Le vote" }} />
-        <Stack.Screen name="account" options={{ title: "Mon compte" }} />
+        <Stack.Screen name="account" options={{ title: "Profil" }} />
       </Stack.Protected>
 
       <Stack.Protected guard={isSignedIn && !hasProfile} redirectTo={homeRoute}>

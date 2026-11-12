@@ -1,12 +1,12 @@
-import { Feather } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useMemo, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
+import { InitialTile, ListCard, ListRow } from "@/components/list";
 import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
@@ -161,50 +161,28 @@ export default function Index() {
             <Text style={styles.sectionTitle} accessibilityRole="header">
               Tes groupes
             </Text>
-            <View style={styles.list}>
-              {home.groups.map((group) => {
-                const subtitle = groupSubtitle(group, home.loadedAt);
-                return (
-                  <View key={group.id}>
-                    <Pressable
-                      onPress={() =>
-                        router.push({ pathname: "/group/[id]", params: { id: group.id } })
-                      }
-                      accessibilityRole="button"
-                      accessibilityLabel={`${group.name}, ${subtitle}`}
-                      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-                    >
-                      <View style={styles.tile}>
-                        <Text style={styles.tileInitial}>{getInitial(group.name)}</Text>
-                      </View>
-                      <View style={styles.rowText}>
-                        <Text style={styles.rowName} numberOfLines={1}>
-                          {group.name}
-                        </Text>
-                        <Text style={styles.rowSubtitle} numberOfLines={1}>
-                          {subtitle}
-                        </Text>
-                      </View>
-                      <Feather name="chevron-right" size={20} color={theme.colors.textMuted} />
-                    </Pressable>
-                    <View style={styles.separator} />
-                  </View>
-                );
-              })}
-              <ActionRow
+            <ListCard>
+              {home.groups.map((group) => (
+                <ListRow
+                  key={group.id}
+                  label={group.name}
+                  subtitle={groupSubtitle(group, home.loadedAt)}
+                  leading={<InitialTile initial={getInitial(group.name)} />}
+                  hasChevron
+                  onPress={() => router.push({ pathname: "/group/[id]", params: { id: group.id } })}
+                />
+              ))}
+              <ListRow
                 icon="plus"
                 label="Créer un groupe"
                 onPress={() => router.push("/create-group")}
-                styles={styles}
               />
-              <View style={styles.separator} />
-              <ActionRow
+              <ListRow
                 icon="hash"
                 label="Rejoindre avec un code"
                 onPress={() => router.push("/join-group")}
-                styles={styles}
               />
-            </View>
+            </ListCard>
           </View>
         </>
       ) : (
@@ -321,31 +299,6 @@ function TonightCard({
   );
 }
 
-type ActionRowProps = {
-  icon: ComponentProps<typeof Feather>["name"];
-  label: string;
-  onPress: () => void;
-  styles: Styles;
-};
-
-function ActionRow({ icon, label, onPress, styles }: ActionRowProps) {
-  const { colors } = useTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-    >
-      <View style={[styles.tile, styles.tileAction]}>
-        <Feather name={icon} size={20} color={colors.text} />
-      </View>
-      <Text style={[styles.rowName, styles.rowText]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 // Premier lancement : aucun groupe. Une assiette vide, et les deux façons d'en avoir un.
 function EmptyHome({ styles }: { styles: Styles }) {
   return (
@@ -367,7 +320,7 @@ function EmptyHome({ styles }: { styles: Styles }) {
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
+function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     screen: { backgroundColor: colors.background },
     content: { paddingHorizontal: spacing.xl, gap: spacing.xl },
@@ -399,30 +352,6 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     error: { color: colors.danger, fontSize: fontSize.small },
     section: { gap: spacing.md },
     sectionTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
-    list: { borderRadius: radius.lg, backgroundColor: colors.surface, boxShadow: cardShadow },
-    row: {
-      minHeight: 64,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
-    },
-    rowText: { flex: 1, gap: 2 },
-    rowName: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
-    rowSubtitle: { color: colors.textMuted, fontSize: fontSize.caption },
-    // Aligné sur le texte des lignes : tuile (40) + espace (12) + marge (16).
-    separator: { height: 1, marginLeft: 68, backgroundColor: colors.border },
-    tile: {
-      width: 40,
-      height: 40,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: 14,
-      backgroundColor: colors.chipBg,
-    },
-    tileAction: { backgroundColor: colors.surface2 },
-    tileInitial: { color: colors.chipText, fontFamily: fonts.display, fontSize: fontSize.button },
     empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },
     plate: {
       width: 150,

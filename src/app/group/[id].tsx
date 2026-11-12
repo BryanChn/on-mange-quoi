@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
@@ -6,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
+import { ListCard, ListRow } from "@/components/list";
 import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
@@ -237,11 +239,17 @@ export default function GroupScreen() {
             {latestSession ? (
               <>
                 <Chip label="Dernier vote" />
-                <Text style={styles.cardTitle}>{latestSession.winnerName}</Text>
-                <TextButton
-                  label="Voir le résultat"
+                <Pressable
                   onPress={() => openSession(latestSession.id)}
-                />
+                  accessibilityRole="button"
+                  accessibilityLabel={`Voir le résultat du dernier vote : ${latestSession.winnerName}`}
+                  style={({ pressed }) => [styles.lastResult, pressed && styles.pressed]}
+                >
+                  <Text style={[styles.cardTitle, styles.lastWinner]}>
+                    {latestSession.winnerName}
+                  </Text>
+                  <Feather name="chevron-right" size={22} color={theme.colors.textMuted} />
+                </Pressable>
               </>
             ) : (
               <>
@@ -275,74 +283,70 @@ export default function GroupScreen() {
         </Text>
       </Card>
 
-      <View style={styles.leave}>
-        {deleteStep === "idle" && (leaveStep === "idle" || leaveStep === "loading") ? (
-          <TextButton
+      {leaveStep === "confirm" || leaveStep === "leaving" || deleteStep !== "idle" ? null : (
+        <ListCard>
+          <ListRow
+            icon="log-out"
             label={leaveStep === "loading" ? "Chargement…" : "Quitter le groupe"}
             onPress={handleAskLeave}
             isDisabled={leaveStep === "loading"}
           />
-        ) : null}
-
-        {(leaveStep === "confirm" || leaveStep === "leaving") && leaveImpact ? (
-          <>
-            <Text style={styles.sectionTitle} accessibilityRole="header">
-              Quitter « {group.name} » ?
-            </Text>
-            <Text style={styles.leaveText}>{leaveMessage(leaveImpact)}</Text>
-            <PrimaryButton
-              label={leaveImpact.kind === "delete" ? "Quitter et supprimer" : "Quitter"}
+          {isOwner ? (
+            <ListRow
+              icon="trash-2"
+              label="Supprimer le groupe"
               variant="danger"
-              onPress={handleLeave}
-              isLoading={leaveStep === "leaving"}
+              onPress={handleAskDelete}
+              isDisabled={leaveStep === "loading"}
             />
-            <TextButton
-              label="Annuler"
-              onPress={handleCancel}
-              isDisabled={leaveStep === "leaving"}
-            />
-          </>
-        ) : null}
+          ) : null}
+        </ListCard>
+      )}
 
-        {leaveError ? (
-          <Text style={styles.error} accessibilityRole="alert">
-            {leaveError}
+      {(leaveStep === "confirm" || leaveStep === "leaving") && leaveImpact ? (
+        <Card>
+          <Text style={styles.confirmTitle} accessibilityRole="header">
+            Quitter « {group.name} » ?
           </Text>
-        ) : null}
+          <Text style={styles.muted}>{leaveMessage(leaveImpact)}</Text>
+          <PrimaryButton
+            label={leaveImpact.kind === "delete" ? "Quitter et supprimer" : "Quitter"}
+            variant="danger"
+            onPress={handleLeave}
+            isLoading={leaveStep === "leaving"}
+          />
+          <TextButton label="Annuler" onPress={handleCancel} isDisabled={leaveStep === "leaving"} />
+        </Card>
+      ) : null}
 
-        {isOwner && leaveStep === "idle" && deleteStep === "idle" ? (
-          <TextButton label="Supprimer le groupe" onPress={handleAskDelete} variant="danger" />
-        ) : null}
-
-        {deleteStep !== "idle" ? (
-          <>
-            <Text style={styles.sectionTitle} accessibilityRole="header">
-              Supprimer « {group.name} » ?
-            </Text>
-            <Text style={styles.leaveText}>
-              Le groupe sera supprimé pour tous ses membres, avec tout son historique de votes. Ils
-              ne seront pas prévenus. C’est définitif.
-            </Text>
-            <PrimaryButton
-              label="Supprimer pour tous"
-              variant="danger"
-              onPress={handleDelete}
-              isLoading={deleteStep === "deleting"}
-            />
-            <TextButton
-              label="Annuler"
-              onPress={handleCancelDelete}
-              isDisabled={deleteStep === "deleting"}
-            />
-          </>
-        ) : null}
-
-        {deleteError ? (
-          <Text style={styles.error} accessibilityRole="alert">
-            {deleteError}
+      {deleteStep !== "idle" ? (
+        <Card>
+          <Text style={styles.confirmTitle} accessibilityRole="header">
+            Supprimer « {group.name} » ?
           </Text>
-        ) : null}
-      </View>
+          <Text style={styles.muted}>
+            Le groupe sera supprimé pour tous ses membres, avec tout son historique de votes. Ils ne
+            seront pas prévenus. C’est définitif.
+          </Text>
+          <PrimaryButton
+            label="Supprimer pour tous"
+            variant="danger"
+            onPress={handleDelete}
+            isLoading={deleteStep === "deleting"}
+          />
+          <TextButton
+            label="Annuler"
+            onPress={handleCancelDelete}
+            isDisabled={deleteStep === "deleting"}
+          />
+        </Card>
+      ) : null}
+
+      {leaveError || deleteError ? (
+        <Text style={styles.error} accessibilityRole="alert">
+          {leaveError ?? deleteError}
+        </Text>
+      ) : null}
     </ScrollView>
   );
 }
@@ -387,8 +391,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     },
     inviteHint: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
     error: { color: colors.danger, fontSize: fontSize.small },
-    leave: { alignItems: "center", gap: spacing.md, marginTop: "auto" },
-    sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.body },
-    leaveText: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
+    lastResult: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    lastWinner: { flex: 1 },
+    confirmTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
   });
 }

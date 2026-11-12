@@ -5,12 +5,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
-import { useProfile } from "@/lib/profile";
+import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
 import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
-
-// Même limite que la colonne profiles.display_name.
-const DISPLAY_NAME_MAX_LENGTH = 30;
 
 function getNameError(cleanName: string): string | null {
   if (cleanName === "") return "Entre le nom que verra ton groupe.";
@@ -20,7 +17,7 @@ function getNameError(cleanName: string): string | null {
 export default function ChooseName() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const { createProfile } = useProfile();
+  const { saveDisplayName } = useProfile();
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +34,7 @@ export default function ChooseName() {
 
     try {
       // Une fois le profil créé, la garde du layout mène seule à l'accueil.
-      await createProfile(cleanName);
+      await saveDisplayName(cleanName);
     } catch {
       setError("Impossible d’enregistrer ton nom. Vérifie ton réseau et réessaie.");
     } finally {
