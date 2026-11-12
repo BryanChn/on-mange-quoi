@@ -6,18 +6,22 @@ import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import {
+  deleteGroup,
   fetchGroup,
   fetchLeaveImpact,
   leaveGroup,
   type GroupDetail,
   type LeaveImpact,
 } from "@/lib/groups";
+import { useSession } from "@/lib/session";
 import { fetchLatestSession, startSession, type LatestSession } from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
 
 // idle → loading (calcul des conséquences) → confirm → leaving. Un départ réussi
 // renvoie à l'accueil : le groupe n'y apparaît plus.
 type LeaveStep = "idle" | "loading" | "confirm" | "leaving";
+// Suppression pour tous (owner) : rien à calculer avant, pas d'étape loading.
+type DeleteStep = "idle" | "confirm" | "deleting";
 
 function leaveMessage(impact: LeaveImpact): string {
   switch (impact.kind) {
@@ -34,6 +38,7 @@ export default function GroupScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { session } = useSession();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [latestSession, setLatestSession] = useState<LatestSession | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
@@ -42,6 +47,8 @@ export default function GroupScreen() {
   const [leaveStep, setLeaveStep] = useState<LeaveStep>("idle");
   const [leaveImpact, setLeaveImpact] = useState<LeaveImpact | null>(null);
   const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [deleteStep, setDeleteStep] = useState<DeleteStep>("idle");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const loadGroup = useCallback(() => {
     let isStale = false;
@@ -135,6 +142,31 @@ export default function GroupScreen() {
     setLeaveError(null);
   }
 
+  function handleAskDelete() {
+    setDeleteError(null);
+    setDeleteStep("confirm");
+  }
+
+  async function handleDelete() {
+    setDeleteError(null);
+    setDeleteStep("deleting");
+
+    try {
+      await deleteGroup(id);
+      router.dismissTo("/");
+    } catch {
+      setDeleteStep("confirm");
+      setDeleteError(
+        "La suppression a échoué, le groupe est intact. Vérifie ton réseau et réessaie.",
+      );
+    }
+  }
+
+  function handleCancelDelete() {
+    setDeleteStep("idle");
+    setDeleteError(null);
+  }
+
   if (hasFailed) {
     return (
       <ErrorScreen
@@ -147,6 +179,9 @@ export default function GroupScreen() {
   if (!group) {
     return <LoadingScreen />;
   }
+
+  // Affichage seulement : la RLS refuse la suppression à tout autre membre.
+  const isOwner = group.owner_id === session?.user.id;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -185,7 +220,7 @@ export default function GroupScreen() {
       </View>
 
       <View style={styles.leave}>
-        {leaveStep === "idle" || leaveStep === "loading" ? (
+        {deleteStep === "idle" && (leaveStep === "idle" || leaveStep === "loading") ? (
           <TextButton
             label={leaveStep === "loading" ? "Chargement…" : "Quitter le groupe"}
             onPress={handleAskLeave}
@@ -216,6 +251,39 @@ export default function GroupScreen() {
         {leaveError ? (
           <Text style={styles.error} accessibilityRole="alert">
             {leaveError}
+          </Text>
+        ) : null}
+
+        {isOwner && leaveStep === "idle" && deleteStep === "idle" ? (
+          <TextButton label="Supprimer le groupe" onPress={handleAskDelete} variant="danger" />
+        ) : null}
+
+        {deleteStep !== "idle" ? (
+          <>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              Supprimer « {group.name} » ?
+            </Text>
+            <Text style={styles.leaveText}>
+              Le groupe sera supprimé pour tous ses membres, avec tout son historique de votes. Ils
+              ne seront pas prévenus. C’est définitif.
+            </Text>
+            <PrimaryButton
+              label="Supprimer pour tous"
+              variant="danger"
+              onPress={handleDelete}
+              isLoading={deleteStep === "deleting"}
+            />
+            <TextButton
+              label="Annuler"
+              onPress={handleCancelDelete}
+              isDisabled={deleteStep === "deleting"}
+            />
+          </>
+        ) : null}
+
+        {deleteError ? (
+          <Text style={styles.error} accessibilityRole="alert">
+            {deleteError}
           </Text>
         ) : null}
       </View>

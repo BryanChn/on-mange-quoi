@@ -3,7 +3,7 @@ import type { Tables } from "./database.types";
 import { supabase } from "./supabase";
 
 export type Group = Pick<Tables<"groups">, "id" | "name">;
-export type GroupDetail = Pick<Tables<"groups">, "id" | "name" | "invite_code">;
+export type GroupDetail = Pick<Tables<"groups">, "id" | "name" | "invite_code" | "owner_id">;
 
 // Ce qui se passe si l'utilisateur quitte le groupe (règle de leave_group) :
 // - member : simple membre, le groupe continue sans lui ;
@@ -30,7 +30,7 @@ export async function fetchGroups(): Promise<Group[]> {
 export async function fetchGroup(groupId: string): Promise<GroupDetail> {
   const { data, error } = await supabase
     .from("groups")
-    .select("id, name, invite_code")
+    .select("id, name, invite_code, owner_id")
     .eq("id", groupId)
     .single();
 
@@ -84,4 +84,17 @@ export async function fetchLeaveImpact(groupId: string): Promise<LeaveImpact> {
 export async function leaveGroup(groupId: string): Promise<void> {
   const { error } = await supabase.rpc("leave_group", { target_group_id: groupId });
   if (error) throw error;
+}
+
+// Owner seulement (politique RLS « groups: dissous par son owner ») : la cascade efface
+// membres, sessions, plats et votes. Les membres ne sont pas prévenus (notification : V1).
+export async function deleteGroup(groupId: string): Promise<void> {
+  const { data, error } = await supabase.from("groups").delete().eq("id", groupId).select("id");
+
+  if (error) throw error;
+  // Un delete refusé par la RLS ne lève pas d'erreur : il supprime 0 ligne (cas 12 des tests
+  // SQL). Sans ce contrôle, l'écran croirait à un succès alors que le groupe existe toujours.
+  if (data.length === 0) {
+    throw new Error("Groupe non supprimé : introuvable, ou l'utilisateur n'en est pas l'owner.");
+  }
 }
