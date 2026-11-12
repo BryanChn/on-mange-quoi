@@ -88,6 +88,7 @@ npm run db:push      # pousser les migrations en ligne (dry-run avant)
 npx tsc --noEmit     # vérification des types
 npm run lint         # ESLint
 npm test             # tests des fonctions pures (node --test)
+npm run update -- --message "…"  # publier le JavaScript sur les APK installés (canal preview)
 ```
 
 ## Ordre de construction
