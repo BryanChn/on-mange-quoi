@@ -25,6 +25,16 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   },
 });
 
+// Identifiant du compte connecté, pour les requêtes qui en ont besoin (la RLS, elle,
+// le lit dans le jeton : ceci ne remplace jamais une politique).
+export async function getUserId(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user.id;
+
+  if (!userId) throw new Error("Aucun compte connecté.");
+  return userId;
+}
+
 // Sur mobile, le rafraîchissement du jeton ne doit tourner que quand l'app est au premier plan.
 if (Platform.OS !== "web") {
   AppState.addEventListener("change", (state) => {

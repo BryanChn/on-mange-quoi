@@ -13,11 +13,7 @@ export function LoadingScreen() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator
-        color={theme.colors.primary}
-        size="large"
-        accessibilityLabel="Chargement"
-      />
+      <ActivityIndicator color={theme.colors.brand} size="large" accessibilityLabel="Chargement" />
     </View>
   );
 }
@@ -54,7 +50,7 @@ export function ErrorScreen({ title, message, onRetry, canSignOut = false }: Err
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
+function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -67,10 +63,9 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       alignItems: "center",
       gap: spacing.md,
       padding: spacing.xl,
-      borderWidth: 2,
-      borderColor: colors.danger,
-      borderRadius: radius.md,
+      borderRadius: radius.xl,
       backgroundColor: colors.surface,
+      boxShadow: cardShadow,
     },
     badge: {
       width: 48,
@@ -82,12 +77,17 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     },
     badgeText: { color: colors.background, fontFamily: fonts.display, fontSize: 28 },
     title: {
-      color: colors.danger,
+      color: colors.text,
       fontFamily: fonts.displayBold,
       fontSize: 22,
       textAlign: "center",
     },
-    message: { color: colors.text, fontSize: fontSize.body, lineHeight: 26, textAlign: "center" },
+    message: {
+      color: colors.textMuted,
+      fontSize: fontSize.body,
+      lineHeight: 26,
+      textAlign: "center",
+    },
     actions: { gap: spacing.xs },
   });
 }

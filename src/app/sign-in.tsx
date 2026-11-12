@@ -114,7 +114,7 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
       color: colors.text,
       textAlign: "center",
     },
-    questionMark: { color: colors.primary },
+    questionMark: { color: colors.brand },
     tagline: {
       fontSize: fontSize.body,
       lineHeight: 26,

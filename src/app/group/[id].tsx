@@ -1,7 +1,13 @@
+import { Feather } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Avatar } from "@/components/avatar";
+import { Card } from "@/components/card";
+import { Chip } from "@/components/chip";
+import { ListCard, ListRow } from "@/components/list";
 import { PrimaryButton } from "@/components/primary-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
@@ -34,11 +40,15 @@ function leaveMessage(impact: LeaveImpact): string {
   }
 }
 
+// Au-delà, les avatars pousseraient les prénoms hors de l'écran.
+const MAX_AVATARS = 5;
+
 export default function GroupScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useSession();
+  const insets = useSafeAreaInsets();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [latestSession, setLatestSession] = useState<LatestSession | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
@@ -184,109 +194,159 @@ export default function GroupScreen() {
   const isOwner = group.owner_id === session?.user.id;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title} accessibilityRole="header">
-        {group.name}
-      </Text>
-
-      {latestSession && !latestSession.isOpen ? (
-        <View style={styles.lastResult}>
-          <Text style={styles.inviteLabel}>Dernier vote</Text>
-          <Text style={styles.lastWinner}>{latestSession.winnerName}</Text>
-          <TextButton label="Voir le résultat" onPress={() => openSession(latestSession.id)} />
-        </View>
-      ) : null}
-
-      {latestSession?.isOpen ? (
-        <PrimaryButton label="Voter" onPress={() => openSession(latestSession.id)} />
-      ) : (
-        <PrimaryButton label="Lancer un vote" onPress={handleStartVote} isLoading={isStarting} />
-      )}
-      {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
-          {error}
+    <ScrollView
+      // Sans cette marge, « Supprimer le groupe » passe sous les boutons du téléphone.
+      contentContainerStyle={[
+        styles.container,
+        { paddingBottom: insets.bottom + theme.spacing.xl },
+      ]}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title} accessibilityRole="header">
+          {group.name}
         </Text>
-      ) : null}
+        <View style={styles.members}>
+          <View style={styles.avatars}>
+            {group.members.slice(0, MAX_AVATARS).map((member) => (
+              <Avatar key={member.id} name={member.name} size={30} />
+            ))}
+          </View>
+          <Text style={styles.memberNames} numberOfLines={1}>
+            {group.members.map((member) => member.name).join(", ")}
+          </Text>
+          <Pressable
+            onPress={() => handleShare(group)}
+            accessibilityRole="button"
+            accessibilityLabel="Inviter avec le code du groupe"
+            hitSlop={6}
+            style={({ pressed }) => [styles.inviteButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.inviteButtonLabel}>Inviter</Text>
+          </Pressable>
+        </View>
+      </View>
 
-      <View style={styles.invite}>
+      <Card>
+        {latestSession?.isOpen ? (
+          <>
+            <Chip label="Vote en cours" hasDot />
+            <Text style={styles.cardTitle}>On mange quoi ce soir ?</Text>
+            <Text style={styles.muted}>Un vote est ouvert : coche tout ce qui te tente.</Text>
+            <PrimaryButton label="Voter" onPress={() => openSession(latestSession.id)} />
+          </>
+        ) : (
+          <>
+            {latestSession ? (
+              <>
+                <Chip label="Dernier vote" />
+                <Pressable
+                  onPress={() => openSession(latestSession.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Voir le résultat du dernier vote : ${latestSession.winnerName}`}
+                  style={({ pressed }) => [styles.lastResult, pressed && styles.pressed]}
+                >
+                  <Text style={[styles.cardTitle, styles.lastWinner]}>
+                    {latestSession.winnerName}
+                  </Text>
+                  <Feather name="chevron-right" size={22} color={theme.colors.textMuted} />
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.cardTitle}>Aucun vote pour l’instant</Text>
+                <Text style={styles.muted}>
+                  Lance le premier : chacun coche ce qui lui fait envie.
+                </Text>
+              </>
+            )}
+            <PrimaryButton
+              label="Lancer un vote"
+              onPress={handleStartVote}
+              isLoading={isStarting}
+            />
+          </>
+        )}
+        {error ? (
+          <Text style={styles.error} accessibilityRole="alert">
+            {error}
+          </Text>
+        ) : null}
+      </Card>
+
+      <Card style={styles.invite}>
         <Text style={styles.inviteLabel}>Code d’invitation</Text>
         <Text style={styles.inviteCode} selectable>
           {group.invite_code}
         </Text>
         <Text style={styles.inviteHint}>
-          Envoie-le aux membres de ton groupe : ils le saisiront dans « Rejoindre avec un code ».
+          Envoie-le avec « Inviter », ou dicte-le : il se saisit dans « Rejoindre avec un code ».
         </Text>
-        <TextButton label="Partager le code" onPress={() => handleShare(group)} />
-      </View>
+      </Card>
 
-      <View style={styles.leave}>
-        {deleteStep === "idle" && (leaveStep === "idle" || leaveStep === "loading") ? (
-          <TextButton
+      {leaveStep === "confirm" || leaveStep === "leaving" || deleteStep !== "idle" ? null : (
+        <ListCard>
+          <ListRow
+            icon="log-out"
             label={leaveStep === "loading" ? "Chargement…" : "Quitter le groupe"}
             onPress={handleAskLeave}
             isDisabled={leaveStep === "loading"}
           />
-        ) : null}
-
-        {(leaveStep === "confirm" || leaveStep === "leaving") && leaveImpact ? (
-          <>
-            <Text style={styles.sectionTitle} accessibilityRole="header">
-              Quitter « {group.name} » ?
-            </Text>
-            <Text style={styles.leaveText}>{leaveMessage(leaveImpact)}</Text>
-            <PrimaryButton
-              label={leaveImpact.kind === "delete" ? "Quitter et supprimer" : "Quitter"}
+          {isOwner ? (
+            <ListRow
+              icon="trash-2"
+              label="Supprimer le groupe"
               variant="danger"
-              onPress={handleLeave}
-              isLoading={leaveStep === "leaving"}
+              onPress={handleAskDelete}
+              isDisabled={leaveStep === "loading"}
             />
-            <TextButton
-              label="Annuler"
-              onPress={handleCancel}
-              isDisabled={leaveStep === "leaving"}
-            />
-          </>
-        ) : null}
+          ) : null}
+        </ListCard>
+      )}
 
-        {leaveError ? (
-          <Text style={styles.error} accessibilityRole="alert">
-            {leaveError}
+      {(leaveStep === "confirm" || leaveStep === "leaving") && leaveImpact ? (
+        <Card>
+          <Text style={styles.confirmTitle} accessibilityRole="header">
+            Quitter « {group.name} » ?
           </Text>
-        ) : null}
+          <Text style={styles.muted}>{leaveMessage(leaveImpact)}</Text>
+          <PrimaryButton
+            label={leaveImpact.kind === "delete" ? "Quitter et supprimer" : "Quitter"}
+            variant="danger"
+            onPress={handleLeave}
+            isLoading={leaveStep === "leaving"}
+          />
+          <TextButton label="Annuler" onPress={handleCancel} isDisabled={leaveStep === "leaving"} />
+        </Card>
+      ) : null}
 
-        {isOwner && leaveStep === "idle" && deleteStep === "idle" ? (
-          <TextButton label="Supprimer le groupe" onPress={handleAskDelete} variant="danger" />
-        ) : null}
-
-        {deleteStep !== "idle" ? (
-          <>
-            <Text style={styles.sectionTitle} accessibilityRole="header">
-              Supprimer « {group.name} » ?
-            </Text>
-            <Text style={styles.leaveText}>
-              Le groupe sera supprimé pour tous ses membres, avec tout son historique de votes. Ils
-              ne seront pas prévenus. C’est définitif.
-            </Text>
-            <PrimaryButton
-              label="Supprimer pour tous"
-              variant="danger"
-              onPress={handleDelete}
-              isLoading={deleteStep === "deleting"}
-            />
-            <TextButton
-              label="Annuler"
-              onPress={handleCancelDelete}
-              isDisabled={deleteStep === "deleting"}
-            />
-          </>
-        ) : null}
-
-        {deleteError ? (
-          <Text style={styles.error} accessibilityRole="alert">
-            {deleteError}
+      {deleteStep !== "idle" ? (
+        <Card>
+          <Text style={styles.confirmTitle} accessibilityRole="header">
+            Supprimer « {group.name} » ?
           </Text>
-        ) : null}
-      </View>
+          <Text style={styles.muted}>
+            Le groupe sera supprimé pour tous ses membres, avec tout son historique de votes. Ils ne
+            seront pas prévenus. C’est définitif.
+          </Text>
+          <PrimaryButton
+            label="Supprimer pour tous"
+            variant="danger"
+            onPress={handleDelete}
+            isLoading={deleteStep === "deleting"}
+          />
+          <TextButton
+            label="Annuler"
+            onPress={handleCancelDelete}
+            isDisabled={deleteStep === "deleting"}
+          />
+        </Card>
+      ) : null}
+
+      {leaveError || deleteError ? (
+        <Text style={styles.error} accessibilityRole="alert">
+          {leaveError ?? deleteError}
+        </Text>
+      ) : null}
     </ScrollView>
   );
 }
@@ -294,26 +354,34 @@ export default function GroupScreen() {
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
-    title: { fontFamily: fonts.display, fontSize: 30, color: colors.text },
-    invite: {
-      alignItems: "center",
-      gap: spacing.sm,
-      padding: spacing.xl,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: radius.md,
-      backgroundColor: colors.surface,
+    pressed: { opacity: 0.6 },
+    header: { gap: spacing.md },
+    title: {
+      color: colors.text,
+      fontFamily: fonts.display,
+      fontSize: fontSize.screenTitle,
+      lineHeight: 36,
     },
-    lastResult: {
-      alignItems: "center",
-      gap: spacing.xs,
-      padding: spacing.lg,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: radius.md,
-      backgroundColor: colors.surface,
+    members: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    avatars: { flexDirection: "row", gap: spacing.xs },
+    memberNames: { flex: 1, color: colors.textMuted, fontSize: fontSize.small },
+    inviteButton: {
+      height: 36,
+      justifyContent: "center",
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.pill,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
     },
-    lastWinner: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 22 },
+    inviteButtonLabel: { color: colors.text, fontSize: fontSize.small, fontWeight: "600" },
+    cardTitle: {
+      color: colors.text,
+      fontFamily: fonts.display,
+      fontSize: fontSize.heading,
+      lineHeight: 30,
+    },
+    muted: { color: colors.textMuted, fontSize: fontSize.small },
+    invite: { alignItems: "center", gap: spacing.sm },
     inviteLabel: { color: colors.textMuted, fontSize: fontSize.small, fontWeight: "600" },
     inviteCode: {
       color: colors.text,
@@ -323,8 +391,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     },
     inviteHint: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
     error: { color: colors.danger, fontSize: fontSize.small },
-    leave: { alignItems: "center", gap: spacing.md, marginTop: "auto" },
-    sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.body },
-    leaveText: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
+    lastResult: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    lastWinner: { flex: 1 },
+    confirmTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
   });
 }

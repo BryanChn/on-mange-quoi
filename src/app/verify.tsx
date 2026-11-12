@@ -148,7 +148,7 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     container: { flex: 1, padding: spacing.xl, gap: spacing.xl, justifyContent: "center" },
     intro: { gap: spacing.sm },
-    title: { fontFamily: fonts.display, fontSize: 30, color: colors.text },
+    title: { fontFamily: fonts.display, fontSize: fontSize.screenTitle, color: colors.text },
     subtitle: { fontSize: fontSize.body, color: colors.textMuted },
     email: { color: colors.text, fontWeight: "600" },
     codeInput: { fontSize: 26, letterSpacing: 8, textAlign: "center" },

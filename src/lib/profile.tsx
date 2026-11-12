@@ -6,6 +6,9 @@ import { supabase } from "./supabase";
 
 type Profile = Pick<Tables<"profiles">, "id" | "display_name">;
 
+// Même limite que la colonne profiles.display_name.
+export const DISPLAY_NAME_MAX_LENGTH = 30;
+
 // Le résultat d'un chargement, rattaché à son compte : `profile: null` veut dire
 // « ce compte n'a pas de profil », à ne pas confondre avec un chargement raté.
 type LoadedProfile = {
@@ -19,7 +22,8 @@ type ProfileState = {
   isLoading: boolean;
   hasFailed: boolean;
   retry: () => void;
-  createProfile: (displayName: string) => Promise<void>;
+  // Crée le profil à la première connexion, ou change le nom ensuite.
+  saveDisplayName: (displayName: string) => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileState | null>(null);
@@ -69,10 +73,11 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     setAttempt((count) => count + 1);
   }
 
-  async function createProfile(displayName: string) {
+  async function saveDisplayName(displayName: string) {
     if (!userId) throw new Error("Aucun compte connecté.");
 
-    // upsert et non insert : un second envoi ne plante pas sur la clé primaire.
+    // upsert : crée la ligne si elle n'existe pas, la met à jour sinon. Un second envoi
+    // ne plante donc pas sur la clé primaire, et la même fonction sert à changer de nom.
     const { data, error } = await supabase
       .from("profiles")
       .upsert({ id: userId, display_name: displayName })
@@ -88,7 +93,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     isLoading: userId !== null && current === null,
     hasFailed: current?.hasFailed ?? false,
     retry,
-    createProfile,
+    saveDisplayName,
   };
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;

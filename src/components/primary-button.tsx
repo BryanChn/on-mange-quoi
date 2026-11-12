@@ -7,15 +7,19 @@ type PrimaryButtonProps = {
   label: string;
   onPress: () => void;
   isLoading?: boolean;
-  // danger : action irréversible (supprimer son compte). La couleur prévient avant le texte.
-  variant?: "primary" | "danger";
+  // Indisponible pour l'instant, sans indicateur : une autre action est en cours.
+  isDisabled?: boolean;
+  // secondary : l'action reste possible mais n'est plus l'étape attendue (« Voir le vote »
+  // une fois qu'on a voté). danger : action irréversible, la couleur prévient avant le texte.
+  variant?: "primary" | "secondary" | "danger";
 };
 
-// Bouton d'action principal de l'écran : un seul par écran.
+// Bouton d'action de l'écran : un seul « primary » visible à la fois.
 export function PrimaryButton({
   label,
   onPress,
   isLoading = false,
+  isDisabled = false,
   variant = "primary",
 }: PrimaryButtonProps) {
   const theme = useTheme();
@@ -24,21 +28,26 @@ export function PrimaryButton({
   return (
     <Pressable
       onPress={onPress}
-      disabled={isLoading}
+      disabled={isLoading || isDisabled}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ busy: isLoading, disabled: isLoading }}
+      accessibilityState={{ busy: isLoading, disabled: isLoading || isDisabled }}
       style={({ pressed }) => [
         styles.button,
+        variant === "secondary" && styles.secondary,
         variant === "danger" && styles.danger,
-        pressed && (variant === "danger" ? styles.dangerPressed : styles.pressed),
-        isLoading && styles.loading,
+        pressed && (variant === "primary" ? styles.pressed : styles.dimmed),
+        (isLoading || isDisabled) && styles.loading,
       ]}
     >
       {isLoading ? (
-        <ActivityIndicator color={theme.colors.onPrimary} />
+        <ActivityIndicator
+          color={variant === "secondary" ? theme.colors.chipText : theme.colors.onPrimary}
+        />
       ) : (
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, variant === "secondary" && styles.labelSecondary]}>
+          {label}
+        </Text>
       )}
     </Pressable>
   );
@@ -54,9 +63,11 @@ function createStyles({ colors, radius, fonts, fontSize }: Theme) {
       justifyContent: "center",
     },
     pressed: { backgroundColor: colors.primaryStrong },
+    secondary: { backgroundColor: colors.chipBg },
     danger: { backgroundColor: colors.danger },
-    dangerPressed: { opacity: 0.85, backgroundColor: colors.danger },
+    dimmed: { opacity: 0.85 },
     loading: { opacity: 0.7 },
     label: { color: colors.onPrimary, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    labelSecondary: { color: colors.chipText },
   });
 }

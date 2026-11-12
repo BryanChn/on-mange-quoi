@@ -1,6 +1,5 @@
-import { supabase } from "./supabase";
-
-export type Member = { profileId: string; displayName: string; joinedAt: string };
+import { MEMBER_COLUMNS, pickSuccessor, toMembers } from "./members";
+import { getUserId, supabase } from "./supabase";
 
 // Conséquence de la suppression pour un groupe dont l'utilisateur est owner.
 // successorName null : il y est seul, le groupe sera supprimé.
@@ -12,26 +11,6 @@ export type DeletionImpact = {
   openSessionCount: number;
 };
 
-export async function getUserId(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const userId = data.session?.user.id;
-
-  if (!userId) throw new Error("Aucun compte connecté.");
-  return userId;
-}
-
-// Même règle que leave_group : le membre le plus ancien (joined_at), puis profile_id pour
-// départager. Les uuid en minuscules se comparent comme Postgres les trie.
-export function pickSuccessor(members: Member[], leavingId: string): Member | null {
-  const others = members.filter((member) => member.profileId !== leavingId);
-  others.sort(
-    (a, b) =>
-      a.joinedAt.localeCompare(b.joinedAt) ||
-      (a.profileId < b.profileId ? -1 : a.profileId > b.profileId ? 1 : 0),
-  );
-  return others[0] ?? null;
-}
-
 // Ce qui va se passer, pour prévenir avant de supprimer (règle de docs/schema.md).
 // Indicatif : delete_account refait le calcul côté serveur, dans une transaction.
 export async function fetchDeletionImpact(): Promise<DeletionImpact> {
@@ -40,7 +19,7 @@ export async function fetchDeletionImpact(): Promise<DeletionImpact> {
   const [groupsResult, sessionsResult] = await Promise.all([
     supabase
       .from("groups")
-      .select("id, name, group_members(profile_id, joined_at, profiles(display_name))")
+      .select(`id, name, ${MEMBER_COLUMNS}`)
       .eq("owner_id", userId)
       .order("created_at", { ascending: true }),
     supabase
@@ -54,15 +33,11 @@ export async function fetchDeletionImpact(): Promise<DeletionImpact> {
   if (sessionsResult.error) throw sessionsResult.error;
 
   const ownedGroups = groupsResult.data.map((group) => {
-    const members = group.group_members.map((member) => ({
-      profileId: member.profile_id,
-      displayName: member.profiles?.display_name ?? "Un membre",
-      joinedAt: member.joined_at,
-    }));
+    const members = toMembers(group.group_members);
     return {
       groupId: group.id,
       groupName: group.name,
-      successorName: pickSuccessor(members, userId)?.displayName ?? null,
+      successorName: pickSuccessor(members, userId)?.name ?? null,
     };
   });
 

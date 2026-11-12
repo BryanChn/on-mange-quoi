@@ -5,6 +5,16 @@
 
 ## Reprendre ici
 
+Session du 2026-11-12 : **PR #27 à #29 mergées**, PR de la refonte design ouverte en brouillon (`feat/refonte-design`).
+
+- **APK Android** (PR #28) : build EAS, profil `preview`, variables Supabase dans l'environnement EAS `preview` (le `.env` n'est pas envoyé au build). Installé et vérifié sur le téléphone, sans le PC. Pas encore d'EAS Update : chaque changement demande un nouvel APK.
+- **Quitter / supprimer un groupe** (PR #29) : entré dans le MVP. Testé sur téléphone, sauf la transmission de la couronne (pas de 2e compte), couverte par les tests SQL (14 sur 14).
+- **Refonte design** (maquette : https://claude.ai/artifact/YKPtzb7kcq25hqW4Uv16h8) : tokens, accueil avec la carte « Ce soir », vote, résultat, groupe. Écrite d'une traite par Claude à ma demande, revue sur téléphone en mode sombre (deux passes de retours), puis revue du code avec un doc récap (https://claude.ai/artifact/FT2iBmXVv1GhuwSRnGiFaZ). Pas encore vue en mode clair. Profil refait avec « Changer mon nom » ; photo de profil notée dans le backlog. Reportés : barre d'onglets, « Cette semaine », squelettes de chargement, bandeau hors ligne.
+- Premiers tests automatisés de l'app : `npm test` (16 cas : fonctions pures de `tonight.ts`, `members.ts`, `avatar.ts`). Les types Node ne servent qu'aux tests (`tsconfig.test.json`) : dans l'app, `Buffer` ou `fs` sont refusés par TypeScript.
+- Membres : un seul module `src/lib/members.ts` (`toMembers`, `pickSuccessor`) au lieu de quatre copies ; `getUserId` vit dans `supabase.ts`.
+
+Prochaine étape : review de la refonte sur téléphone, puis EAS Update + nouvel APK, puis le **nom de domaine** (toujours le seul bloquant pour qu'une autre personne se connecte). Test reporté le 2026-11-12 : vote après clôture avec le temps réel coupé (voir ci-dessous).
+
 Session du 2026-11-10 (terminée) : **PR #21 à #26 mergées**, aucune PR ouverte. Le journal du 2026-11-05 disait #21 à #23 mergées alors qu'elles étaient encore ouvertes : toujours vérifier `gh pr list` en début de session.
 
 Tests sur téléphone : clôture, « Retour au groupe » et nom du groupe en titre du vote validés ; carte « Dernier vote » visible sur le groupe. **Bloqués jusqu'au domaine Resend** (impossible de créer un 2e compte, voir point 7) : tout « Mon compte » (annuler, mode avion, suppression avec un **compte de test** : succession et votes effacés) et choix du nom avec un nouveau compte. Logique de suppression testée en local (12 cas sur 12), donc mergée. **Encore à faire avec ton propre compte** : « Voir le résultat » depuis la carte « Dernier vote » ; **vote après clôture** : sur le web, F12 → Network request blocking → motif `*realtime*`, F5 (le temps réel est coupé), clôturer le vote sur le téléphone, puis cocher un plat sur le web → le résultat doit s'afficher, sans erreur réseau. Un bug trouvé = une branche `fix/`.
@@ -103,7 +113,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | Vérification | Commande / endroit | Attendu |
 | --- | --- | --- |
 | Git propre et à jour | `git status`, `gh pr list` | Sur `main`, à jour avec `origin/main`, aucune PR oubliée |
-| Types, lint, format | `npx tsc --noEmit`, `npm run lint`, `npm run format:check` | Aucune erreur |
+| Types, lint, format, tests | `npx tsc --noEmit`, `npm run lint`, `npm run format:check`, `npm test` | Aucune erreur |
 | L'app démarre | `npm run dev`, QR code dans Expo Go | Écran de connexion (ou accueil si déjà connecté) |
 | `.env` | `.env` (non commité) | `EXPO_PUBLIC_SUPABASE_URL` = projet en ligne, clé **publishable** (jamais `service_role`) |
 | Base locale (seulement pour une migration) | `npm run db:start`, puis `npm run db:test` | Les 4 scripts tournent, chaque ligne « obtenu = attendu » |

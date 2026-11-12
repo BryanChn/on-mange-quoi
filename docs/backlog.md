@@ -6,6 +6,7 @@ Avant de passer à une nouvelle version (voir la roadmap dans `CLAUDE.md`), reli
 | Idée | Version | Notes techniques |
 | --- | --- | --- |
 | Prévenir les membres quand l'owner supprime le groupe (« Famille a été supprimé par Bryan ») | V1 (notifications) | Notification push (Expo Notifications) envoyée côté serveur au moment de la suppression ; sans elle, le groupe disparaît simplement de leur accueil. |
+| Photo de profil (demandée le 2026-11-12, non tranchée) | Après MVP | Supabase Storage (bucket privé, politiques RLS : chacun écrit sa photo, les membres de ses groupes la lisent), colonne `profiles.avatar_url` (migration), `expo-image-picker` (module natif : nouvel APK), redimensionnement avant envoi, suppression de la photo avec le compte (RGPD). D'ici là : initiale colorée. |
 | Menu latéral pour naviguer entre les groupes, les suggestions en cours, etc. | Après MVP | À décider avec le design de la liste : `Drawer` d'Expo Router, ou des onglets, plus courants sur mobile. |
 | Prévenir les votants quand un plat qu'ils avaient coché disparaît, et les inviter à revoter | V1 (notifications) | Au MVP, le retrait n'est possible que sans vote : le cas ne se pose pas encore. |
 | Invités avec un simple pseudo (sans email) pour un groupe éphémère ; le compte invité est supprimé à la clôture du vote | V1 (invités) | Auth anonyme Supabase (`enable_anonymous_sign_ins`) ; nettoyage des comptes anonymes après clôture (RGPD : rien de gardé sans raison). |

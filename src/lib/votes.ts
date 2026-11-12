@@ -1,5 +1,7 @@
 import type { Enums } from "./database.types";
-import { supabase } from "./supabase";
+import { MEMBER_COLUMNS, toMembers, type Member } from "./members";
+import { getUserId, supabase } from "./supabase";
+import { summarizeParticipation, type Participation } from "./tonight";
 
 // Code Postgres d'une contrainte d'unicité violée.
 const UNIQUE_VIOLATION = "23505";
@@ -17,12 +19,21 @@ export type Proposal = {
   voteCount: number;
   hasMyVote: boolean;
   isMine: boolean;
+  // Qui a coché ce plat, « toi » en premier.
+  voterNames: string[];
 };
 
 export type VoteSession = {
   groupId: string;
   // Rappelé dans l'en-tête : un membre de plusieurs groupes sait pour lequel il vote.
   groupName: string;
+  members: Member[];
+  // null : l'organisateur a quitté le groupe ou supprimé son compte.
+  organizerName: string | null;
+  createdAt: string;
+  closedAt: string | null;
+  // Qui a voté parmi les membres actuels, et qui on attend.
+  participation: Participation;
   isOpen: boolean;
   // Organisateur ou owner du groupe : l'écran guide, close_session protège.
   canClose: boolean;
@@ -41,14 +52,6 @@ export type LatestSession =
 export type CloseOutcome = "closed" | "tie" | "not_tied";
 
 export type TieBreak = { method: "tirage" } | { method: "organisateur"; proposalId: string };
-
-async function getUserId(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const userId = data.session?.user.id;
-
-  if (!userId) throw new Error("Aucun compte connecté.");
-  return userId;
-}
 
 export async function fetchOpenSessionId(groupId: string): Promise<string | null> {
   const { data, error } = await supabase
@@ -136,8 +139,8 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
   const { data, error } = await supabase
     .from("vote_sessions")
     .select(
-      `group_id, status, organizer_id, winner_proposal_id, decided_by,
-      groups(owner_id, name),
+      `group_id, status, organizer_id, winner_proposal_id, decided_by, created_at, closed_at,
+      groups(owner_id, name, ${MEMBER_COLUMNS}),
       proposals!proposals_session_id_fkey(id, name, proposed_by, votes(profile_id))`,
     )
     .eq("id", sessionId)
@@ -145,10 +148,22 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     .single();
 
   if (error) throw error;
+
+  const members = toMembers(data.groups?.group_members ?? []);
+  const nameById = new Map(members.map((member) => [member.id, member.name]));
+  const voterIds = new Set(
+    data.proposals.flatMap((proposal) => proposal.votes.map((vote) => vote.profile_id)),
+  );
+
   return {
     groupId: data.group_id,
     // Toujours présent : la RLS ne montre une session qu'aux membres de son groupe.
     groupName: data.groups?.name ?? "",
+    members,
+    organizerName: data.organizer_id ? (nameById.get(data.organizer_id) ?? null) : null,
+    createdAt: data.created_at,
+    closedAt: data.closed_at,
+    participation: summarizeParticipation(members, [...voterIds], userId),
     isOpen: data.status === "open",
     canClose: data.organizer_id === userId || data.groups?.owner_id === userId,
     winnerProposalId: data.winner_proposal_id,
@@ -159,6 +174,14 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
       voteCount: proposal.votes.length,
       hasMyVote: proposal.votes.some((vote) => vote.profile_id === userId),
       isMine: proposal.proposed_by === userId,
+      voterNames: proposal.votes
+        .map((vote) =>
+          vote.profile_id === userId
+            ? "toi"
+            : (nameById.get(vote.profile_id) ?? "un ancien membre"),
+        )
+        // « toi » d'abord, puis l'ordre alphabétique : stable d'un rechargement à l'autre.
+        .sort((a, b) => Number(b === "toi") - Number(a === "toi") || a.localeCompare(b)),
     })),
   };
 }
