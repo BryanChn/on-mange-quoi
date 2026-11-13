@@ -114,6 +114,31 @@ export function subscribeToSession(sessionId: string, onChange: () => void): () 
   };
 }
 
+// Appelle onChange quand un vote est lancé (INSERT) ou clôturé (UPDATE) dans ce groupe.
+// Pas besoin des DELETE : une session ne disparaît qu'avec son groupe. Le filtre sur
+// group_id marche pour INSERT et UPDATE, qui transportent la ligne entière.
+// Renvoie la fonction de désabonnement, à appeler en quittant l'écran.
+export function subscribeToGroupSessions(groupId: string, onChange: () => void): () => void {
+  const filter = `group_id=eq.${groupId}`;
+  const channel = supabase
+    .channel(`group-sessions:${groupId}`)
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "vote_sessions", filter },
+      onChange,
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "vote_sessions", filter },
+      onChange,
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 // Si un autre membre vient de lancer un vote, l'index unique refuse le second :
 // on rejoint alors sa session au lieu d'afficher une erreur.
 export async function startSession(groupId: string): Promise<string> {

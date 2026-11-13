@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -20,7 +20,12 @@ import {
   type LeaveImpact,
 } from "@/lib/groups";
 import { useSession } from "@/lib/session";
-import { fetchLatestSession, startSession, type LatestSession } from "@/lib/votes";
+import {
+  fetchLatestSession,
+  startSession,
+  subscribeToGroupSessions,
+  type LatestSession,
+} from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
 
 // idle → loading (calcul des conséquences) → confirm → leaving. Un départ réussi
@@ -60,28 +65,37 @@ export default function GroupScreen() {
   const [deleteStep, setDeleteStep] = useState<DeleteStep>("idle");
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran
+  // (le temps réel peut en lancer plusieurs coup sur coup).
+  const latestRequestRef = useRef(0);
+
   const loadGroup = useCallback(() => {
-    let isStale = false;
+    latestRequestRef.current += 1;
+    const requestId = latestRequestRef.current;
 
     Promise.all([fetchGroup(id), fetchLatestSession(id)]).then(
       ([loadedGroup, loadedSession]) => {
-        if (isStale) return;
+        if (latestRequestRef.current !== requestId) return;
         setGroup(loadedGroup);
         setLatestSession(loadedSession);
         setHasFailed(false);
       },
       () => {
-        if (!isStale) setHasFailed(true);
+        if (latestRequestRef.current !== requestId) return;
+        setHasFailed(true);
       },
     );
-
-    return () => {
-      isStale = true;
-    };
   }, [id]);
 
-  // À chaque retour : un membre a pu lancer ou clôturer un vote entre-temps.
-  useFocusEffect(loadGroup);
+  // À chaque retour sur l'écran : recharger (un vote a pu être lancé ou clôturé
+  // entre-temps), puis suivre en direct les votes de ce groupe tant que l'écran est
+  // affiché. Sans ça, un membre arrivé avant le lancement voyait « Lancer un vote ».
+  useFocusEffect(
+    useCallback(() => {
+      loadGroup();
+      return subscribeToGroupSessions(id, loadGroup);
+    }, [id, loadGroup]),
+  );
 
   function retry() {
     setHasFailed(false);
