@@ -1,20 +1,30 @@
 # Journal de bord
 
-État du projet au **2026-11-12**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-13**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
+
+Session du 2026-11-13 (à distance, depuis le téléphone) : **PR #34 mergée** (bug du libellé), **première mise à jour EAS Update publiée** (commit `d3f8a5a`, empreinte `6a8d16cd…`). Toujours vérifier `gh pr list` **et `eas build:list`** en début de session.
+
+**À faire en premier, dans l'ordre :**
+1. **Installer l'APK avec l'icône** sur les deux téléphones : build `0337cc07` (commit `aa8cf32`, lancé le 2026-11-12 à 17:47 et absent du journal précédent), https://expo.dev/artifacts/eas/uNBTVtXLvrHMeDd2wk2atBjU3lhS2if5DvtFN0CKezM.apk. L'APK installé (`eef848d8`, empreinte `7938be8f…`) **ne recevra pas** la mise à jour : l'icône a changé le natif, donc l'empreinte. Après l'installation : ouvrir, fermer complètement, rouvrir → icône + correctif. Vérifier l'icône (y compris à thème) et l'écran de démarrage en clair et en sombre.
+2. **Tester le correctif à deux** : A reste sur l'écran du groupe, B lance un vote → A passe à « Voter » sans quitter l'écran ; B clôture → A voit « Dernier vote ». Valide aussi la mise à jour EAS Update de bout en bout.
+3. Démarrer le décompte du **feu vert** (4 soirs sur 7, trois semaines de suite) et écrire la requête de mesure.
+4. Les retours d'usage de ma compagne et moi.
+
+Fait le 2026-11-13 :
+- **Bug « Lancer un vote » alors qu'un vote est ouvert** (PR #34) : l'écran du groupe ne se chargeait qu'au focus. Abonnement Realtime `subscribeToGroupSessions` (`INSERT` et `UPDATE` de `vote_sessions` filtrés sur `group_id`) ; `loadGroup` passe à « la dernière demande gagne » (`latestRequestRef`), l'ancien `isStale` par appel ne protégeant qu'au départ de l'écran. Libellé gardé : « Voter », comme sur l'accueil. Non reproduit sur deux téléphones avant le correctif (cause trouvée en lisant le code) : le test du point 2 le confirmera.
+- Build en double (`060adca5`, même commit que `0337cc07`) lancé puis annulé, faute d'avoir listé les builds.
+- `npm run update` échouait (`eas: Permission denied`, pas d'`eas-cli` dans le projet) : le script passe par `npx --yes eas-cli@latest`.
+
+À consolider (2026-11-13) : « la dernière demande gagne » avec `useRef` (pourquoi un `isStale` par appel ne suffit plus dès que le temps réel relance des chargements) : à refaire seul. Empreinte runtime : savoir prédire si un changement atteindra les APK installés.
 
 Session du 2026-11-12 (terminée) : **PR #27 à #31 mergées**, aucune PR ouverte à la fin hormis celle de ce journal. Toujours vérifier `gh pr list` en début de session.
 
 **Fin de session (vers 18 h 30) : l'app tourne à deux.** APK avec EAS Update installé sur mon Xiaomi et sur le téléphone de ma compagne ; elle a reçu son code (SMTP Gmail), créé son compte, rejoint notre groupe, et les votes passent en direct.
 
-**À faire en premier, dans l'ordre :**
-1. **Merger les PR ouvertes** : #32 (ce journal) et #33 (icône et écran de démarrage).
-2. **Nouvel APK avec l'icône** (après le merge de #33) : `npx eas-cli@latest build -p android --profile preview`, puis l'installer par-dessus sur les deux téléphones (comptes et données gardés). Vérifier l'icône (y compris icônes à thème) et l'écran de démarrage en clair et en sombre.
-3. **Bug à corriger** (branche `fix/`) : un membre qui rejoint un groupe où un vote est **déjà ouvert** voit « Lancer un vote » au lieu de « Rejoindre le vote ». Appuyer dessus marche quand même (`startSession` rattrape le conflit d'index unique et ouvre le vote existant), mais le libellé ment. Piste à vérifier d'abord : l'écran du groupe ne se recharge qu'au retour sur l'écran (`useFocusEffect`), sans temps réel ; s'il était affiché avant le lancement du vote, il reste sur « Lancer un vote ». Reproduire avant de corriger. Libellé voulu : « Rejoindre le vote » (à harmoniser avec « Voter » sur l'accueil).
-4. Les autres retours de ma compagne et moi, que je note au fil de l'usage.
-5. Démarrer le décompte du **feu vert** (4 soirs sur 7, trois semaines de suite).
+Sa liste « À faire en premier » est reprise et mise à jour dans la session du 2026-11-13 ci-dessus.
 
 Fait le 2026-11-12 :
 - **APK Android** (PR #28) : EAS Build, profil `preview`, identifiant `com.bryanchn.onmangequoi`, variables Supabase dans l'environnement EAS `preview` (le `.env` n'est pas envoyé au build), keystore gardé par EAS. Vérifié sur téléphone sans le PC.
@@ -97,6 +107,9 @@ Ordre de construction (`CLAUDE.md`) :
 | #29 | Quitter un groupe (couronne au plus ancien) ; l'owner peut le supprimer pour tous |
 | #30 | Refonte design : tokens, composants partagés, accueil « Ce soir », vote, résultat, groupe, profil ; `members.ts` ; premiers tests de l'app (`npm test`) |
 | #31 | EAS Update : canal `preview`, runtime `fingerprint`, `npm run update` |
+| #32 | Journal du 2026-11-12 |
+| #33 | Icône OMQ (adaptative, monochrome) et écran de démarrage clair et sombre |
+| #34 | Écran du groupe : votes lancés ou clôturés suivis en direct (Realtime), « la dernière demande gagne » |
 
 Base : 10 migrations dans `supabase/migrations/`, toutes appliquées en ligne, 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
@@ -135,7 +148,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | L'app démarre | `npm run dev`, QR code dans Expo Go | Écran de connexion (ou accueil si déjà connecté) |
 | `.env` | `.env` (non commité) | `EXPO_PUBLIC_SUPABASE_URL` = projet en ligne, clé **publishable** (jamais `service_role`) |
 | Base locale (seulement pour une migration) | `npm run db:start`, puis `npm run db:test` | Les 4 scripts tournent, chaque ligne « obtenu = attendu » |
-| Config auth en ligne | Tableau de bord Supabase → Authentication | OTP 6 chiffres, SMTP Resend actif, modèles avec `{{ .Token }}` |
+| Config auth en ligne | Tableau de bord Supabase → Authentication | OTP 6 chiffres, SMTP Gmail actif, modèles avec `{{ .Token }}` |
 
 ## 5. Pièges connus
 
