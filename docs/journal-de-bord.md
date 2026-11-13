@@ -5,20 +5,32 @@
 
 ## Reprendre ici
 
-Session du 2026-11-13 (à distance, depuis le téléphone) : **PR #34 mergée** (bug du libellé), **première mise à jour EAS Update publiée** (commit `d3f8a5a`, empreinte `6a8d16cd…`). Toujours vérifier `gh pr list` **et `eas build:list`** en début de session.
+Session du 2026-11-13 (terminée, à distance depuis le téléphone) : **PR #34 mergée** (bug du libellé), **première mise à jour EAS Update publiée** (commit `d3f8a5a`, empreinte `6a8d16cd…`). **Notifications push entrées dans le MVP** (lancement + résultat d'un vote). Ouvertes à la fin : **#35** (ce journal + script `update`), **#36** (notifications dans le périmètre), **#37 en brouillon** (table `push_tokens`, non testée). Toujours vérifier `gh pr list` **et `eas build:list`** en début de session.
 
 **À faire en premier, dans l'ordre :**
-1. **Installer l'APK avec l'icône** sur les deux téléphones : build `0337cc07` (commit `aa8cf32`, lancé le 2026-11-12 à 17:47 et absent du journal précédent), https://expo.dev/artifacts/eas/uNBTVtXLvrHMeDd2wk2atBjU3lhS2if5DvtFN0CKezM.apk. L'APK installé (`eef848d8`, empreinte `7938be8f…`) **ne recevra pas** la mise à jour : l'icône a changé le natif, donc l'empreinte. Après l'installation : ouvrir, fermer complètement, rouvrir → icône + correctif. Vérifier l'icône (y compris à thème) et l'écran de démarrage en clair et en sombre.
-2. **Tester le correctif à deux** : A reste sur l'écran du groupe, B lance un vote → A passe à « Voter » sans quitter l'écran ; B clôture → A voit « Dernier vote ». Valide aussi la mise à jour EAS Update de bout en bout.
-3. Démarrer le décompte du **feu vert** (4 soirs sur 7, trois semaines de suite) et écrire la requête de mesure.
-4. Les retours d'usage de ma compagne et moi.
+1. 📱 **RAPPEL : télécharger et installer le nouvel APK** (icône + correctif) sur **les deux téléphones** : build `0337cc07` (commit `aa8cf32`), https://expo.dev/artifacts/eas/uNBTVtXLvrHMeDd2wk2atBjU3lhS2if5DvtFN0CKezM.apk. Installer par-dessus depuis l'app Fichiers (Xiaomi : « Installer quand même » caché en bas) ; comptes et données gardés. L'APK actuel (`eef848d8`, empreinte `7938be8f…`) **ne reçoit pas** la mise à jour : l'icône a changé le natif. Après l'installation : ouvrir, fermer complètement, rouvrir. Vérifier l'icône (y compris à thème) et l'écran de démarrage en clair et en sombre.
+2. **Tester le correctif à deux** : A reste sur l'écran du groupe, B lance un vote → A passe à « Voter » sans quitter l'écran ; B clôture → A voit « Dernier vote ». Valide aussi EAS Update de bout en bout.
+3. **Relire et merger #35 puis #36.**
+4. **Notifications push (MVP, point 7 de `CLAUDE.md`)**, dans l'ordre :
+   1. **Firebase** (navigateur, onglet de navigation privée pour se connecter avec `omq.app@gmail.com`) : créer le projet `on-mange-quoi` sans Analytics ; ajouter l'app Android `com.bryanchn.onmangequoi` → télécharger `google-services.json` ; Paramètres → Comptes de service → générer une clé privée.
+   2. **EAS** (expo.dev) : Credentials → Android → FCM V1 service account key → envoyer la clé privée ; Environment variables → `GOOGLE_SERVICES_JSON`, type File, environnement `preview`, Secret → envoyer `google-services.json`. Puis **supprimer les deux fichiers** du téléphone ou du PC. Ne jamais les commiter ni les coller dans le chat.
+   3. **PR #37** : lancer Docker Desktop, `npm run db:start`, `npm run db:reset`, `npm run db:test` (11 cas de `test-push-tokens.sql`), `npm run db:types`, `npx supabase db push --linked --dry-run`. Sortir du brouillon si tout passe, merger, puis `npm run db:push`.
+   4. **App** (moi, `TODO(human)`) : `expo-notifications`, brancher `GOOGLE_SERVICES_JSON` dans la config (passer à `app.config.ts`), demander la permission (Android 13+), récupérer le jeton et appeler `register_push_token` ; supprimer le jeton **avant** `signOut()`.
+   5. **Envoi côté serveur** : Edge Function + webhook sur `vote_sessions` (`INSERT` → « X a lancé un vote » aux autres membres ; `UPDATE` vers `closed` → « C'est réglé : Pizza » à tous) ; supprimer les jetons refusés (`DeviceNotRegistered`) ; jeton d'accès Expo dans les secrets de la fonction.
+   6. **Appui sur la notification** → ouvre le vote ou le résultat (deep link `/session/[id]`).
+   7. **Nouvel APK** (module natif), l'installer sur les deux téléphones, test à deux, téléphone verrouillé et app fermée.
+   8. Politique de confidentialité : mentionner les notifications (avant les stores).
+5. 🟢 **Démarrer le feu vert** une fois les notifications installées. Règles tranchées le 2026-11-13 : un soir compte si un vote est **clôturé** ce jour-là dans le groupe du foyer ; jour en `Europe/Paris` ; semaine du lundi au dimanche ; votes de test exclus ; on commence le jour même, et la première semaine (partielle) compte si elle atteint 4 soirs, sans casser la série si elle échoue. Requête à écrire : jours distincts par semaine (`closed_at at time zone 'Europe/Paris'`, `date_trunc('week', …)`). Le feu vert est **ma mesure**, pas un écran de l'app (l'écran « Cette semaine » reste hors MVP).
+6. Petites tâches : retours d'usage notés au fil des soirs ; `npm audit` avec la montée d'Expo (branche `chore/`) ; revoir le design en mode clair ; tests reportés (« Mon compte » et suppression avec un compte de test, choix du nom avec un nouveau compte, vote après clôture avec le temps réel coupé).
 
 Fait le 2026-11-13 :
 - **Bug « Lancer un vote » alors qu'un vote est ouvert** (PR #34) : l'écran du groupe ne se chargeait qu'au focus. Abonnement Realtime `subscribeToGroupSessions` (`INSERT` et `UPDATE` de `vote_sessions` filtrés sur `group_id`) ; `loadGroup` passe à « la dernière demande gagne » (`latestRequestRef`), l'ancien `isStale` par appel ne protégeant qu'au départ de l'écran. Libellé gardé : « Voter », comme sur l'accueil. Non reproduit sur deux téléphones avant le correctif (cause trouvée en lisant le code) : le test du point 2 le confirmera.
 - Build en double (`060adca5`, même commit que `0337cc07`) lancé puis annulé, faute d'avoir listé les builds.
 - `npm run update` échouait (`eas: Permission denied`, pas d'`eas-cli` dans le projet) : le script passe par `npx --yes eas-cli@latest`.
+- **Notifications push dans le MVP** (PR #36) : au lancement d'un vote (les autres membres) et au résultat (tout le groupe). Raison : ma compagne travaille tard et ne savait pas qu'un vote était ouvert.
+- **Table `push_tokens`** (PR #37, brouillon, non testée) : clé = jeton (plusieurs téléphones par membre), RLS lecture et suppression de ses jetons seulement, `register_push_token` en `security definer` (téléphone partagé), cascade à la suppression du compte.
 
-À consolider (2026-11-13) : « la dernière demande gagne » avec `useRef` (pourquoi un `isStale` par appel ne suffit plus dès que le temps réel relance des chargements) : à refaire seul. Empreinte runtime : savoir prédire si un changement atteindra les APK installés.
+À consolider (2026-11-13) : « la dernière demande gagne » avec `useRef` (pourquoi un `isStale` par appel ne suffit plus dès que le temps réel relance des chargements) : à refaire seul. Empreinte runtime : savoir prédire si un changement atteindra les APK installés. Supprimer le jeton **avant** `signOut()` : après, `auth.uid()` est nul et la RLS refuse en silence (la conséquence était trouvée, pas la cause). `security definer` pour franchir une règle de façon contrôlée.
 
 Session du 2026-11-12 (terminée) : **PR #27 à #31 mergées**, aucune PR ouverte à la fin hormis celle de ce journal. Toujours vérifier `gh pr list` en début de session.
 
