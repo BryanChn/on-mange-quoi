@@ -61,9 +61,9 @@ On ne passe à la version suivante qu'une fois son feu vert atteint ; sinon on a
 4. Le plat avec le plus de votes gagne.
 5. En cas d'égalité : l'organisateur choisit entre tirage au sort (parmi les ex æquo) ou décision manuelle (« ok, on fait ça »).
 6. Votes visibles en temps réel par tout le groupe.
-7. **Notification push au lancement d'un vote** pour les autres membres du groupe ; l'appui ouvre le vote (ajouté le 2026-11-13 : un membre absent, qui travaille tard, doit pouvoir proposer et voter, sinon la décision n'est plus collective).
+7. **Notifications push** aux membres du groupe : au **lancement** d'un vote (les autres membres ; l'appui ouvre le vote) et au **résultat** (« C'est réglé : Pizza » ; l'appui ouvre le résultat) (ajouté le 2026-11-13 : un membre absent, qui travaille tard, doit pouvoir proposer, voter et savoir ce qu'on mange, sinon la décision n'est plus collective).
 
-Hors MVP, volontairement : présence, heure limite, notifications autres que le lancement d'un vote (dont « ce groupe a été supprimé », rappels planifiés), commande groupée, invités, liste de courses, recettes, stock.
+Hors MVP, volontairement : présence, heure limite, notifications autres que le lancement et le résultat d'un vote (dont « ce groupe a été supprimé », rappels planifiés), commande groupée, invités, liste de courses, recettes, stock.
 
 ### Règles du vote (tranchées le 2026-10-26)
 
