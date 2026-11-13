@@ -49,7 +49,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "tsc -p tsconfig.test.json && node --test \"src/**/*.test.ts\"",
-    "update": "eas update --channel preview --environment preview --platform android",
+    "update": "npx --yes eas-cli@latest update --channel preview --environment preview --platform android",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "dev": "expo start --tunnel",
     "db:start": "supabase start",

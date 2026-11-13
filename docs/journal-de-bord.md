@@ -1,20 +1,42 @@
 # Journal de bord
 
-État du projet au **2026-11-12**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-13**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
+
+Session du 2026-11-13 (terminée, à distance depuis le téléphone) : **PR #34 mergée** (bug du libellé), **première mise à jour EAS Update publiée** (commit `d3f8a5a`, empreinte `6a8d16cd…`). **Notifications push entrées dans le MVP** (lancement + résultat d'un vote). Ouvertes à la fin : **#35** (ce journal + script `update`), **#36** (notifications dans le périmètre), **#37 en brouillon** (table `push_tokens`, non testée). Toujours vérifier `gh pr list` **et `eas build:list`** en début de session.
+
+**À faire en premier, dans l'ordre :**
+1. 📱 **RAPPEL : télécharger et installer le nouvel APK** (icône + correctif) sur **les deux téléphones** : build `0337cc07` (commit `aa8cf32`), https://expo.dev/artifacts/eas/uNBTVtXLvrHMeDd2wk2atBjU3lhS2if5DvtFN0CKezM.apk. Installer par-dessus depuis l'app Fichiers (Xiaomi : « Installer quand même » caché en bas) ; comptes et données gardés. L'APK actuel (`eef848d8`, empreinte `7938be8f…`) **ne reçoit pas** la mise à jour : l'icône a changé le natif. Après l'installation : ouvrir, fermer complètement, rouvrir. Vérifier l'icône (y compris à thème) et l'écran de démarrage en clair et en sombre.
+2. **Tester le correctif à deux** : A reste sur l'écran du groupe, B lance un vote → A passe à « Voter » sans quitter l'écran ; B clôture → A voit « Dernier vote ». Valide aussi EAS Update de bout en bout.
+3. **Relire et merger #35 puis #36.**
+4. **Notifications push (MVP, point 7 de `CLAUDE.md`)**, dans l'ordre :
+   1. **Firebase** (navigateur, onglet de navigation privée pour se connecter avec `omq.app@gmail.com`) : créer le projet `on-mange-quoi` sans Analytics ; ajouter l'app Android `com.bryanchn.onmangequoi` → télécharger `google-services.json` ; Paramètres → Comptes de service → générer une clé privée.
+   2. **EAS** (expo.dev) : Credentials → Android → FCM V1 service account key → envoyer la clé privée ; Environment variables → `GOOGLE_SERVICES_JSON`, type File, environnement `preview`, Secret → envoyer `google-services.json`. Puis **supprimer les deux fichiers** du téléphone ou du PC. Ne jamais les commiter ni les coller dans le chat.
+   3. **PR #37** : lancer Docker Desktop, `npm run db:start`, `npm run db:reset`, `npm run db:test` (11 cas de `test-push-tokens.sql`), `npm run db:types`, `npx supabase db push --linked --dry-run`. Sortir du brouillon si tout passe, merger, puis `npm run db:push`.
+   4. **App** (moi, `TODO(human)`) : `expo-notifications`, brancher `GOOGLE_SERVICES_JSON` dans la config (passer à `app.config.ts`), demander la permission (Android 13+), récupérer le jeton et appeler `register_push_token` ; supprimer le jeton **avant** `signOut()`.
+   5. **Envoi côté serveur** : Edge Function + webhook sur `vote_sessions` (`INSERT` → « X a lancé un vote » aux autres membres ; `UPDATE` vers `closed` → « C'est réglé : Pizza » à tous) ; supprimer les jetons refusés (`DeviceNotRegistered`) ; jeton d'accès Expo dans les secrets de la fonction.
+   6. **Appui sur la notification** → ouvre le vote ou le résultat (deep link `/session/[id]`).
+   7. **Nouvel APK** (module natif), l'installer sur les deux téléphones, test à deux, téléphone verrouillé et app fermée.
+   8. Politique de confidentialité : mentionner les notifications (avant les stores).
+5. 🟢 **Démarrer le feu vert** une fois les notifications installées. Règles tranchées le 2026-11-13 : un soir compte si un vote est **clôturé** ce jour-là dans le groupe du foyer ; jour en `Europe/Paris` ; semaine du lundi au dimanche ; votes de test exclus ; on commence le jour même, et la première semaine (partielle) compte si elle atteint 4 soirs, sans casser la série si elle échoue. Requête à écrire : jours distincts par semaine (`closed_at at time zone 'Europe/Paris'`, `date_trunc('week', …)`). Le feu vert est **ma mesure**, pas un écran de l'app (l'écran « Cette semaine » reste hors MVP).
+6. Petites tâches : retours d'usage notés au fil des soirs ; `npm audit` avec la montée d'Expo (branche `chore/`) ; revoir le design en mode clair ; tests reportés (« Mon compte » et suppression avec un compte de test, choix du nom avec un nouveau compte, vote après clôture avec le temps réel coupé).
+
+Fait le 2026-11-13 :
+- **Bug « Lancer un vote » alors qu'un vote est ouvert** (PR #34) : l'écran du groupe ne se chargeait qu'au focus. Abonnement Realtime `subscribeToGroupSessions` (`INSERT` et `UPDATE` de `vote_sessions` filtrés sur `group_id`) ; `loadGroup` passe à « la dernière demande gagne » (`latestRequestRef`), l'ancien `isStale` par appel ne protégeant qu'au départ de l'écran. Libellé gardé : « Voter », comme sur l'accueil. Non reproduit sur deux téléphones avant le correctif (cause trouvée en lisant le code) : le test du point 2 le confirmera.
+- Build en double (`060adca5`, même commit que `0337cc07`) lancé puis annulé, faute d'avoir listé les builds.
+- `npm run update` échouait (`eas: Permission denied`, pas d'`eas-cli` dans le projet) : le script passe par `npx --yes eas-cli@latest`.
+- **Notifications push dans le MVP** (PR #36) : au lancement d'un vote (les autres membres) et au résultat (tout le groupe). Raison : ma compagne travaille tard et ne savait pas qu'un vote était ouvert.
+- **Table `push_tokens`** (PR #37, brouillon, non testée) : clé = jeton (plusieurs téléphones par membre), RLS lecture et suppression de ses jetons seulement, `register_push_token` en `security definer` (téléphone partagé), cascade à la suppression du compte.
+
+À consolider (2026-11-13) : « la dernière demande gagne » avec `useRef` (pourquoi un `isStale` par appel ne suffit plus dès que le temps réel relance des chargements) : à refaire seul. Empreinte runtime : savoir prédire si un changement atteindra les APK installés. Supprimer le jeton **avant** `signOut()` : après, `auth.uid()` est nul et la RLS refuse en silence (la conséquence était trouvée, pas la cause). `security definer` pour franchir une règle de façon contrôlée.
 
 Session du 2026-11-12 (terminée) : **PR #27 à #31 mergées**, aucune PR ouverte à la fin hormis celle de ce journal. Toujours vérifier `gh pr list` en début de session.
 
 **Fin de session (vers 18 h 30) : l'app tourne à deux.** APK avec EAS Update installé sur mon Xiaomi et sur le téléphone de ma compagne ; elle a reçu son code (SMTP Gmail), créé son compte, rejoint notre groupe, et les votes passent en direct.
 
-**À faire en premier, dans l'ordre :**
-1. **Merger les PR ouvertes** : #32 (ce journal) et #33 (icône et écran de démarrage).
-2. **Nouvel APK avec l'icône** (après le merge de #33) : `npx eas-cli@latest build -p android --profile preview`, puis l'installer par-dessus sur les deux téléphones (comptes et données gardés). Vérifier l'icône (y compris icônes à thème) et l'écran de démarrage en clair et en sombre.
-3. **Bug à corriger** (branche `fix/`) : un membre qui rejoint un groupe où un vote est **déjà ouvert** voit « Lancer un vote » au lieu de « Rejoindre le vote ». Appuyer dessus marche quand même (`startSession` rattrape le conflit d'index unique et ouvre le vote existant), mais le libellé ment. Piste à vérifier d'abord : l'écran du groupe ne se recharge qu'au retour sur l'écran (`useFocusEffect`), sans temps réel ; s'il était affiché avant le lancement du vote, il reste sur « Lancer un vote ». Reproduire avant de corriger. Libellé voulu : « Rejoindre le vote » (à harmoniser avec « Voter » sur l'accueil).
-4. Les autres retours de ma compagne et moi, que je note au fil de l'usage.
-5. Démarrer le décompte du **feu vert** (4 soirs sur 7, trois semaines de suite).
+Sa liste « À faire en premier » est reprise et mise à jour dans la session du 2026-11-13 ci-dessus.
 
 Fait le 2026-11-12 :
 - **APK Android** (PR #28) : EAS Build, profil `preview`, identifiant `com.bryanchn.onmangequoi`, variables Supabase dans l'environnement EAS `preview` (le `.env` n'est pas envoyé au build), keystore gardé par EAS. Vérifié sur téléphone sans le PC.
@@ -97,6 +119,9 @@ Ordre de construction (`CLAUDE.md`) :
 | #29 | Quitter un groupe (couronne au plus ancien) ; l'owner peut le supprimer pour tous |
 | #30 | Refonte design : tokens, composants partagés, accueil « Ce soir », vote, résultat, groupe, profil ; `members.ts` ; premiers tests de l'app (`npm test`) |
 | #31 | EAS Update : canal `preview`, runtime `fingerprint`, `npm run update` |
+| #32 | Journal du 2026-11-12 |
+| #33 | Icône OMQ (adaptative, monochrome) et écran de démarrage clair et sombre |
+| #34 | Écran du groupe : votes lancés ou clôturés suivis en direct (Realtime), « la dernière demande gagne » |
 
 Base : 10 migrations dans `supabase/migrations/`, toutes appliquées en ligne, 70 scénarios de test dans `supabase/scripts/` (`npm run db:test`) et la course rejouable (`npm run db:test:race`).
 
@@ -135,7 +160,7 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 | L'app démarre | `npm run dev`, QR code dans Expo Go | Écran de connexion (ou accueil si déjà connecté) |
 | `.env` | `.env` (non commité) | `EXPO_PUBLIC_SUPABASE_URL` = projet en ligne, clé **publishable** (jamais `service_role`) |
 | Base locale (seulement pour une migration) | `npm run db:start`, puis `npm run db:test` | Les 4 scripts tournent, chaque ligne « obtenu = attendu » |
-| Config auth en ligne | Tableau de bord Supabase → Authentication | OTP 6 chiffres, SMTP Resend actif, modèles avec `{{ .Token }}` |
+| Config auth en ligne | Tableau de bord Supabase → Authentication | OTP 6 chiffres, SMTP Gmail actif, modèles avec `{{ .Token }}` |
 
 ## 5. Pièges connus
 
