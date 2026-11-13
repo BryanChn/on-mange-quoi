@@ -18,6 +18,7 @@ erDiagram
     VOTE_SESSIONS |o--o| PROPOSALS : "gagnant"
     PROPOSALS ||--o{ VOTES : "reçoit"
     PROFILES ||--o{ VOTES : "coche"
+    PROFILES ||--o{ PUSH_TOKENS : "reçoit sur"
 
     AUTH_USERS {
         uuid id PK "géré par Supabase Auth (email, OTP)"
@@ -59,6 +60,11 @@ erDiagram
     VOTES {
         uuid proposal_id PK, FK
         uuid profile_id PK, FK
+        timestamptz created_at
+    }
+    PUSH_TOKENS {
+        varchar token PK "ExponentPushToken[…]"
+        uuid profile_id FK
         timestamptz created_at
     }
 ```
@@ -143,6 +149,18 @@ Une ligne = « ce profil a coché ce plat ». Pas de compteur : le score se calc
 | `profile_id` | `uuid` | FK → `profiles(id)` `on delete cascade` |
 | `created_at` | `timestamptz` | not null · default `now()` |
 | | | **PK composée** `(proposal_id, profile_id)` |
+
+### push_tokens
+
+Une ligne = un téléphone d'un membre, pour les notifications (lancement et résultat d'un vote, MVP depuis le 2026-11-13). Plusieurs téléphones par membre possibles.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `token` | `varchar(255)` | **PK** · format `ExponentPushToken[…]` (check) |
+| `profile_id` | `uuid` | not null · FK → `profiles(id)` `on delete cascade` (RGPD) |
+| `created_at` | `timestamptz` | not null · default `now()` |
+
+RLS : chacun **lit et supprime** ses jetons, rien d'autre. Enregistrement par `register_push_token(token)` (`security definer`) : un téléphone partagé change de propriétaire. L'app supprime le jeton **avant** `signOut()` (après, la RLS refuse en silence). L'envoi se fait côté serveur, qui supprime les jetons refusés par Expo (`DeviceNotRegistered`).
 
 ## Règles que le schéma seul ne garantit pas
 
