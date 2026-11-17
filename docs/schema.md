@@ -156,7 +156,7 @@ Une ligne = un téléphone d'un membre, pour les notifications (lancement et ré
 
 | Colonne | Type | Contraintes |
 | --- | --- | --- |
-| `token` | `varchar(255)` | **PK** · format `ExponentPushToken[…]` (check) |
+| `token` | `varchar(255)` | **PK** · format `ExponentPushToken[…]` ou `ExpoPushToken[…]` (check) |
 | `profile_id` | `uuid` | not null · FK → `profiles(id)` `on delete cascade` (RGPD) |
 | `created_at` | `timestamptz` | not null · default `now()` |
 

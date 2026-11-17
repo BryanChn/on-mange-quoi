@@ -6,9 +6,9 @@
 -- répond DeviceNotRegistered (par la fonction d'envoi).
 
 create table public.push_tokens (
-  -- Format Expo : ExponentPushToken[…]. Vérifié ici : toute entrée se valide côté serveur.
+  -- Format Expo : ExponentPushToken[…] (ou ExpoPushToken[…], accepté par expo-server-sdk). Vérifié ici : toute entrée se valide côté serveur.
   token varchar(255) primary key
-    check (token ~ '^ExponentPushToken\[[A-Za-z0-9_-]+\]$'),
+    check (token ~ '^Expo(nent)?PushToken\[[A-Za-z0-9_-]+\]$'),
   profile_id uuid not null references public.profiles (id) on delete cascade,
   created_at timestamptz not null default now()
 );
