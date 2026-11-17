@@ -415,7 +415,10 @@ enabled = true
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
 
-# Appelée par le trigger notify_vote_session (pg_net), pas par l'app : pas de JWT,
-# un secret partagé (en-tête x-notify-secret) à la place.
+# Fonctions internes, appelées par la base (pg_net, pg_cron) et jamais par l'app : pas de
+# JWT, un secret partagé à la place (en-tête x-internal-secret, voir _shared/server.ts).
 [functions.notify-vote]
+verify_jwt = false
+
+[functions.push-receipts]
 verify_jwt = false
