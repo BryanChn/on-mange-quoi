@@ -5,8 +5,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
+import { signOut } from "@/lib/notifications";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
-import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
 
 function getNameError(cleanName: string): string | null {
@@ -68,7 +68,7 @@ export default function ChooseName() {
           onSubmitEditing={handleSave}
         />
         <PrimaryButton label="C’est parti" onPress={handleSave} isLoading={isSaving} />
-        <TextButton label="Se déconnecter" onPress={() => supabase.auth.signOut()} />
+        <TextButton label="Se déconnecter" onPress={signOut} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

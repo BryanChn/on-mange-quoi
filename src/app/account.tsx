@@ -10,8 +10,8 @@ import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { deleteAccount, fetchDeletionImpact, type DeletionImpact } from "@/lib/account";
+import { signOut } from "@/lib/notifications";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
-import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
 
 // idle → loading (calcul des conséquences) → confirm → deleting. Une suppression réussie
@@ -151,7 +151,7 @@ export default function AccountScreen() {
               <ListRow
                 icon="log-out"
                 label="Se déconnecter"
-                onPress={() => supabase.auth.signOut()}
+                onPress={signOut}
               />
             </ListCard>
             <ListCard>

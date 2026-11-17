@@ -162,6 +162,19 @@ Une ligne = un téléphone d'un membre, pour les notifications (lancement et ré
 
 RLS : chacun **lit et supprime** ses jetons, rien d'autre. Enregistrement par `register_push_token(token)` (`security definer`) : un téléphone partagé change de propriétaire. L'app supprime le jeton **avant** `signOut()` (après, la RLS refuse en silence). L'envoi se fait côté serveur, qui supprime les jetons refusés par Expo (`DeviceNotRegistered`).
 
+**Envoi** (migration `notify_vote_sessions`) : les triggers `notify_vote_session_opened` (`after insert`) et `notify_vote_session_closed` (`after update of status`, seulement `open` → `closed`) appellent l'Edge Function `notify-vote` par `call_edge_function` (`pg_net`), avec l'identifiant de la session. La requête ne part qu'après `commit` et ne fait pas attendre le vote. L'adresse de base des fonctions et le secret partagé sont lus dans **Vault** (`edge_functions_url`, `edge_functions_secret`) : absents (base locale, tests), rien n'est appelé. La fonction relit la session avec la clé `service_role`, prévient les autres membres au lancement et tout le groupe au résultat, supprime les jetons refusés dès le ticket (`DeviceNotRegistered`) et garde les tickets acceptés dans `push_tickets`.
+
+### push_tickets
+Ticket d'Expo en attente de son reçu (migration `push_receipts`). Expo répond en deux temps : un ticket tout de suite, un reçu environ 15 min plus tard (gardé 24 h) ; un jeton mort peut n'apparaître que dans le reçu.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | `text` | **PK** · identifiant du ticket donné par Expo |
+| `token` | `varchar(255)` | not null · FK → `push_tokens(token)` `on delete cascade` · index |
+| `created_at` | `timestamptz` | not null · default `now()` · index |
+
+RLS activée **sans politique** et aucun droit pour `anon` / `authenticated` : invisible pour l'app, seule la clé `service_role` y accède. **pg_cron** appelle `push-receipts` toutes les 30 min : elle purge les tickets de plus de 24 h, lit les reçus des tickets de plus de 15 min, supprime les jetons `DeviceNotRegistered` (et donc leurs tickets) puis les tickets traités.
+
 ## Règles que le schéma seul ne garantit pas
 
 À couvrir par la RLS ou des fonctions, et à tester :

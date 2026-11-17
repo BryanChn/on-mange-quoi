@@ -8,6 +8,8 @@ module.exports = defineConfig([
   expoConfig,
   prettierConfig,
   {
-    ignores: ["dist/*", "example/*"],
+    // Code Deno (imports npm:, global Deno) : hors de la config Expo. La logique pure
+    // de supabase/functions reste lintée et testée.
+    ignores: ["dist/*", "example/*", "supabase/functions/*/index.ts", "supabase/functions/_shared/server.ts"],
   },
 ]);

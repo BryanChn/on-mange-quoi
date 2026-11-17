@@ -6,6 +6,7 @@ import {
 import { Stack } from "expo-router";
 
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
+import { useNotificationRedirect, usePushRegistration } from "@/lib/notifications";
 import { ProfileProvider, useProfile } from "@/lib/profile";
 import { SessionProvider, useSession } from "@/lib/session";
 import { useTheme } from "@/theme";
@@ -31,6 +32,18 @@ function RootNavigator() {
   const { profile, isLoading: isProfileLoading, hasFailed, retry } = useProfile();
   const [fontsLoaded] = useFonts({ BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold });
   const { colors, fonts } = useTheme();
+  // Avant les retours anticipés (règle des hooks). Seulement avec un profil : on ne
+  // demande pas la permission sur l'écran de connexion ou de choix du nom.
+  usePushRegistration(profile ? session?.user.id : undefined);
+  // Ouvre le vote seulement une fois la pile de navigation montée avec les écrans protégés.
+  // Profil en échec (réseau) : on attend le nouvel essai au lieu de jeter la notification.
+  useNotificationRedirect(
+    isLoading || !fontsLoaded || isProfileLoading || hasFailed
+      ? "loading"
+      : profile
+        ? "ready"
+        : "signedOut",
+  );
 
   // Rien à afficher tant qu'on ne sait pas si l'utilisateur est connecté, ni avant
   // les polices : évite un flash de l'écran de connexion ou d'une police de secours.
