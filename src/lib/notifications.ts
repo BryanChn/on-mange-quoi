@@ -107,20 +107,28 @@ export function usePushRegistration(userId: string | undefined): void {
   }, [userId]);
 }
 
+// État de l'app vu par la redirection :
+// - loading : session, profil ou polices pas encore chargés, l'écran du vote n'existe pas ;
+// - ready : membre avec profil, la pile de navigation est montée ;
+// - signedOut : pas de compte (ou pas encore de nom) sur ce téléphone.
+export type RedirectState = "loading" | "ready" | "signedOut";
+
 // Toucher une notification ouvre le vote concerné (lancement : pour voter ; résultat : pour
-// voir le plat). Attend `enabled` (membre avec profil) : au démarrage à froid, l'app affiche
-// d'abord un chargement et l'écran du vote n'est pas encore accessible.
+// voir le plat). Au démarrage à froid, le toucher attend que l'app soit prête.
 // Effet justifié : on réagit à un événement extérieur (le système transmet le toucher).
-export function useNotificationRedirect(enabled: boolean): void {
+export function useNotificationRedirect(state: RedirectState): void {
   const response = Notifications.useLastNotificationResponse();
 
   useEffect(() => {
-    if (!enabled || !response) return;
+    if (state === "loading" || !response) return;
+
+    // Effacée dans tous les cas : sinon le même vote se rouvrirait à chaque remontage, ou
+    // après une reconnexion des heures plus tard (ou sous un autre compte).
+    Notifications.clearLastNotificationResponse();
+    if (state === "signedOut") return;
     if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
 
     const sessionId = sessionIdFromNotification(response.notification.request.content.data);
-    // Effacée tout de suite : sinon le même vote se rouvrirait à chaque remontage de l'écran.
-    Notifications.clearLastNotificationResponse();
     if (sessionId) router.push({ pathname: "/session/[id]", params: { id: sessionId } });
-  }, [enabled, response]);
+  }, [state, response]);
 }

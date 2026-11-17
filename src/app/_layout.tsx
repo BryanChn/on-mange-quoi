@@ -35,8 +35,15 @@ function RootNavigator() {
   // Avant les retours anticipés (règle des hooks). Seulement avec un profil : on ne
   // demande pas la permission sur l'écran de connexion ou de choix du nom.
   usePushRegistration(profile ? session?.user.id : undefined);
-  // Seulement une fois la pile de navigation montée avec les écrans protégés.
-  useNotificationRedirect(!isLoading && fontsLoaded && !isProfileLoading && profile !== null);
+  // Ouvre le vote seulement une fois la pile de navigation montée avec les écrans protégés.
+  // Profil en échec (réseau) : on attend le nouvel essai au lieu de jeter la notification.
+  useNotificationRedirect(
+    isLoading || !fontsLoaded || isProfileLoading || hasFailed
+      ? "loading"
+      : profile
+        ? "ready"
+        : "signedOut",
+  );
 
   // Rien à afficher tant qu'on ne sait pas si l'utilisateur est connecté, ni avant
   // les polices : évite un flash de l'écran de connexion ou d'une police de secours.
