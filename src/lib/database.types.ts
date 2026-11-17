@@ -109,6 +109,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"push_tokens": {
+                  Row: {
+                    "created_at": string,"profile_id": string,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"profile_id": string,"token": string
+                  }
+                  Update: {
+                    "created_at"?: string,"profile_id"?: string,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_tokens_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"vote_sessions": {
                   Row: {
                     "closed_at": string | null,"created_at": string,"decided_by": Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id": string,"organizer_id": string | null,"status": Database["public"]['Enums']["session_status"],"winner_proposal_id": string | null
@@ -232,6 +252,9 @@ isOneToOne: false
                            },
 "regenerate_invite_code":
 { Args: { "target_group_id": string }; Returns: string
+                           },
+"register_push_token":
+{ Args: { "new_token": string }; Returns: undefined
                            }
           }
           Enums: {
