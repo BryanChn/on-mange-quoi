@@ -162,6 +162,8 @@ Une ligne = un téléphone d'un membre, pour les notifications (lancement et ré
 
 RLS : chacun **lit et supprime** ses jetons, rien d'autre. Enregistrement par `register_push_token(token)` (`security definer`) : un téléphone partagé change de propriétaire. L'app supprime le jeton **avant** `signOut()` (après, la RLS refuse en silence). L'envoi se fait côté serveur, qui supprime les jetons refusés par Expo (`DeviceNotRegistered`).
 
+**Envoi** (migration `notify_vote_sessions`) : les triggers `notify_vote_session_opened` (`after insert`) et `notify_vote_session_closed` (`after update of status`, seulement `open` → `closed`) appellent l'Edge Function `notify-vote` par `pg_net`, avec l'identifiant de la session. La requête ne part qu'après `commit` et ne fait pas attendre le vote. URL et secret partagé sont lus dans **Vault** (`notify_vote_url`, `notify_vote_secret`) : absents (base locale, tests), le trigger ne fait rien. La fonction relit la session avec la clé `service_role`, prévient les autres membres au lancement et tout le groupe au résultat, puis supprime les jetons `DeviceNotRegistered`.
+
 ## Règles que le schéma seul ne garantit pas
 
 À couvrir par la RLS ou des fonctions, et à tester :
