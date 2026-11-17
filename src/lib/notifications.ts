@@ -59,27 +59,36 @@ export async function registerForPushNotifications(): Promise<void> {
   if (!canReceivePush()) return;
   await ensureAndroidChannel();
 
-  // TODO(human) : trois étapes, dans cet ordre.
-  // 1. Lire la permission actuelle : Notifications.getPermissionsAsync()
-  //    (renvoie notamment `granted` et `canAskAgain`).
-  // 2. Pas accordée ET `canAskAgain` : la demander avec Notifications.requestPermissionsAsync().
-  //    Toujours pas accordée : on s'arrête là (return), sans erreur.
-  // 3. Récupérer le jeton avec getPushToken() et l'envoyer :
-  //    supabase.rpc("register_push_token", { new_token: … }).
-  //    Une erreur Supabase doit remonter (throw) : c'est l'appelant qui décide quoi en faire.
-  // Indice : pourquoi vérifier `canAskAgain` ? Que fait Android si on redemande à quelqu'un
-  // qui a déjà refusé deux fois ?
+  let permission = await Notifications.getPermissionsAsync();
+  // canAskAgain faux : le membre a refusé pour de bon. Android ignore alors la demande
+  // sans rien afficher ; seuls les réglages du téléphone peuvent la rouvrir.
+  if (!permission.granted && permission.canAskAgain) {
+    permission = await Notifications.requestPermissionsAsync();
+  }
+  if (!permission.granted) return;
+
+  const token = await getPushToken();
+  if (!token) return;
+
+  const { error } = await supabase.rpc("register_push_token", { new_token: token });
+  if (error) throw error;
 }
 
 // Déconnexion de l'app : à utiliser à la place de supabase.auth.signOut().
 export async function signOut(): Promise<void> {
-  // TODO(human) : supprimer le jeton de ce téléphone dans push_tokens, PUIS se déconnecter.
-  // - getPushToken() donne le jeton (null : rien à supprimer).
-  // - L'ordre compte : après signOut(), auth.uid() est nul et la politique RLS
-  //   « Un membre supprime ses jetons » ne laisse rien passer… sans renvoyer d'erreur.
-  // - À toi de trancher : si la suppression échoue (pas de réseau), bloque-t-on la
-  //   déconnexion ? Pèse les deux risques : un membre coincé connecté, ou un téléphone
-  //   (prêté, revendu) qui reçoit encore les notifications du compte.
+  // Le jeton d'abord : après signOut(), auth.uid() est nul et la RLS « Un membre supprime
+  // ses jetons » filtrerait la ligne sans renvoyer d'erreur.
+  try {
+    const token = await getPushToken();
+    if (token) {
+      const { error } = await supabase.from("push_tokens").delete().eq("token", token);
+      if (error) throw error;
+    }
+  } catch (error) {
+    // On déconnecte quand même : rester coincé connecté (sans réseau) est pire qu'un jeton
+    // oublié, qui changera de propriétaire à la prochaine connexion sur ce téléphone.
+    if (__DEV__) console.warn("Jeton push non supprimé à la déconnexion", error);
+  }
   await supabase.auth.signOut();
 }
 
