@@ -1,0 +1,97 @@
+import Constants from "expo-constants";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { AndroidImportance } from "expo-notifications";
+import { useEffect } from "react";
+import { Platform } from "react-native";
+
+import { supabase } from "./supabase";
+
+// Notifications push (MVP) : lancement et résultat d'un vote. L'envoi se fait côté serveur ;
+// l'app se contente d'enregistrer le jeton du téléphone (table push_tokens).
+
+// App ouverte : la notification s'affiche quand même en bannière, sinon elle serait avalée.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+const projectId: string | undefined = Constants.expoConfig?.extra?.eas?.projectId;
+
+// Pas de jeton possible : sur le web, dans Expo Go (plus de push Android depuis le SDK 53),
+// ni sur un émulateur.
+function canReceivePush(): boolean {
+  return (
+    Platform.OS !== "web" &&
+    Device.isDevice &&
+    Constants.executionEnvironment !== "storeClient" &&
+    projectId !== undefined
+  );
+}
+
+// Android 13+ : le canal doit exister AVANT la demande de permission, sinon la fenêtre
+// système ne s'affiche pas. « default » : celui qu'Expo utilise si l'envoi n'en précise pas.
+async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== "android") return;
+  await Notifications.setNotificationChannelAsync("default", {
+    name: "Votes",
+    importance: AndroidImportance.HIGH,
+  });
+}
+
+// Jeton Expo de ce téléphone, sans rien demander à l'utilisateur.
+// null si les notifications sont impossibles ou pas autorisées.
+async function getPushToken(): Promise<string | null> {
+  if (!canReceivePush()) return null;
+  const { granted } = await Notifications.getPermissionsAsync();
+  if (!granted) return null;
+  const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+  return data;
+}
+
+// Demande la permission si besoin, puis enregistre le jeton pour le membre connecté.
+// Refus de l'utilisateur : pas une erreur, l'app reste utilisable sans notifications.
+export async function registerForPushNotifications(): Promise<void> {
+  if (!canReceivePush()) return;
+  await ensureAndroidChannel();
+
+  // TODO(human) : trois étapes, dans cet ordre.
+  // 1. Lire la permission actuelle : Notifications.getPermissionsAsync()
+  //    (renvoie notamment `granted` et `canAskAgain`).
+  // 2. Pas accordée ET `canAskAgain` : la demander avec Notifications.requestPermissionsAsync().
+  //    Toujours pas accordée : on s'arrête là (return), sans erreur.
+  // 3. Récupérer le jeton avec getPushToken() et l'envoyer :
+  //    supabase.rpc("register_push_token", { new_token: … }).
+  //    Une erreur Supabase doit remonter (throw) : c'est l'appelant qui décide quoi en faire.
+  // Indice : pourquoi vérifier `canAskAgain` ? Que fait Android si on redemande à quelqu'un
+  // qui a déjà refusé deux fois ?
+}
+
+// Déconnexion de l'app : à utiliser à la place de supabase.auth.signOut().
+export async function signOut(): Promise<void> {
+  // TODO(human) : supprimer le jeton de ce téléphone dans push_tokens, PUIS se déconnecter.
+  // - getPushToken() donne le jeton (null : rien à supprimer).
+  // - L'ordre compte : après signOut(), auth.uid() est nul et la politique RLS
+  //   « Un membre supprime ses jetons » ne laisse rien passer… sans renvoyer d'erreur.
+  // - À toi de trancher : si la suppression échoue (pas de réseau), bloque-t-on la
+  //   déconnexion ? Pèse les deux risques : un membre coincé connecté, ou un téléphone
+  //   (prêté, revendu) qui reçoit encore les notifications du compte.
+  await supabase.auth.signOut();
+}
+
+// Enregistre le jeton dès qu'un membre a un profil, et à chaque changement de compte.
+// Ré-enregistré à chaque lancement : si Expo a changé le jeton, la table suit.
+// Effet justifié : on se synchronise avec un système externe (permissions du téléphone).
+export function usePushRegistration(userId: string | undefined): void {
+  useEffect(() => {
+    if (!userId) return;
+    registerForPushNotifications().catch((error: unknown) => {
+      // Sans notifications, l'app reste utilisable : on ne bloque aucun écran.
+      if (__DEV__) console.warn("Enregistrement des notifications impossible", error);
+    });
+  }, [userId]);
+}

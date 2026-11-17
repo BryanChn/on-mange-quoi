@@ -33,6 +33,13 @@
             "image": "./assets/images/omq-splash-nuit.png"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/omq-android-monochrome.png",
+          "color": "#C93421"
+        }
       ]
     ],
     "experiments": {

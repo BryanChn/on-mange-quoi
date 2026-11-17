@@ -34,6 +34,10 @@ yarn-error.*
 .env
 .env*.local
 
+# Firebase : fournis au build par EAS (GOOGLE_SERVICES_JSON, clé FCM), jamais dans Git
+google-services.json
+*firebase-adminsdk*.json
+
 # typescript
 *.tsbuildinfo
 

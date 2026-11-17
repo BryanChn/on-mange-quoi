@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
-import { supabase } from "@/lib/supabase";
+import { signOut } from "@/lib/notifications";
 import { useTheme, type Theme } from "@/theme";
 
 // Attente hors du Stack : l'app ne sait pas encore vers quel écran aller.
@@ -43,7 +43,7 @@ export function ErrorScreen({ title, message, onRetry, canSignOut = false }: Err
       <View style={styles.actions}>
         <PrimaryButton label="Réessayer" onPress={onRetry} />
         {canSignOut ? (
-          <TextButton label="Se déconnecter" onPress={() => supabase.auth.signOut()} />
+          <TextButton label="Se déconnecter" onPress={signOut} />
         ) : null}
       </View>
     </View>
