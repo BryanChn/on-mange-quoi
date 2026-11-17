@@ -2,9 +2,11 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { AndroidImportance } from "expo-notifications";
+import { router } from "expo-router";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 
+import { sessionIdFromNotification } from "./notification-link";
 import { supabase } from "./supabase";
 
 // Notifications push (MVP) : lancement et résultat d'un vote. L'envoi se fait côté serveur ;
@@ -103,4 +105,22 @@ export function usePushRegistration(userId: string | undefined): void {
       if (__DEV__) console.warn("Enregistrement des notifications impossible", error);
     });
   }, [userId]);
+}
+
+// Toucher une notification ouvre le vote concerné (lancement : pour voter ; résultat : pour
+// voir le plat). Attend `enabled` (membre avec profil) : au démarrage à froid, l'app affiche
+// d'abord un chargement et l'écran du vote n'est pas encore accessible.
+// Effet justifié : on réagit à un événement extérieur (le système transmet le toucher).
+export function useNotificationRedirect(enabled: boolean): void {
+  const response = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    if (!enabled || !response) return;
+    if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+
+    const sessionId = sessionIdFromNotification(response.notification.request.content.data);
+    // Effacée tout de suite : sinon le même vote se rouvrirait à chaque remontage de l'écran.
+    Notifications.clearLastNotificationResponse();
+    if (sessionId) router.push({ pathname: "/session/[id]", params: { id: sessionId } });
+  }, [enabled, response]);
 }

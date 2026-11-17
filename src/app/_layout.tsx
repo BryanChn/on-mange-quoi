@@ -6,7 +6,7 @@ import {
 import { Stack } from "expo-router";
 
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
-import { usePushRegistration } from "@/lib/notifications";
+import { useNotificationRedirect, usePushRegistration } from "@/lib/notifications";
 import { ProfileProvider, useProfile } from "@/lib/profile";
 import { SessionProvider, useSession } from "@/lib/session";
 import { useTheme } from "@/theme";
@@ -35,6 +35,8 @@ function RootNavigator() {
   // Avant les retours anticipés (règle des hooks). Seulement avec un profil : on ne
   // demande pas la permission sur l'écran de connexion ou de choix du nom.
   usePushRegistration(profile ? session?.user.id : undefined);
+  // Seulement une fois la pile de navigation montée avec les écrans protégés.
+  useNotificationRedirect(!isLoading && fontsLoaded && !isProfileLoading && profile !== null);
 
   // Rien à afficher tant qu'on ne sait pas si l'utilisateur est connecté, ni avant
   // les polices : évite un flash de l'écran de connexion ou d'une police de secours.
