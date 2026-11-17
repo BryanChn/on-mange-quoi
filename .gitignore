@@ -36,6 +36,8 @@ yarn-error.*
 
 # Firebase : fournis au build par EAS (GOOGLE_SERVICES_JSON, clé FCM), jamais dans Git
 google-services.json
+# Secrets locaux des Edge Functions (supabase functions serve --env-file)
+supabase/functions/.env
 *firebase-adminsdk*.json
 
 # typescript
