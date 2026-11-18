@@ -5,6 +5,23 @@
 
 ## Reprendre ici
 
+### Prochaine conversation : par où commencer
+
+État au 2026-11-18, à lire avant tout le reste.
+
+- **PR ouverte : #39** (`fix/empreinte-build-eas`) : `.fingerprintignore` (`**/eas-environment-secrets/**`) et ce journal. À relire puis merger (« ok merge »). Le fichier `.fingerprintignore` est apparu le 2026-11-18 à 7 h 17, hors de la session où je l'ai testé : je l'ai gardé parce que le test avec témoin prouve qu'il corrige le build.
+- **Juste après le merge** : relancer l'APK depuis `main` à jour.
+  - `npx --yes eas-cli build:list --limit 3 --non-interactive` : aucun build `in queue` ou `in progress`, sinon ne pas en relancer un.
+  - `npx --yes eas-cli build -p android --profile preview --non-interactive --no-wait` : la commande rend la main et donne le lien du build.
+  - Suivre avec `npx --yes eas-cli build:view <id>` (`Status` : `in queue` → `in progress` → `finished` ou `errored`). Sur le plan gratuit, l'attente en file peut dépasser 4 h.
+  - Si `errored` : `build:view <id> --json` donne `error.message` et `logFiles` ; le log se télécharge avec `curl --compressed` (NDJSON, une phase par ligne).
+  - `finished` : `Application Archive URL` = lien de l'APK à installer sur les deux téléphones.
+- **Serveur des notifications : en ligne et vérifié**, rien à refaire (détail plus bas, « Mise en ligne du 2026-11-17 »). Projet Supabase `usgynyrhkbipekqrlkgv`, fonctions `https://usgynyrhkbipekqrlkgv.supabase.co/functions/v1/notify-vote` et `/push-receipts`. Le secret n'est écrit nulle part : pour le changer, en régénérer un et mettre à jour **les deux côtés** (`supabase secrets set EDGE_FUNCTIONS_SECRET=…` et `vault.update_secret` sur `edge_functions_secret`).
+- **Firebase** : projet `on-mange-quoi-5dd2a` (compte `omq.app@gmail.com`, plan Spark). **EAS** : clé FCM V1 dans Credentials (ne pas toucher au keystore), variable `GOOGLE_SERVICES_JSON` (File, Secret, preview).
+- **Doc de review des notifications** (flux, code commenté, critique, questions) : https://claude.ai/artifact/9CpD3KvFxSG7ZStGkQx4fU
+- **Façon de travailler retenue le 2026-11-17** : ce qu'une review relève se corrige avant le merge, avec un regard de maintenance à long terme ; les vraies nouvelles fonctionnalités vont au backlog (périmètre strict du MVP).
+
+
 Session du 2026-11-17 (suite le 2026-11-18) : **#35 à #38 mergées**. **Le serveur des notifications est en ligne et vérifié** ; le nouvel APK a **échoué** au build (empreinte différente entre le PC et EAS), corrigé par `.fingerprintignore` sur `fix/empreinte-build-eas`. Toujours vérifier `gh pr list` **et `eas build:list`** en début de session.
 
 **À faire en premier, dans l'ordre :**
