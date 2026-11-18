@@ -190,6 +190,10 @@ RLS activée **sans politique** et aucun droit pour `anon` / `authenticated` : i
 - Parcours de suppression de compte : prévenir d'abord l'utilisateur (groupes dont il est owner, votes en cours qu'il organise) et lui proposer de choisir à qui transférer ; à défaut, transfert automatique.
 - **Droits par colonne** : la RLS choisit les lignes, pas les colonnes. `authenticated` n'a `insert` / `update` que sur les colonnes que l'app écrit (migration `restrict_column_privileges`) ; `id`, `created_at`, `status` et le résultat viennent des défauts et des fonctions. **Toute nouvelle table ou colonne** : révoquer `insert, update` puis accorder colonne par colonne (Supabase accorde tout par défaut).
 
+## Mesure du feu vert (schéma `private`)
+
+`private.feu_vert(group_id, date_de_depart)` (migration `feu_vert`) renvoie une ligne par semaine (lundi → dimanche) depuis la date de départ : `semaine`, `soirs` (jours distincts avec au moins un vote **clôturé**, à l'heure de `Europe/Paris`) et `reussie` (`soirs >= 4`). Les semaines sans vote apparaissent avec 0. Les votes clôturés avant la date de départ (tests) sont ignorés. Le schéma `private` n'est pas exposé par l'API et `anon` / `authenticated` n'y ont aucun droit : c'est ma mesure, lancée depuis l'éditeur SQL du tableau de bord, pas un écran de l'app. Tests : `test-feu-vert.sql`.
+
 ## Ordre de création des migrations
 
 Une table ne peut référencer qu'une table qui existe déjà :
