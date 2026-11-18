@@ -7,10 +7,12 @@
 
 ### Prochaine conversation : par où commencer
 
-État au 2026-11-18, à lire avant tout le reste.
+État au 2026-11-18 (après-midi), à lire avant tout le reste.
 
-- **PR ouverte : #39** (`fix/empreinte-build-eas`) : `.fingerprintignore` (`**/eas-environment-secrets/**`) et ce journal. À relire puis merger (« ok merge »). Le fichier `.fingerprintignore` est apparu le 2026-11-18 à 7 h 17, hors de la session où je l'ai testé : je l'ai gardé parce que le test avec témoin prouve qu'il corrige le build.
-- **Juste après le merge** : relancer l'APK depuis `main` à jour.
+- **#39 mergée, build `71c4ac98` réussi** (commit `814f57c`, empreinte `fc288ef…` = celle du PC : le `.fingerprintignore` marche aussi sur EAS). APK : https://expo.dev/artifacts/eas/mmDEOA-J3nmH5yvQOi4dbfdKh7Lw77ZvrafhqugnRSY.apk. **Installé sur mon téléphone**, pas encore sur celui de ma compagne : le test des notifications à deux (point 3 ci-dessous) attend ça.
+- **PR `feat/requete-feu-vert`** : `private.feu_vert(groupe, date_de_départ)`, une ligne par semaine (`soirs`, `reussie`). Testée en local (7 cas, tous les autres tests verts). Après le merge : `db:push` (dry-run d'abord), puis fixer la date de départ le jour où on commence à compter. Usage : `select * from private.feu_vert('<id de Famille>', '<date>')` dans l'éditeur SQL. La série de 3 semaines se lit à l'œil.
+- Idées du 2026-11-18 mises au backlog : clôture quand tout le monde a voté (V1), récompenses d'usage (après le feu vert : les afficher fausserait la mesure).
+- Pour relancer un build plus tard, la marche à suivre :
   - `npx --yes eas-cli build:list --limit 3 --non-interactive` : aucun build `in queue` ou `in progress`, sinon ne pas en relancer un.
   - `npx --yes eas-cli build -p android --profile preview --non-interactive --no-wait` : la commande rend la main et donne le lien du build.
   - Suivre avec `npx --yes eas-cli build:view <id>` (`Status` : `in queue` → `in progress` → `finished` ou `errored`). Sur le plan gratuit, l'attente en file peut dépasser 4 h.
