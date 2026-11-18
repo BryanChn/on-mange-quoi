@@ -1,25 +1,46 @@
 # Journal de bord
 
-État du projet au **2026-11-17**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-18**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
-Session du 2026-11-17 : APK `0337cc07` installé, **#35, #36 et #37 mergées**, migration `push_tokens` poussée en ligne. Firebase et EAS configurés. **Notifications codées de bout en bout** sur `feat/notifications-app` (PR #38, à relire). Toujours vérifier `gh pr list` **et `eas build:list`** en début de session.
+### Prochaine conversation : par où commencer
+
+État au 2026-11-18, à lire avant tout le reste.
+
+- **PR ouverte : #39** (`fix/empreinte-build-eas`) : `.fingerprintignore` (`**/eas-environment-secrets/**`) et ce journal. À relire puis merger (« ok merge »). Le fichier `.fingerprintignore` est apparu le 2026-11-18 à 7 h 17, hors de la session où je l'ai testé : je l'ai gardé parce que le test avec témoin prouve qu'il corrige le build.
+- **Juste après le merge** : relancer l'APK depuis `main` à jour.
+  - `npx --yes eas-cli build:list --limit 3 --non-interactive` : aucun build `in queue` ou `in progress`, sinon ne pas en relancer un.
+  - `npx --yes eas-cli build -p android --profile preview --non-interactive --no-wait` : la commande rend la main et donne le lien du build.
+  - Suivre avec `npx --yes eas-cli build:view <id>` (`Status` : `in queue` → `in progress` → `finished` ou `errored`). Sur le plan gratuit, l'attente en file peut dépasser 4 h.
+  - Si `errored` : `build:view <id> --json` donne `error.message` et `logFiles` ; le log se télécharge avec `curl --compressed` (NDJSON, une phase par ligne).
+  - `finished` : `Application Archive URL` = lien de l'APK à installer sur les deux téléphones.
+- **Serveur des notifications : en ligne et vérifié**, rien à refaire (détail plus bas, « Mise en ligne du 2026-11-17 »). Projet Supabase `usgynyrhkbipekqrlkgv`, fonctions `https://usgynyrhkbipekqrlkgv.supabase.co/functions/v1/notify-vote` et `/push-receipts`. Le secret n'est écrit nulle part : pour le changer, en régénérer un et mettre à jour **les deux côtés** (`supabase secrets set EDGE_FUNCTIONS_SECRET=…` et `vault.update_secret` sur `edge_functions_secret`).
+- **Firebase** : projet `on-mange-quoi-5dd2a` (compte `omq.app@gmail.com`, plan Spark). **EAS** : clé FCM V1 dans Credentials (ne pas toucher au keystore), variable `GOOGLE_SERVICES_JSON` (File, Secret, preview).
+- **Doc de review des notifications** (flux, code commenté, critique, questions) : https://claude.ai/artifact/9CpD3KvFxSG7ZStGkQx4fU
+- **Façon de travailler retenue le 2026-11-17** : ce qu'une review relève se corrige avant le merge, avec un regard de maintenance à long terme ; les vraies nouvelles fonctionnalités vont au backlog (périmètre strict du MVP).
+
+
+Session du 2026-11-17 (suite le 2026-11-18) : **#35 à #38 mergées**. **Le serveur des notifications est en ligne et vérifié** ; le nouvel APK a **échoué** au build (empreinte différente entre le PC et EAS), corrigé par `.fingerprintignore` sur `fix/empreinte-build-eas`. Toujours vérifier `gh pr list` **et `eas build:list`** en début de session.
 
 **À faire en premier, dans l'ordre :**
-1. **Relire la PR #38** (doc de review fournie avec) et corriger ce qui doit l'être sur la branche.
-2. **Mise en ligne après le merge, dans cet ordre** (les fonctions avant Vault, sinon la base appelle des fonctions absentes ; sans gravité, mais inutile) :
-   1. `npm run db:push` (dry-run à refaire : `notify_vote_sessions` et `push_receipts` doivent partir).
-   2. `npx supabase functions deploy notify-vote` puis `npx supabase functions deploy push-receipts` (`verify_jwt = false` lu dans `config.toml`).
-   3. Générer un secret (`openssl rand -hex 32`), puis `npx supabase secrets set EDGE_FUNCTIONS_SECRET=<secret>`. Ne pas le coller ailleurs.
-   4. Tableau de bord Supabase → SQL Editor : `select vault.create_secret('https://<ref>.supabase.co/functions/v1', 'edge_functions_url');` puis `select vault.create_secret('<le même secret>', 'edge_functions_secret');`. Vault chiffre les secrets en base, ils ne vont jamais dans Git.
-   5. **Nouvel APK** (`expo-notifications` est natif) : `eas build -p android --profile preview` après avoir listé les builds ; l'installer sur les deux téléphones. Vérifier la petite icône (chat) dans la barre d'état.
+1. **Merger la PR de `fix/empreinte-build-eas`** (`.fingerprintignore` + ce journal), puis **relancer le build** depuis `main` : `npx --yes eas-cli build:list` (aucun build en cours), puis `npx --yes eas-cli build -p android --profile preview`. EAS envoie le projet depuis Git : un fichier non commité ne part pas au build.
+2. **Installer le nouvel APK sur les deux téléphones** (par-dessus, comptes gardés). Obligatoire : `expo-notifications` et Firebase sont natifs, l'APK `0337cc07` ne peut pas les recevoir par EAS Update. Vérifier la petite icône (chat) dans la barre d'état.
 3. **Test à deux** : accepter la permission au lancement ; A lance un vote → B est notifié (app ouverte, en arrière-plan, fermée, téléphone verrouillé) ; toucher la notification ouvre le vote ; clôture → les deux reçoivent « C'est réglé : … ». Contrôler `push_tokens` (deux lignes), `push_tickets` (vidée par `push-receipts` dans l'heure) et les logs des fonctions (tableau de bord → Edge Functions → Logs). Déconnexion → le jeton disparaît de la table.
 4. **Tester le correctif de #34 à deux** (reporté : un seul téléphone le 2026-11-17) : A reste sur l'écran du groupe, B lance un vote → A passe à « Voter » ; B clôture → A voit « Dernier vote ».
 5. Politique de confidentialité : mentionner les notifications (avant les stores).
 6. 🟢 **Démarrer le feu vert** une fois les notifications installées. Règles tranchées le 2026-11-13 : un soir compte si un vote est **clôturé** ce jour-là dans le groupe du foyer ; jour en `Europe/Paris` ; semaine du lundi au dimanche ; votes de test exclus ; on commence le jour même, et la première semaine (partielle) compte si elle atteint 4 soirs, sans casser la série si elle échoue. Requête à écrire : jours distincts par semaine (`closed_at at time zone 'Europe/Paris'`, `date_trunc('week', …)`). Le feu vert est **ma mesure**, pas un écran de l'app (l'écran « Cette semaine » reste hors MVP).
 7. Petites tâches : retours d'usage notés au fil des soirs ; `npm audit` avec la montée d'Expo (branche `chore/`) ; revoir le design en mode clair ; tests reportés (« Mon compte » et suppression avec un compte de test, choix du nom avec un nouveau compte, vote après clôture avec le temps réel coupé).
+
+Mise en ligne du 2026-11-17 (après le merge de #38) :
+- `db:push` : `notify_vote_sessions` et `push_receipts` appliquées en ligne.
+- Fonctions `notify-vote` et `push-receipts` déployées ; sans secret, elles répondent `401` (notre code, pas la passerelle : `verify_jwt = false` bien pris en compte).
+- `EDGE_FUNCTIONS_SECRET` (fonctions) et Vault (`edge_functions_url`, `edge_functions_secret`, par `supabase db query --linked`) : secret généré dans une variable du terminal, jamais affiché ni écrit dans le dépôt. `supabase secrets list` montre une empreinte SHA-256, pas la valeur. Tâche `pg_cron` `push-receipts` planifiée (`*/30 * * * *`).
+- **Chaîne vérifiée en ligne** : la base a appelé `push-receipts` via `call_edge_function` avec le secret de Vault → `200`. Les deux secrets correspondent.
+- Tant que l'ancien APK est installé, aucun jeton n'est enregistré : la fonction tourne mais n'envoie rien, le vote marche comme avant.
+
+**Build `aab14636` échoué** (commit `659ba50`, plus de 4 h en file d'attente sur le plan gratuit, échec à 21 h 20) à l'étape « Configure expo-updates » : `Runtime version mismatch` (PC `fc288ef…`, EAS `73da2f7…`). Cause : `app.config.ts` déclare `googleServicesFile` ; sur EAS, la variable File `GOOGLE_SERVICES_JSON` existe (`../eas-environment-secrets/…`) et le fichier entre dans l'empreinte, alors qu'il est absent du PC (variable Secret, jamais envoyée en local). Le garde-fou de la politique `fingerprint` a arrêté le build au lieu de livrer un APK incompatible avec les mises à jour. Correctif : `.fingerprintignore` avec `**/eas-environment-secrets/**`. Vérifié en simulant le dossier d'EAS à côté du projet : sans ignore → `bc0e029…` (le problème est reproduit) ; avec → `fc288ef…`, comme le PC. Le motif `**/` couvre aussi le chemin en `../`. Le second écart du diff (dossier `android` généré au build) a un `hash` nul et ne compte pas.
 
 Fait le 2026-11-17 :
 - **Firebase** : projet `on-mange-quoi-5dd2a` (plan Spark, sans Analytics), app Android `com.bryanchn.onmangequoi`. **EAS** : clé FCM V1 dans Credentials, `GOOGLE_SERVICES_JSON` (File, Secret, preview). Fichiers supprimés du PC, ignorés par Git.
@@ -29,7 +50,7 @@ Fait le 2026-11-17 :
 - **Après la review** (même PR) : reçus d'Expo suivis (`push_tickets` + `push-receipts` toutes les 30 min par `pg_cron`) ; erreurs renvoyées en `internal_error`, détail dans les logs ; code commun des fonctions dans `_shared` (`call_edge_function` et une seule paire de secrets Vault pour toutes les fonctions internes) ; icône de notification dédiée (96 px, le chat occupait 47 % de l'ancienne image) ; une notification touchée hors connexion est effacée au lieu d'ouvrir le vote à la reconnexion. Backlog : réglage des notifications par groupe, permission expliquée avant la fenêtre d'Android, limite d'envoi.
 - Tests : 31 tests `node --test` (messages, tickets, reçus, lien de notification), `test-notify-vote.sql` (9 cas), et la chaîne complète en local avec `supabase functions serve` et de faux jetons : lancement `sent 1` (organisateur exclu), clôture `sent 2`, faux jetons supprimés, lancement déjà clôturé ignoré (`stale_event`) ; `push-receipts` purge un ticket de 25 h, interroge celui de 20 min, laisse le récent.
 
-À consolider (2026-11-17) : pourquoi un trigger + `pg_net` plutôt qu'un appel depuis l'app (le serveur décide, la requête ne part qu'après `commit`) ; pourquoi l'Edge Function relit tout en base au lieu de croire le corps reçu ; comparaison en temps constant (attaque temporelle) ; tickets et reçus d'Expo, `pg_cron` ; config dynamique `app.config.ts` ; la priorité des opérateurs `||` et `->>` en SQL (piège rencontré dans les tests).
+À consolider (2026-11-17) : l'empreinte runtime ne voit que ce qui existe là où elle est calculée (une variable Secret n'existe que sur EAS) ; pourquoi un cas témoin rend un test concluant ; pourquoi un trigger + `pg_net` plutôt qu'un appel depuis l'app (le serveur décide, la requête ne part qu'après `commit`) ; pourquoi l'Edge Function relit tout en base au lieu de croire le corps reçu ; comparaison en temps constant (attaque temporelle) ; tickets et reçus d'Expo, `pg_cron` ; config dynamique `app.config.ts` ; la priorité des opérateurs `||` et `->>` en SQL (piège rencontré dans les tests).
 
 Session du 2026-11-13 (terminée, à distance depuis le téléphone) : **PR #34 mergée** (bug du libellé), **première mise à jour EAS Update publiée** (commit `d3f8a5a`, empreinte `6a8d16cd…`). **Notifications push entrées dans le MVP** (lancement + résultat d'un vote). #35, #36 et #37 ouvertes à la fin, mergées le 2026-11-17.
 
