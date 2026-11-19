@@ -14,6 +14,8 @@
   `select f.* from public.groups g, private.feu_vert(g.id, '2026-11-19') f where g.name = 'Maison' order by f.semaine;`
   Première semaine partielle (jeudi 19 au dimanche 22, 4 soirs possibles) : elle compte si elle atteint 4 soirs, sans casser la série si elle échoue. But : 3 semaines réussies de suite.
 - **Encore à contrôler une fois** (non vérifié pendant le test) : `push_tickets` vidée par `push-receipts` dans l'heure, logs des fonctions sans erreur, et déconnexion → le jeton disparaît de `push_tokens`.
+- **Fait le 2026-11-19** : README réécrit pour un lecteur extérieur (#42 : architecture, choix techniques, tests, démarche produit ; emplacement des captures prévu en commentaire) ; formatage de 3 fichiers oubliés le 17/11 (#43) ; **CI GitHub Actions** (`.github/workflows/ci.yml` : `tsc`, lint, `format:check`, `npm test` à chaque PR et push sur `main`, vérifiée dans un clone propre).
+- ⏸️ **PR #44 en brouillon, à merger seulement après le feu vert** : `npm audit fix` (sans `--force`, qui rétrograderait Expo en 52) + `npx expo install --fix`. 15 → 3 failles (toutes dans l'outillage, aucune dans l'APK ; les 3 restantes, `@expo/fingerprint`, sont acceptées). L'empreinte passe de `fc288ef…` à `5615415…` : **nouvel APK obligatoire**, et après le merge une mise à jour EAS publiée depuis `main` n'atteindrait plus les APK installés. Au merge : rebuild, installation sur les deux téléphones, test des parcours et des notifications.
 - **Prochaine étape** : utiliser l'app chaque soir et noter les retours d'usage ; pendant ce temps, les petites tâches (point 7) et la politique de confidentialité (point 5). On ne passe pas à la V1 avant le feu vert.
 
 Historique du 2026-11-18 (après-midi) :
@@ -45,7 +47,7 @@ Session du 2026-11-17 (suite le 2026-11-18) : **#35 à #38 mergées**. **Le serv
 4. **Tester le correctif de #34 à deux** (reporté : un seul téléphone le 2026-11-17) : A reste sur l'écran du groupe, B lance un vote → A passe à « Voter » ; B clôture → A voit « Dernier vote ».
 5. Politique de confidentialité : mentionner les notifications (avant les stores).
 6. 🟢 **Démarrer le feu vert** une fois les notifications installées. Règles tranchées le 2026-11-13 : un soir compte si un vote est **clôturé** ce jour-là dans le groupe du foyer ; jour en `Europe/Paris` ; semaine du lundi au dimanche ; votes de test exclus ; on commence le jour même, et la première semaine (partielle) compte si elle atteint 4 soirs, sans casser la série si elle échoue. Requête écrite et en ligne : `private.feu_vert` (voir plus haut). Le feu vert est **ma mesure**, pas un écran de l'app (l'écran « Cette semaine » reste hors MVP).
-7. Petites tâches : retours d'usage notés au fil des soirs ; `npm audit` avec la montée d'Expo (branche `chore/`) ; revoir le design en mode clair ; tests reportés (« Mon compte » et suppression avec un compte de test, choix du nom avec un nouveau compte, vote après clôture avec le temps réel coupé).
+7. Petites tâches : retours d'usage notés au fil des soirs ; ~~`npm audit` avec la montée d'Expo~~ (PR #44, après le feu vert) ; captures d'écran pour le README ; revoir le design en mode clair ; tests reportés (« Mon compte » et suppression avec un compte de test, choix du nom avec un nouveau compte, vote après clôture avec le temps réel coupé).
 
 Mise en ligne du 2026-11-17 (après le merge de #38) :
 - `db:push` : `notify_vote_sessions` et `push_receipts` appliquées en ligne.
