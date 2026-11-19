@@ -148,11 +148,7 @@ export default function AccountScreen() {
           <>
             <ListCard>
               <ListRow icon="edit-2" label="Changer mon nom" onPress={handleStartRename} />
-              <ListRow
-                icon="log-out"
-                label="Se déconnecter"
-                onPress={signOut}
-              />
+              <ListRow icon="log-out" label="Se déconnecter" onPress={signOut} />
             </ListCard>
             <ListCard>
               <ListRow

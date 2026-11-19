@@ -42,9 +42,7 @@ export function ErrorScreen({ title, message, onRetry, canSignOut = false }: Err
       </View>
       <View style={styles.actions}>
         <PrimaryButton label="Réessayer" onPress={onRetry} />
-        {canSignOut ? (
-          <TextButton label="Se déconnecter" onPress={signOut} />
-        ) : null}
+        {canSignOut ? <TextButton label="Se déconnecter" onPress={signOut} /> : null}
       </View>
     </View>
   );
