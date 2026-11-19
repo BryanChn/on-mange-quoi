@@ -20,7 +20,8 @@ const runId = randomUUID().slice(0, 8);
 const createdUsers: TestUser[] = [];
 
 export async function createUser(name: string): Promise<TestUser> {
-  const email = `test-${runId}-${name.toLowerCase()}@example.test`;
+  // Le rang rend l'email unique même si deux comptes portent le même nom.
+  const email = `test-${runId}-${createdUsers.length}-${name.toLowerCase()}@example.test`;
   const password = randomUUID();
 
   const { data, error } = await admin.auth.admin.createUser({
@@ -66,9 +67,44 @@ export async function createGroup(owner: TestUser, members: TestUser[]): Promise
   return group.id;
 }
 
+// Vérifications avec la clé admin : elles voient au-delà de la RLS, pour constater qu'une
+// ligne a vraiment disparu (et pas seulement qu'elle est masquée au compte connecté).
+export async function groupExists(groupId: string): Promise<boolean> {
+  const { count, error } = await admin
+    .from("groups")
+    .select("id", { count: "exact", head: true })
+    .eq("id", groupId);
+  if (error) throw error;
+  return count === 1;
+}
+
+export async function countSessions(groupId: string): Promise<number> {
+  const { count, error } = await admin
+    .from("vote_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("group_id", groupId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function userExists(userId: string): Promise<boolean> {
+  const { data } = await admin.auth.admin.getUserById(userId);
+  return data.user !== null;
+}
+
+export async function profileExists(userId: string): Promise<boolean> {
+  const { count, error } = await admin
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("id", userId);
+  if (error) throw error;
+  return count === 1;
+}
+
 // Supprime les groupes puis les comptes de cette exécution (profiles et votes suivent en cascade).
+// Les comptes déjà supprimés par un test (delete_account) sont ignorés.
 export async function cleanUp(): Promise<void> {
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   const ids = createdUsers.map((user) => user.id);
   if (ids.length === 0) return;
 
@@ -76,6 +112,7 @@ export async function cleanUp(): Promise<void> {
   if (error) throw error;
 
   for (const id of ids) {
+    if (!(await userExists(id))) continue;
     const { error: deleteError } = await admin.auth.admin.deleteUser(id);
     if (deleteError) throw deleteError;
   }
