@@ -20,6 +20,7 @@ import {
   type Proposal,
 } from "../../src/lib/votes.ts";
 import { cleanUp, createGroup, createUser, signInAs, type TestUser } from "./fixtures.ts";
+import { supabase } from "./supabase-test-client.ts";
 
 let alice: TestUser;
 let bea: TestUser;
@@ -168,7 +169,7 @@ describe("clôturer", () => {
     await voteAs(chloe, idOf("Tacos"));
 
     await signInAs(bea);
-    assert.equal(await closeSession(sessionId), "closed");
+    await closeSession(sessionId);
 
     const session = await fetchSession(sessionId);
     assert.equal(session.isOpen, false);
@@ -191,7 +192,8 @@ describe("clôturer", () => {
     await assert.rejects(closeSession(sessionId), { code: "42501" });
 
     await signInAs(alice);
-    assert.equal(await closeSession(sessionId), "closed");
+    await closeSession(sessionId);
+    assert.equal((await fetchSession(sessionId)).isOpen, false);
   });
 
   test("une session sans plat ne se clôture pas", async () => {
@@ -207,8 +209,8 @@ describe("clôturer", () => {
     await voteAs(chloe, idOf("Pizza"));
 
     await signInAs(bea);
-    assert.equal(await closeSession(sessionId), "closed");
-    assert.equal(await closeSession(sessionId), "closed");
+    await closeSession(sessionId);
+    await assert.doesNotReject(closeSession(sessionId));
   });
 
   test("après la clôture, voter ou proposer est refusé avec une erreur reconnaissable", async () => {
@@ -224,54 +226,49 @@ describe("clôturer", () => {
   });
 });
 
-describe("égalité", () => {
-  test("sans choix, une égalité ne clôture pas la session", async () => {
+describe("égalité : toujours tirée au sort, personne ne choisit", () => {
+  test("une égalité clôture la session par tirage parmi les ex æquo", async () => {
+    const groupId = await newGroup();
+    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza", "Tacos", "Sushis"]);
+    await voteAs(chloe, idOf("Pizza"));
+    await voteAs(alice, idOf("Tacos"));
+
+    await signInAs(bea);
+    await closeSession(sessionId);
+
+    const session = await fetchSession(sessionId);
+    assert.equal(session.isOpen, false);
+    assert.equal(session.decidedBy, "tirage");
+    assert.ok([idOf("Pizza"), idOf("Tacos")].includes(session.winnerProposalId ?? ""));
+  });
+
+  test("aucun vote : tirage parmi tous les plats", async () => {
+    const groupId = await newGroup();
+    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza", "Tacos"]);
+
+    await closeSession(sessionId);
+
+    const session = await fetchSession(sessionId);
+    assert.equal(session.decidedBy, "tirage");
+    assert.ok([idOf("Pizza"), idOf("Tacos")].includes(session.winnerProposalId ?? ""));
+  });
+
+  test("le choix manuel est refusé par le serveur, même envoyé à la main", async () => {
     const groupId = await newGroup();
     const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza", "Tacos"]);
     await voteAs(chloe, idOf("Pizza"));
     await voteAs(alice, idOf("Tacos"));
 
+    // Requête fabriquée, comme le ferait un ancien APK ou un client modifié.
     await signInAs(bea);
-    assert.equal(await closeSession(sessionId), "tie");
+    const { error } = await supabase.rpc("close_session", {
+      target_session_id: sessionId,
+      method: "organisateur",
+      chosen_proposal_id: idOf("Tacos"),
+    });
+
+    assert.equal(error?.code, "22023");
     assert.equal((await fetchSession(sessionId)).isOpen, true);
-  });
-
-  test("aucun vote compte comme une égalité entre tous les plats", async () => {
-    const groupId = await newGroup();
-    const { sessionId } = await sessionWithDishes(groupId, ["Pizza", "Tacos"]);
-
-    assert.equal(await closeSession(sessionId), "tie");
-  });
-
-  test("l'organisatrice ne peut choisir qu'un plat ex æquo", async () => {
-    const groupId = await newGroup();
-    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza", "Tacos", "Sushis"]);
-    await voteAs(chloe, idOf("Pizza"));
-    await voteAs(alice, idOf("Tacos"));
-
-    await signInAs(bea);
-    const sushis = { method: "organisateur", proposalId: idOf("Sushis") } as const;
-    assert.equal(await closeSession(sessionId, sushis), "not_tied");
-
-    const tacos = { method: "organisateur", proposalId: idOf("Tacos") } as const;
-    assert.equal(await closeSession(sessionId, tacos), "closed");
-    const session = await fetchSession(sessionId);
-    assert.equal(session.winnerProposalId, idOf("Tacos"));
-    assert.equal(session.decidedBy, "organisateur");
-  });
-
-  test("le tirage désigne un des ex æquo, jamais un autre plat", async () => {
-    const groupId = await newGroup();
-    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza", "Tacos", "Sushis"]);
-    await voteAs(chloe, idOf("Pizza"));
-    await voteAs(alice, idOf("Tacos"));
-
-    await signInAs(bea);
-    assert.equal(await closeSession(sessionId, { method: "tirage" }), "closed");
-
-    const session = await fetchSession(sessionId);
-    assert.equal(session.decidedBy, "tirage");
-    assert.ok([idOf("Pizza"), idOf("Tacos")].includes(session.winnerProposalId ?? ""));
   });
 });
 

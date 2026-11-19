@@ -24,7 +24,6 @@ import {
   subscribeToSession,
   type DecisionMethod,
   type Proposal,
-  type TieBreak,
   type VoteSession,
 } from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
@@ -32,14 +31,15 @@ import { useTheme, type Theme } from "@/theme";
 // Même limite que la colonne proposals.name.
 const PROPOSAL_NAME_MAX_LENGTH = 60;
 
-// Étapes de la clôture : confirmer, puis, en cas d'égalité, roulette ou choix manuel.
-type CloseStep = "idle" | "confirm" | "tie" | "choose";
+// Étapes de la clôture : confirmer, c'est tout. Une égalité est tirée au sort par le serveur.
+type CloseStep = "idle" | "confirm";
 
 type Spin = { names: string[]; winnerIndex: number };
 
 const DECISION_LABELS: Record<DecisionMethod, string> = {
   vote: "Gagné au vote",
   tirage: "Tiré au sort parmi les ex æquo",
+  // N'existe plus depuis le 2026-11-19 : gardé pour afficher les sessions passées.
   organisateur: "Départagé à la main parmi les ex æquo",
 };
 
@@ -196,17 +196,12 @@ export default function SessionScreen() {
     }, "Impossible de retirer ce plat. Vérifie ton réseau et réessaie.");
   }
 
-  function handleClose(tieBreak?: TieBreak) {
+  // La roulette se lance ensuite d'elle-même : le rechargement voit la session passer à
+  // « clôturée » avec decided_by = 'tirage' (voir loadSession).
+  function handleClose() {
     runAction(async () => {
-      const outcome = await closeSession(id, tieBreak);
-      if (outcome === "tie") {
-        setCloseStep("tie");
-      } else if (outcome === "not_tied") {
-        setCloseStep("confirm");
-        setActionError("Les votes ont changé pendant ton choix : vérifie la liste et réessaie.");
-      } else {
-        setCloseStep("idle");
-      }
+      await closeSession(id);
+      setCloseStep("idle");
     }, "Impossible de clôturer le vote. Vérifie ton réseau et réessaie.");
   }
 
@@ -387,6 +382,7 @@ export default function SessionScreen() {
           {closeStep === "confirm" ? (
             <>
               <Text style={styles.panelText}>
+                {leading.length > 1 ? `Égalité entre ${tiedNames} : la roulette va trancher. ` : ""}
                 Clôturer maintenant ? Plus personne ne pourra voter ni proposer.
               </Text>
               <PrimaryButton label="Clôturer" onPress={() => handleClose()} isLoading={isBusy} />
@@ -395,42 +391,6 @@ export default function SessionScreen() {
                 onPress={() => setCloseStep("idle")}
                 isDisabled={isBusy}
               />
-            </>
-          ) : null}
-
-          {closeStep === "tie" ? (
-            <>
-              <Text style={styles.panelText}>Égalité entre {tiedNames}. Comment départager ?</Text>
-              <PrimaryButton
-                label="Tirer au sort"
-                onPress={() => handleClose({ method: "tirage" })}
-                isLoading={isBusy}
-              />
-              <TextButton
-                label="Choisir moi-même"
-                onPress={() => setCloseStep("choose")}
-                isDisabled={isBusy}
-              />
-              <TextButton
-                label="Annuler"
-                onPress={() => setCloseStep("idle")}
-                isDisabled={isBusy}
-              />
-            </>
-          ) : null}
-
-          {closeStep === "choose" ? (
-            <>
-              <Text style={styles.panelText}>Quel plat parmi les ex æquo ?</Text>
-              {leading.map((proposal) => (
-                <TextButton
-                  key={proposal.id}
-                  label={proposal.name}
-                  onPress={() => handleClose({ method: "organisateur", proposalId: proposal.id })}
-                  isDisabled={isBusy}
-                />
-              ))}
-              <TextButton label="Retour" onPress={() => setCloseStep("tie")} isDisabled={isBusy} />
             </>
           ) : null}
         </View>

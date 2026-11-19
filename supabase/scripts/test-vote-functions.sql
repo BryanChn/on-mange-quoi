@@ -26,8 +26,8 @@ savepoint t; select public.close_session('11111111-0000-0000-0000-000000000001')
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}';
 select ' 3. Intrus voit ' || count(*) || ' ligne(s) de score   (attendu : 0)' from public.get_session_result('11111111-0000-0000-0000-000000000001');
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
-select ' 4. Maman clôture en voulant imposer Curry -> gagnant : ' || p.name || ' par ' || s.decided_by || '   (attendu : Pizza par vote)'
-  from public.close_session('11111111-0000-0000-0000-000000000001', 'organisateur', '22222222-0000-0000-0000-000000000012') s join public.proposals p on p.id = s.winner_proposal_id;
+select ' 4. Maman clôture -> gagnant : ' || p.name || ' par ' || s.decided_by || '   (attendu : Pizza par vote)'
+  from public.close_session('11111111-0000-0000-0000-000000000001') s join public.proposals p on p.id = s.winner_proposal_id;
 \echo ' 5. Maman reclôture   (attendu : refus, déjà clôturée)'
 savepoint t; select public.close_session('11111111-0000-0000-0000-000000000001'); rollback to t;
 
@@ -38,30 +38,28 @@ insert into public.proposals (id, session_id, name) values ('22222222-0000-0000-
 insert into public.votes values ('22222222-0000-0000-0000-000000000021','00000000-0000-0000-0000-00000000000a'),('22222222-0000-0000-0000-000000000022','00000000-0000-0000-0000-00000000000b');
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}';
-\echo ' 6. Clôture sans méthode   (attendu : refus, hint tie_needs_choice)'
-\set VERBOSITY verbose
-savepoint t; select public.close_session('11111111-0000-0000-0000-000000000002'); rollback to t;
-\set VERBOSITY default
+\echo ' 6. Choix manuel de Curry, pourtant ex æquo   (attendu : refus, le choix manuel n existe plus)'
+savepoint t; select public.close_session('11111111-0000-0000-0000-000000000002', 'organisateur', '22222222-0000-0000-0000-000000000022'); rollback to t;
 \echo ' 7. Choix manuel de Tacos (pas ex æquo)   (attendu : refus)'
 savepoint t; select public.close_session('11111111-0000-0000-0000-000000000002', 'organisateur', '22222222-0000-0000-0000-000000000023'); rollback to t;
-select ' 8. Choix manuel de Curry -> ' || p.name || ' par ' || s.decided_by || '   (attendu : Curry par organisateur)'
-  from public.close_session('11111111-0000-0000-0000-000000000002', 'organisateur', '22222222-0000-0000-0000-000000000022') s join public.proposals p on p.id = s.winner_proposal_id;
+select ' 8. Clôture sans méthode -> ' || case when p.name in ('Pizza', 'Curry') then 'un ex æquo' else p.name end || ' par ' || s.decided_by || '   (attendu : un ex æquo par tirage)'
+  from public.close_session('11111111-0000-0000-0000-000000000002') s join public.proposals p on p.id = s.winner_proposal_id;
 
-\echo '=== Session 3 (Maman, oubliée) : aucun vote, 3 plats -> Bryan (owner) clôture par tirage'
+\echo '=== Session 3 (Maman, oubliée) : aucun vote, 3 plats -> Bryan (owner) clôture, tirage automatique'
 reset role;
 insert into public.vote_sessions (id, group_id, organizer_id) values ('11111111-0000-0000-0000-000000000003','99999999-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000b');
 insert into public.proposals (id, session_id, name) values ('22222222-0000-0000-0000-000000000031','11111111-0000-0000-0000-000000000003','Pizza'),('22222222-0000-0000-0000-000000000032','11111111-0000-0000-0000-000000000003','Curry'),('22222222-0000-0000-0000-000000000033','11111111-0000-0000-0000-000000000003','Tacos');
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}';
 select ' 9. Tirage -> ' || p.name || ' par ' || s.decided_by || '   (attendu : un des 3, par tirage)'
-  from public.close_session('11111111-0000-0000-0000-000000000003', 'tirage') s join public.proposals p on p.id = s.winner_proposal_id;
+  from public.close_session('11111111-0000-0000-0000-000000000003') s join public.proposals p on p.id = s.winner_proposal_id;
 
 \echo '=== Session 4 : sans plat'
 reset role;
 insert into public.vote_sessions (id, group_id, organizer_id) values ('11111111-0000-0000-0000-000000000004','99999999-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000000a');
 set local role authenticated;
 \echo '10. Clôture   (attendu : refus, sans plat)'
-savepoint t; select public.close_session('11111111-0000-0000-0000-000000000004', 'tirage'); rollback to t;
+savepoint t; select public.close_session('11111111-0000-0000-0000-000000000004'); rollback to t;
 
 \echo '=== Après une vraie clôture (session 1, Pizza gagnante)'
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}';
