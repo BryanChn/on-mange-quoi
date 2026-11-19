@@ -6,7 +6,11 @@ Application mobile qui sert à décider ensemble du repas du soir. Un membre du 
 
 **État :** MVP terminé et utilisé chaque soir par mon foyer sur deux téléphones Android (APK distribué avec EAS). Depuis le 19 novembre 2026, je mesure s'il est vraiment adopté avant de passer à la suite (voir [Démarche produit](#démarche-produit)).
 
-<!-- Captures d'écran : accueil « Ce soir », vote en direct, roulette, notification. -->
+| Accueil | Vote en direct | Résultat |
+| :---: | :---: | :---: |
+| <img src="docs/captures/accueil.jpg" width="240" alt="Accueil : carte « Rien de prévu ce soir » avec le bouton Lancer le vote, et la liste des groupes"> | <img src="docs/captures/vote.jpg" width="240" alt="Vote en direct : un plat coché, en tête avec 1 vote, et le compteur « 1 sur 2 a voté »"> | <img src="docs/captures/resultat.jpg" width="240" alt="Résultat : « Ce soir, c'est Haricots vert poulet ! », gagné au vote"> |
+
+<p align="center"><img src="docs/captures/notification.jpg" width="480" alt="Notification push : « Maison — C'est réglé : Haricots vert poulet »"></p>
 
 ## Fonctionnalités
 
