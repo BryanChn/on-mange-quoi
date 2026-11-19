@@ -121,7 +121,7 @@ Une décision à prendre dans un groupe, lancée par un membre (l'organisateur).
 | `organizer_id` | `uuid` | FK → `profiles(id)` `on delete set null` |
 | `status` | enum `session_status` (`open`, `closed`) | not null · default `'open'` |
 | `winner_proposal_id` | `uuid` | FK composée `(winner_proposal_id, id)` → `proposals(id, session_id)` `on delete no action` : le gagnant est forcément de cette session et ne peut pas être supprimé |
-| `decided_by` | enum `decision_method` (`vote`, `tirage`, `organisateur`) | |
+| `decided_by` | enum `decision_method` (`vote`, `tirage`, `organisateur`) | `organisateur` : sessions d'avant le 2026-11-19 seulement, `close_session` le refuse désormais |
 | `created_at` | `timestamptz` | not null · default `now()` |
 | `closed_at` | `timestamptz` | |
 | | | **check** : `closed` ⇔ `winner_proposal_id`, `decided_by` et `closed_at` renseignés |
@@ -183,7 +183,7 @@ RLS activée **sans politique** et aucun droit pour `anon` / `authenticated` : i
 - Plats et votes sont **figés à la clôture**, même en cas d'écriture simultanée : les triggers `proposals_lock_open_session` et `votes_lock_open_session` prennent un verrou partagé (`for share`) sur la session, que `close_session` (`for update`) attend avant de compter. Une écriture arrivée après la clôture échoue avec le hint `session_closed`. Rejouer la course : `npm run db:test:race`.
 - Une session sans plat ne se clôture pas (`close_session` refuse, décision du 2026-11-05) : l'app désactive le bouton, et n'importe quel membre peut ajouter un plat, donc le groupe n'est jamais bloqué.
 - L'auteur ne peut retirer sa proposition que si elle n'a encore reçu aucun vote (personne n'est lésé, rien à notifier).
-- Seul l'organisateur passe une session à `closed`, et `organisateur` n'est accepté qu'en cas d'égalité.
+- Seul l'organisateur (ou l'owner) passe une session à `closed`. Une égalité est toujours tirée au sort ; le choix manuel (`organisateur`) est refusé depuis le 2026-11-19.
 - Avant de supprimer un compte owner : transfert au membre le plus ancien (`joined_at`), ou suppression du groupe s'il est seul.
 - Organisateur parti (groupe quitté ou compte supprimé) : il ne peut plus clôturer ; l'owner du groupe le peut toujours.
 - À la suppression d'un compte, ses propositions **sans vote** dans les sessions **ouvertes** sont supprimées ; les autres restent (`proposed_by` à `null`). Jamais le gagnant d'une session fermée : la base le refuse (FK `no action`).

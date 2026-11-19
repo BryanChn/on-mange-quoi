@@ -20,7 +20,7 @@ Application mobile qui sert à décider ensemble du repas du soir. Un membre du 
 | Groupes | Créer un groupe, inviter avec un code, le quitter (la couronne passe au membre le plus ancien), le supprimer (owner seulement) |
 | Vote | Proposer des plats, voter pour plusieurs à la fois (vote par approbation), modifier ses votes jusqu'à la clôture |
 | Temps réel | Les votes, les plats proposés et les retraits s'affichent en direct chez tous les membres |
-| Résultat | Gagnant calculé par le serveur. Égalité : l'organisateur lance un tirage au sort ou choisit parmi les ex æquo |
+| Résultat | Gagnant calculé par le serveur. Égalité : tirage au sort automatique parmi les ex æquo, personne n'impose son plat |
 | Notifications push | Au lancement d'un vote et au résultat. Toucher la notification ouvre le vote |
 | Compte | Changer de nom, se déconnecter, supprimer son compte depuis l'app (exigé par Apple) |
 
@@ -49,7 +49,7 @@ flowchart LR
 
 ### Choix techniques
 
-**Le serveur décide, jamais le téléphone.** Le gagnant et le tirage au sort sont calculés dans une fonction SQL (`close_session`), une seule fois, puis enregistrés en base avec la façon dont le gagnant a été désigné (`vote`, `tirage`, `organisateur`). La roulette affichée sur chaque téléphone ne fait que s'arrêter sur ce résultat. Si le tirage avait lieu dans l'app, un membre pourrait le relancer, ou deux téléphones pourraient afficher deux gagnants différents.
+**Le serveur décide, jamais le téléphone.** Le gagnant et le tirage au sort sont calculés dans une fonction SQL (`close_session`), une seule fois, puis enregistrés en base avec la façon dont le gagnant a été désigné (`vote` ou `tirage`). La roulette affichée sur chaque téléphone ne fait que s'arrêter sur ce résultat. Si le tirage avait lieu dans l'app, un membre pourrait le relancer, ou deux téléphones pourraient afficher deux gagnants différents.
 
 **Sécurité dans la base.** La Row Level Security est activée sur toutes les tables : un membre ne lit et n'écrit que dans ses groupes. Les droits `insert` / `update` sont limités aux colonnes que l'app a besoin d'écrire, ce qui bloque l'assignation de masse (impossible de se déclarer gagnant ou owner en ajoutant un champ à la requête). La clé `service_role` n'existe que dans les Edge Functions, jamais dans l'app.
 
@@ -67,7 +67,7 @@ Le schéma de la base et ses règles sont détaillés dans [`docs/schema.md`](do
 | --- | --- | --- |
 | Base de données | `npm run db:test` | 8 scripts de scénarios : RLS, droits par colonne, fonctions de groupe, vote et clôture, départ et suppression, jetons push, trigger des notifications, mesure du feu vert |
 | Concurrence | `npm run db:test:race` | Vote et clôture lancés en même temps |
-| Intégration de l'app | `bash tests/integration/run.sh` | Le vrai `src/lib/votes.ts` contre la base locale : lancer, proposer, voter, clôturer, égalité, tirage, droits de chaque rôle (17 cas) |
+| Intégration de l'app | `bash tests/integration/run.sh` | Le vrai `src/lib/votes.ts` contre la base locale : lancer, proposer, voter, clôturer, égalité, tirage, droits de chaque rôle (16 cas) |
 | Logique pure | `npm test` | Carte « Ce soir », lien des notifications, messages, tickets et reçus d'Expo |
 | Types et style | `npx tsc --noEmit`, `npm run lint`, `npm run format:check` | TypeScript strict, ESLint, Prettier |
 | Compatibilité des mises à jour | `bash scripts/check-fingerprint.sh` | L'empreinte runtime n'a pas changé : une mise à jour EAS atteindra les APK installés |

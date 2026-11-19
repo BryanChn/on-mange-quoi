@@ -43,19 +43,19 @@ from public.proposals p where p.session_id = '$SESSION';
 SQL
 }
 
-echo "1. Tonton vote Curry (validé 3 s plus tard) ; Maman clôture entre-temps en imposant Pizza"
+echo "1. Tonton vote Curry (validé 3 s plus tard) ; Maman clôture entre-temps (sans ce vote : égalité, donc tirage)"
 echo "   attendu : Curry 2, Pizza 1 -> gagnant Curry par vote (la clôture attend le vote)"
 setup
 { as_user "$TONTON"; echo "insert into public.votes values ('$CURRY','$TONTON'); select pg_sleep(3); commit;"; } | $P >/dev/null &
 sleep 1
-{ as_user "$MAMAN"; echo "select public.close_session('$SESSION','organisateur','$PIZZA'); commit;"; } | $P >/dev/null
+{ as_user "$MAMAN"; echo "select public.close_session('$SESSION'); commit;"; } | $P >/dev/null
 wait
 result
 
-echo "2. Maman clôture par tirage (validé 3 s plus tard) ; Tonton vote Curry entre-temps"
+echo "2. Maman clôture sur une égalité, donc par tirage (validé 3 s plus tard) ; Tonton vote Curry entre-temps"
 echo "   attendu : refus du vote (session_closed), Curry 1, Pizza 1 -> gagnant par tirage"
 setup
-{ as_user "$MAMAN"; echo "select public.close_session('$SESSION','tirage'); select pg_sleep(3); commit;"; } | $P >/dev/null &
+{ as_user "$MAMAN"; echo "select public.close_session('$SESSION'); select pg_sleep(3); commit;"; } | $P >/dev/null &
 sleep 1
 { as_user "$TONTON"; echo "insert into public.votes values ('$CURRY','$TONTON'); commit;"; } | $P 2>&1 | grep -o "HINT:.*" | sed 's/^/   /'
 wait

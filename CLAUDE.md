@@ -59,7 +59,7 @@ On ne passe à la version suivante qu'une fois son feu vert atteint ; sinon on a
 2. Un membre lance une session de vote et propose plusieurs plats (ex. 3 à 5).
 3. **Vote par approbation** : chaque membre coche autant de plats qu'il veut.
 4. Le plat avec le plus de votes gagne.
-5. En cas d'égalité : l'organisateur choisit entre tirage au sort (parmi les ex æquo) ou décision manuelle (« ok, on fait ça »).
+5. En cas d'égalité : tirage au sort automatique parmi les ex æquo, à la clôture. Personne ne choisit à la main (2026-11-19 : le choix de l'organisateur était vécu comme un passage en force).
 6. Votes visibles en temps réel par tout le groupe.
 7. **Notifications push** aux membres du groupe : au **lancement** d'un vote (les autres membres ; l'appui ouvre le vote) et au **résultat** (« C'est réglé : Pizza » ; l'appui ouvre le résultat) (ajouté le 2026-11-13 : un membre absent, qui travaille tard, doit pouvoir proposer, voter et savoir ce qu'on mange, sinon la décision n'est plus collective).
 
@@ -73,10 +73,10 @@ Hors MVP, volontairement : présence, heure limite, notifications autres que le 
 | Qui lance | Tout membre du groupe ; **une seule session ouverte à la fois par groupe** (2026-10-27) | Index unique partiel sur `vote_sessions (group_id) where status = 'open'` |
 | Clôture | L'organisateur, manuellement (bouton) ; l'**owner** du groupe peut aussi clôturer une session oubliée (2026-10-27) | Fonction `close_session` (calcul du gagnant et tirage côté serveur), pas d'`update` direct |
 | Modifier ses votes | Oui, jusqu'à la clôture (cocher / décocher) | Un vote = une ligne, supprimable tant que la session est ouverte |
-| Imposer un plat | Non, l'organisateur ne tranche **qu'en cas d'égalité** | Décision manuelle refusée s'il y a un gagnant unique |
+| Imposer un plat | Non, jamais : même en cas d'égalité, c'est le tirage (2026-11-19) | `close_session` refuse `method = 'organisateur'` ; la valeur reste dans l'enum pour l'historique |
 | Aucun vote | Traité comme une égalité entre toutes les propositions | Pas de cas spécial : même règle d'égalité |
 
-En cas d'égalité, l'organisateur choisit : tirage au sort parmi les ex æquo, ou choix manuel parmi les ex æquo.
+En cas d'égalité, `close_session` tire au sort parmi les ex æquo, sans rien demander à l'organisateur.
 Le tirage s'affiche comme une **roulette animée** sur tous les téléphones. Le résultat est tiré **une seule fois** et enregistré en base ; l'animation se contente de s'arrêter sur ce résultat, pour que tout le monde voie le même plat. La façon dont le gagnant a été désigné est enregistrée (`vote`, `tirage`, `organisateur`).
 
 ## Commandes

@@ -7,8 +7,6 @@ import { summarizeParticipation, type Participation } from "./tonight";
 const UNIQUE_VIOLATION = "23505";
 // Codes et hints levés par les fonctions SQL du vote (voir les migrations).
 const ALREADY_CLOSED = "55000";
-const INVALID_CHOICE = "22023";
-const TIE_NEEDS_CHOICE = "tie_needs_choice";
 const SESSION_CLOSED = "session_closed";
 
 export type DecisionMethod = Enums<"decision_method">;
@@ -46,12 +44,6 @@ export type VoteSession = {
 // forcément la plus récente), sinon la dernière clôturée et son gagnant.
 export type LatestSession =
   { id: string; isOpen: true } | { id: string; isOpen: false; winnerName: string };
-
-// tie : égalité, il faut choisir le tirage ou un plat. not_tied : les votes ont bougé
-// pendant le choix, le plat choisi n'est plus ex æquo.
-export type CloseOutcome = "closed" | "tie" | "not_tied";
-
-export type TieBreak = { method: "tirage" } | { method: "organisateur"; proposalId: string };
 
 export async function fetchOpenSessionId(groupId: string): Promise<string | null> {
   const { data, error } = await supabase
@@ -211,21 +203,14 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
   };
 }
 
-// Le gagnant est calculé (et le tirage fait) par close_session, jamais sur le téléphone.
-// Sans tieBreak, un gagnant unique clôture la session ; une égalité renvoie "tie".
-export async function closeSession(sessionId: string, tieBreak?: TieBreak): Promise<CloseOutcome> {
-  const { error } = await supabase.rpc("close_session", {
-    target_session_id: sessionId,
-    method: tieBreak?.method,
-    chosen_proposal_id: tieBreak?.method === "organisateur" ? tieBreak.proposalId : undefined,
-  });
+// Le gagnant est calculé par close_session, jamais sur le téléphone : gagnant unique au
+// vote, sinon tirage au sort parmi les ex æquo (personne ne choisit à la main).
+export async function closeSession(sessionId: string): Promise<void> {
+  const { error } = await supabase.rpc("close_session", { target_session_id: sessionId });
 
-  if (error?.hint === TIE_NEEDS_CHOICE) return "tie";
-  if (error?.code === INVALID_CHOICE && tieBreak?.method === "organisateur") return "not_tied";
   // Déjà clôturée (par l'owner, ou un double appui) : le résultat voulu est atteint.
-  if (error?.code === ALREADY_CLOSED) return "closed";
+  if (error?.code === ALREADY_CLOSED) return;
   if (error) throw error;
-  return "closed";
 }
 
 // Écriture refusée parce que la session vient d'être clôturée (verrou de la migration
@@ -283,7 +268,7 @@ export async function setVote(proposalId: string, wantVote: boolean): Promise<vo
 }
 
 // Plats en tête, même règle que close_session : plusieurs = égalité, aucun vote = tous
-// ex æquo. Sert à l'affichage (choix manuel, roulette) ; le serveur revérifie toujours.
+// ex æquo. Sert à l'affichage (annonce de la roulette, roulette) ; le serveur décide toujours.
 export function getLeadingProposals(proposals: Proposal[]): Proposal[] {
   const maxVotes = Math.max(...proposals.map((proposal) => proposal.voteCount));
   return proposals.filter((proposal) => proposal.voteCount === maxVotes);
