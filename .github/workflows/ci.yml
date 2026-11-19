@@ -41,3 +41,30 @@ jobs:
 
       - name: Tests
         run: npm test
+
+  integration:
+    name: Tests d'intégration (Supabase local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installer les dépendances (exactement le lock)
+        run: npm ci
+
+      # Base, authentification, API REST et passerelle (kong) suffisent aux tests :
+      # les autres services sont coupés pour démarrer plus vite. Les migrations sont appliquées au démarrage.
+      - name: Démarrer Supabase en local
+        run: npx supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Tests d'intégration
+        run: npm run test:db
+
+      - name: Arrêter Supabase
+        if: always()
+        run: npx supabase stop --no-backup

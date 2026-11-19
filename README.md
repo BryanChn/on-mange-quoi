@@ -71,7 +71,7 @@ Le schéma de la base et ses règles sont détaillés dans [`docs/schema.md`](do
 | Logique pure | `npm test` | Carte « Ce soir », lien des notifications, messages, tickets et reçus d'Expo |
 | Types et style | `npx tsc --noEmit`, `npm run lint`, `npm run format:check` | TypeScript strict, ESLint, Prettier |
 
-Chaque écran est testé à la main sur un vrai téléphone, et à deux téléphones pour le temps réel et les notifications. Pas encore de tests automatisés des écrans. Les tests d'intégration demandent Supabase en local (`npm run db:start`) et ne tournent pas encore dans la CI.
+Chaque écran est testé à la main sur un vrai téléphone, et à deux téléphones pour le temps réel et les notifications. Pas encore de tests automatisés des écrans. Les tests d'intégration demandent Supabase en local (`npm run db:start`). La CI les lance sur chaque PR, dans un job séparé qui démarre sa propre base.
 
 ## Lancer le projet
 
