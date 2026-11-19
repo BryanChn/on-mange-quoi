@@ -60,7 +60,8 @@
     "db:push": "supabase db push --linked",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:test:race": "bash supabase/scripts/race-close-session.sh"
+    "db:test:race": "bash supabase/scripts/race-close-session.sh",
+    "test:db": "node --import ./tests/integration/register.ts --test \"tests/integration/**/*.test.ts\""
   },
   "private": true
 }
