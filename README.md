@@ -67,9 +67,10 @@ Le schéma de la base et ses règles sont détaillés dans [`docs/schema.md`](do
 | --- | --- | --- |
 | Base de données | `npm run db:test` | 8 scripts de scénarios : RLS, droits par colonne, fonctions de groupe, vote et clôture, départ et suppression, jetons push, trigger des notifications, mesure du feu vert |
 | Concurrence | `npm run db:test:race` | Vote et clôture lancés en même temps |
-| Intégration de l'app | `npm run test:db` | Le vrai `src/lib/votes.ts` contre la base locale : lancer, proposer, voter, clôturer, égalité, tirage, droits de chaque rôle (17 cas) |
+| Intégration de l'app | `bash tests/integration/run.sh` | Le vrai `src/lib/votes.ts` contre la base locale : lancer, proposer, voter, clôturer, égalité, tirage, droits de chaque rôle (17 cas) |
 | Logique pure | `npm test` | Carte « Ce soir », lien des notifications, messages, tickets et reçus d'Expo |
 | Types et style | `npx tsc --noEmit`, `npm run lint`, `npm run format:check` | TypeScript strict, ESLint, Prettier |
+| Compatibilité des mises à jour | `bash scripts/check-fingerprint.sh` | L'empreinte runtime n'a pas changé : une mise à jour EAS atteindra les APK installés |
 
 Chaque écran est testé à la main sur un vrai téléphone, et à deux téléphones pour le temps réel et les notifications. Pas encore de tests automatisés des écrans. Les tests d'intégration demandent Supabase en local (`npm run db:start`). La CI les lance sur chaque PR, dans un job séparé qui démarre sa propre base.
 

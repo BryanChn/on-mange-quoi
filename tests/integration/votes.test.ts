@@ -1,5 +1,5 @@
 // Tests d'intégration de src/lib/votes.ts sur la base locale : le vrai code de l'app,
-// la vraie RLS, les vraies fonctions SQL. Lancer avec `npm run test:db` (Supabase local démarré).
+// la vraie RLS, les vraies fonctions SQL. Lancer avec `bash tests/integration/run.sh` (Supabase local démarré).
 //
 // Rôles : Alice est owner du groupe, Bea lance les votes (organisatrice), Chloé est
 // simple membre, Dan n'est pas dans le groupe.
