@@ -42,6 +42,11 @@ jobs:
       - name: Tests
         run: npm test
 
+      # Un script npm ou un module natif ajouté change l'empreinte : les mises à jour EAS
+      # n'atteindraient plus les APK installés. Voir scripts/check-fingerprint.sh.
+      - name: Empreinte runtime compatible avec les APK installés
+        run: bash scripts/check-fingerprint.sh
+
   integration:
     name: Tests d'intégration (Supabase local)
     runs-on: ubuntu-latest
@@ -63,7 +68,7 @@ jobs:
         run: npx supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 
       - name: Tests d'intégration
-        run: npm run test:db
+        run: bash tests/integration/run.sh
 
       - name: Arrêter Supabase
         if: always()
