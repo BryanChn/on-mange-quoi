@@ -1,19 +1,28 @@
 # Journal de bord
 
-État du projet au **2026-11-18**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-19**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
 ### Prochaine conversation : par où commencer
 
-État au 2026-11-18 (après-midi), à lire avant tout le reste.
+État au 2026-11-19, à lire avant tout le reste.
+
+- ✅ **Test à deux réussi le 2026-11-18** (APK `71c4ac98` sur les deux téléphones) : le lancement d'un vote notifie l'autre membre, toucher la notification ouvre le vote, la clôture envoie « C'est réglé : … » aux deux. Le correctif de #34 est confirmé à deux (l'écran du groupe passe à « Voter » puis à « Dernier vote » sans recharger). Points 3 et 4 de la liste ci-dessous : faits.
+- 🟢 **Feu vert démarré : date de départ = 2026-11-19** (lendemain du test). Requête à lancer chaque semaine :
+  `select f.* from public.groups g, private.feu_vert(g.id, '2026-11-19') f where g.name = 'Maison' order by f.semaine;`
+  Première semaine partielle (jeudi 19 au dimanche 22, 4 soirs possibles) : elle compte si elle atteint 4 soirs, sans casser la série si elle échoue. But : 3 semaines réussies de suite.
+- **Encore à contrôler une fois** (non vérifié pendant le test) : `push_tickets` vidée par `push-receipts` dans l'heure, logs des fonctions sans erreur, et déconnexion → le jeton disparaît de `push_tokens`.
+- **Prochaine étape** : utiliser l'app chaque soir et noter les retours d'usage ; pendant ce temps, les petites tâches (point 7) et la politique de confidentialité (point 5). On ne passe pas à la V1 avant le feu vert.
+
+Historique du 2026-11-18 (après-midi) :
 
 - **#39 mergée, build `71c4ac98` réussi** (commit `814f57c`, empreinte `fc288ef…` = celle du PC : le `.fingerprintignore` marche aussi sur EAS). APK : https://expo.dev/artifacts/eas/mmDEOA-J3nmH5yvQOi4dbfdKh7Lw77ZvrafhqugnRSY.apk. **Installé sur mon téléphone**, pas encore sur celui de ma compagne : le test des notifications à deux (point 3 ci-dessous) attend ça.
 - **Mesure du feu vert en ligne** (#40 mergée, `db:push` fait le 2026-11-18, vérifiée en lecture) : `private.feu_vert(groupe, date_de_départ)`, une ligne par semaine (`soirs`, `reussie`), semaines vides à 0. Testée en local (7 cas, tous les autres tests verts). Le groupe du foyer s'appelle **« Maison »** (pas « Famille »). Dans l'éditeur SQL du tableau de bord :
   `select f.* from public.groups g, private.feu_vert(g.id, '<date de départ>') f where g.name = 'Maison' order by f.semaine;`
   La série de 3 semaines se lit à l'œil. Les 14 votes clôturés actuels sont surtout des tests : **date de départ = le lendemain du test des notifications à deux**.
-- **Prochaine étape** : installer l'APK sur le téléphone de ma compagne, faire le test à deux (points 3 et 4 ci-dessous), puis fixer la date de départ.
+- ~~Prochaine étape : installer l'APK sur le téléphone de ma compagne, faire le test à deux, puis fixer la date de départ.~~ Fait (voir plus haut).
 - Idées du 2026-11-18 mises au backlog : clôture quand tout le monde a voté (V1), récompenses d'usage (après le feu vert : les afficher fausserait la mesure).
 - Pour relancer un build plus tard, la marche à suivre :
   - `npx --yes eas-cli build:list --limit 3 --non-interactive` : aucun build `in queue` ou `in progress`, sinon ne pas en relancer un.
