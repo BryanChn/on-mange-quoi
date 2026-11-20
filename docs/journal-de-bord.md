@@ -7,6 +7,40 @@
 
 ### Prochaine conversation : par où commencer
 
+#### ⏸️ Arrêt du 2026-11-20 : la suite à faire
+
+Session arrêtée le 2026-11-20 en début d'après-midi. Tout est mergé et publié (dernière mise à jour EAS `6a08ca13`) ; seule #44 reste ouverte. Détail de la journée juste en dessous.
+
+**Tâches à faire (sans nouvel APK)**
+
+| # | Tâche | Détail |
+| --- | --- | --- |
+| 1 | Feu vert | Un vote **clôturé** chaque soir jusqu'au dimanche 22 (4 soirs pour la semaine partielle). Lancer la requête `private.feu_vert` le lundi 23. Rappel unique en ligne depuis le 20/11 vers 11 h 40 : en tenir compte. |
+| 2 | Observer le rappel unique | Premier cas réel : un membre ne fait rien pendant 1 h après le lancement (avant 21 h) → « Le vote t'attend… ». Vérifier en base : `select reminder_sent_at from vote_sessions` et `net._http_response` (réponse de `notify-vote`). |
+| 3 | Régénérer les types | Docker Desktop lancé : `npm run db:start`, `npm run db:types` (diff attendu : nul, types complétés à la main pour #64 et #65), puis `npm run db:test`. |
+| 4 | Contrôle restant | La déconnexion supprime-t-elle le jeton de `push_tokens` ? |
+| 5 | Test avec 3 à 5 proches | Groupe « Test » (jamais « Maison »), test des 5 secondes + 6 tâches (lancer, proposer, voter, décider, roulette, changer d'avatar), ne pas aider, noter ; corriger ce qui bloque au moins 2 personnes. Puis un **test en temps réel à plusieurs**. |
+| 6 | Captures du README | Elles montrent l'ancien design (avant la carte signature et les avatars) : c'est la première chose que voit un recruteur. |
+| 7 | Politique de confidentialité | Obligatoire avant les stores : notifications, avatar, données minimales (RGPD), suppression du compte. |
+| 8 | Réglage des notifications | Au backlog « avant les stores » (tout couper / groupe par groupe) ; à avancer si le besoin revient. |
+
+**Prochain build (APK) : à mettre en place après le feu vert, en un seul APK**
+
+Tout ce qui change l'empreinte runtime est regroupé pour ne réinstaller qu'une fois sur les deux téléphones.
+
+| Contenu | Pourquoi un APK | À prévoir |
+| --- | --- | --- |
+| **#44** `npm audit fix` + `expo install --fix` | Empreinte `fc288ef…` → `5615415…` | Déjà prête en brouillon. |
+| **Retours haptiques** (`expo-haptics`) | Module natif | 4 moments seulement (étude du 20/11) : cocher / décocher (`TOGGLE_ON` / `TOGGLE_OFF`), roulette (petit clic par plat, puis succès), résultat (`CONFIRM`), action refusée (`REJECT`). `performAndroidHapticsAsync` sur Android (respecte le réglage du téléphone, pas de permission `VIBRATE`). Même image que le visuel, jamais seul. |
+| **Photo de profil perso** (`expo-image-picker`, et redimensionnement) | Module natif | Supabase Storage : bucket privé, chacun écrit sa photo, les membres de ses groupes la lisent (RLS). Colonne `profiles.avatar_url` (ou équivalent) à côté de `avatar`. Taille limitée côté serveur, image réduite avant envoi. Photo supprimée avec le compte (exigé par Apple, RGPD). Case « Photo » déjà réservée dans le sélecteur. |
+
+Marche à suivre du build :
+1. Une branche par sujet, mergées **ensemble** le jour du build : après le merge d'une PR qui change l'empreinte, une mise à jour EAS publiée depuis `main` n'atteint plus les APK installés.
+2. Dans la PR : mettre à jour `.runtime-fingerprint` (la CI compare via `scripts/check-fingerprint.sh`).
+3. `npx --yes eas-cli build:list --limit 3 --non-interactive` (aucun build en cours), puis `npx --yes eas-cli build -p android --profile preview --non-interactive --no-wait`. File d'attente parfois > 4 h sur le plan gratuit.
+4. Installer l'APK sur les **deux** téléphones (par-dessus, comptes gardés), puis tester : parcours complet, notifications (lancement, rappel, résultat), haptique, photo, mises à jour (Mon compte affiche la version).
+
+
 État au 2026-11-20 (fin de journée), à lire avant tout le reste.
 
 - 🟢 **Feu vert** (départ 2026-11-19) : le 19 compte (vote clôturé à 19 h 51 ; ceux du matin et de midi étaient des tests de la roulette). Semaine partielle du 19 au 22 : il faut 4 soirs, donc un vote **clôturé** chaque soir jusqu'à dimanche. ⚠️ **Le rappel unique est en ligne depuis le 2026-11-20 vers 11 h 40** : il peut faire monter la mesure, en tenir compte en lisant les semaines.
