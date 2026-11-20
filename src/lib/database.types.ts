@@ -71,14 +71,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"display_name": string,"id": string
+                    "avatar": string | null,"created_at": string,"display_name": string,"id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"display_name": string,"id": string
+                    "avatar"?: string | null,"created_at"?: string,"display_name": string,"id": string
                   }
                   Update: {
-                    "created_at"?: string,"display_name"?: string,"id"?: string
+                    "avatar"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string
                   }
                   Relationships: [
                     

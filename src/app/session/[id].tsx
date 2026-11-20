@@ -428,6 +428,7 @@ export default function SessionScreen() {
                   <Avatar
                     key={member.id}
                     name={member.name}
+                    avatar={member.avatar}
                     size={36}
                     isPending={!voterIds.includes(member.id)}
                   />

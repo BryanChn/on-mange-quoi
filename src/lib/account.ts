@@ -1,3 +1,4 @@
+import type { AvatarId } from "./avatar";
 import { MEMBER_COLUMNS, pickSuccessor, toMembers } from "./members";
 import { getUserId, supabase } from "./supabase";
 
@@ -52,4 +53,12 @@ export async function deleteAccount(): Promise<void> {
   if (error) throw error;
 
   await supabase.auth.signOut({ scope: "local" });
+}
+
+// Change l'avatar de l'utilisateur (null = revenir à l'initiale). La RLS limite à son propre
+// profil, la contrainte profiles_avatar_check refuse toute valeur hors de la liste.
+export async function updateMyAvatar(avatar: AvatarId | null): Promise<void> {
+  const userId = await getUserId();
+  const { error } = await supabase.from("profiles").update({ avatar }).eq("id", userId);
+  if (error) throw error;
 }
