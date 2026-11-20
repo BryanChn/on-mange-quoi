@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { updateBanner, versionLabel } from "./app-version.ts";
+import {
+  isNewlyUpdated,
+  shouldReloadOnResume,
+  SILENT_RELOAD_AFTER_MS,
+  updateBanner,
+  versionLabel,
+} from "./app-version.ts";
 
 const base = { isEmbeddedLaunch: false, isEmergencyLaunch: false };
 
@@ -27,9 +33,35 @@ test("versionLabel : lancement de secours après un plantage", () => {
   );
 });
 
-test("updateBanner : rien, téléchargement, puis prête", () => {
-  assert.equal(updateBanner({ isDownloading: false, isUpdatePending: false }), null);
-  assert.equal(updateBanner({ isDownloading: true, isUpdatePending: false }), "downloading");
-  assert.equal(updateBanner({ isDownloading: false, isUpdatePending: true }), "ready");
-  assert.equal(updateBanner({ isDownloading: true, isUpdatePending: true }), "ready");
+test("updateBanner : une seule annonce, la plus utile d'abord", () => {
+  const none = { isDownloading: false, isUpdatePending: false, justUpdated: false };
+  assert.equal(updateBanner(none), null);
+  assert.equal(updateBanner({ ...none, justUpdated: true }), "updated");
+  assert.equal(updateBanner({ ...none, isDownloading: true, justUpdated: true }), "downloading");
+  assert.equal(
+    updateBanner({ isDownloading: true, isUpdatePending: true, justUpdated: true }),
+    "ready",
+  );
+});
+
+test("shouldReloadOnResume : longue absence ET mise à jour déjà téléchargée", () => {
+  const long = SILENT_RELOAD_AFTER_MS;
+  assert.equal(shouldReloadOnResume({ awayMs: long, isUpdatePending: true }), true);
+  assert.equal(shouldReloadOnResume({ awayMs: long * 6, isUpdatePending: true }), true);
+  // Absence courte : il reprend où il en était, même avec une mise à jour prête.
+  assert.equal(shouldReloadOnResume({ awayMs: long - 1, isUpdatePending: true }), false);
+  // Rien de téléchargé : rien à appliquer.
+  assert.equal(shouldReloadOnResume({ awayMs: long * 6, isUpdatePending: false }), false);
+});
+
+test("isNewlyUpdated : une mise à jour pas encore annoncée, une seule fois", () => {
+  const update = { runningUpdateId: "01a1f825", isEmbeddedLaunch: false };
+  assert.equal(isNewlyUpdated({ ...update, lastAnnouncedId: null }), true);
+  assert.equal(isNewlyUpdated({ ...update, lastAnnouncedId: "01a1f7b0" }), true);
+  assert.equal(isNewlyUpdated({ ...update, lastAnnouncedId: "01a1f825" }), false);
+  // La version de l'APK ne s'annonce pas.
+  assert.equal(
+    isNewlyUpdated({ runningUpdateId: null, isEmbeddedLaunch: true, lastAnnouncedId: null }),
+    false,
+  );
 });
