@@ -10,7 +10,12 @@ export type RunningVersion = {
   updateId?: string;
 };
 
-export type UpdateBanner = "downloading" | "ready" | null;
+export type UpdateBanner = "downloading" | "ready" | "updated" | null;
+
+// Au retour dans l'app après une absence de cette durée, une mise à jour déjà téléchargée
+// s'applique d'elle-même : l'utilisateur ne s'attend plus à retrouver l'écran exact qu'il
+// avait quitté (recommandation Expo ; 10 min comme l'exemple CodePush de Microsoft).
+export const SILENT_RELOAD_AFTER_MS = 10 * 60 * 1000;
 
 function twoDigits(value: number): string {
   return String(value).padStart(2, "0");
@@ -29,12 +34,35 @@ export function versionLabel(version: RunningVersion): string {
   return `Mise à jour du ${day} à ${time}${shortId}`;
 }
 
-// Prête l'emporte sur le téléchargement : une fois téléchargée, il ne reste qu'à redémarrer.
+// Une seule annonce à la fois, par ordre d'utilité : une version prête à appliquer, puis un
+// téléchargement en cours, puis « vient d'être mise à jour ».
 export function updateBanner(state: {
   isDownloading: boolean;
   isUpdatePending: boolean;
+  justUpdated: boolean;
 }): UpdateBanner {
   if (state.isUpdatePending) return "ready";
   if (state.isDownloading) return "downloading";
+  if (state.justUpdated) return "updated";
   return null;
+}
+
+// Recharger seulement si une mise à jour attend déjà ET si l'absence a été longue : jamais
+// en plein geste (un téléchargement lancé au retour finit pendant que l'utilisateur coche).
+export function shouldReloadOnResume(state: { awayMs: number; isUpdatePending: boolean }): boolean {
+  return state.isUpdatePending && state.awayMs >= SILENT_RELOAD_AFTER_MS;
+}
+
+// La version qui tourne est une mise à jour pas encore annoncée à l'utilisateur. La version
+// de l'APK ne s'annonce pas : c'est celle qu'il vient d'installer.
+export function isNewlyUpdated(state: {
+  runningUpdateId: string | null;
+  isEmbeddedLaunch: boolean;
+  lastAnnouncedId: string | null;
+}): boolean {
+  return (
+    !state.isEmbeddedLaunch &&
+    state.runningUpdateId !== null &&
+    state.runningUpdateId !== state.lastAnnouncedId
+  );
 }

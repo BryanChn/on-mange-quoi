@@ -4,20 +4,40 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { updateBanner } from "@/lib/app-version";
-import { restartOnLatestUpdate } from "@/lib/updates";
+import { restartOnLatestUpdate, useJustUpdated } from "@/lib/updates";
 import { useTheme, type Theme } from "@/theme";
 
 // Sur l'accueil seulement : redémarrer en plein vote ferait perdre ce qu'on tape.
 // « Téléchargement… » rassure (la mise à jour arrive), « Redémarrer » l'applique tout de
-// suite au lieu d'attendre le prochain lancement à froid.
+// suite, et « vient d'être mise à jour » dit ce qui s'est passé quand elle s'est appliquée
+// toute seule (au lancement, ou au retour après une longue absence).
 export function UpdateBanner() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { isDownloading, isUpdatePending } = useUpdates();
+  const { justUpdated, dismiss } = useJustUpdated();
   const [isRestarting, setIsRestarting] = useState(false);
-  const banner = updateBanner({ isDownloading, isUpdatePending });
+  const banner = updateBanner({ isDownloading, isUpdatePending, justUpdated });
 
   if (banner === null) return null;
+
+  if (banner === "updated") {
+    return (
+      <View style={styles.banner} accessibilityLiveRegion="polite">
+        <Feather name="check-circle" size={18} color={theme.colors.chipText} />
+        <Text style={styles.text}>L’app vient d’être mise à jour</Text>
+        <Pressable
+          onPress={dismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Fermer l’annonce de mise à jour"
+          hitSlop={8}
+          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+        >
+          <Text style={styles.actionLabel}>OK</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (banner === "downloading") {
     return (
