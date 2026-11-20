@@ -40,6 +40,14 @@ const lightColors = {
   success: brand.basilic,
   // La tomate sur crème ne passe pas pour du petit texte : l'erreur prend la sauce.
   danger: brand.sauce,
+  // Carte signature (« Ce soir », dernier vote, résultat) : l'icône « inverse » du chat,
+  // crème sur tomate. Le visage du chat (assets/images/omq-chat-signature-clair.svg) a la
+  // couleur de signature : changer l'une, c'est changer l'autre. Crème sur tomate foncée : 5,1:1.
+  signature: brand.tomateFonce,
+  onSignature: brand.creme,
+  onSignatureMuted: brand.creme,
+  signatureButton: brand.creme,
+  onSignatureButton: brand.tomateFonce,
 };
 
 // Charbon plutôt que brun : le brun très sombre et la tomate vive faisaient « Halloween ».
@@ -62,6 +70,14 @@ const darkColors: typeof lightColors = {
   onAccent: brand.espresso,
   success: "#6CC08B",
   danger: "#F2A39A",
+  // Carte signature : l'icône « nuit » du chat (corail, visage couleur du fond) sur la surface
+  // teintée des étiquettes. Pas de grand aplat vif : il éblouit sur fond sombre. Le visage du
+  // chat (assets/images/omq-chat-signature-sombre.svg) a la couleur de signature.
+  signature: "#3A2724",
+  onSignature: "#F5EDE6",
+  onSignatureMuted: "#F7A396",
+  signatureButton: "#F2796A",
+  onSignatureButton: "#1A100E",
 };
 
 const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;

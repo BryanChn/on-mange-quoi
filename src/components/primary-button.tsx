@@ -11,7 +11,8 @@ type PrimaryButtonProps = {
   isDisabled?: boolean;
   // secondary : l'action reste possible mais n'est plus l'étape attendue (« Voir le vote »
   // une fois qu'on a voté). danger : action irréversible, la couleur prévient avant le texte.
-  variant?: "primary" | "secondary" | "danger";
+  // signature : posé sur une SignatureCard, où « primary » se confondrait avec la carte.
+  variant?: "primary" | "secondary" | "danger" | "signature";
 };
 
 // Bouton d'action de l'écran : un seul « primary » visible à la fois.
@@ -36,21 +37,32 @@ export function PrimaryButton({
         styles.button,
         variant === "secondary" && styles.secondary,
         variant === "danger" && styles.danger,
+        variant === "signature" && styles.signature,
         pressed && (variant === "primary" ? styles.pressed : styles.dimmed),
         (isLoading || isDisabled) && styles.loading,
       ]}
     >
       {isLoading ? (
-        <ActivityIndicator
-          color={variant === "secondary" ? theme.colors.chipText : theme.colors.onPrimary}
-        />
+        <ActivityIndicator color={indicatorColor(variant, theme)} />
       ) : (
-        <Text style={[styles.label, variant === "secondary" && styles.labelSecondary]}>
+        <Text
+          style={[
+            styles.label,
+            variant === "secondary" && styles.labelSecondary,
+            variant === "signature" && styles.labelSignature,
+          ]}
+        >
           {label}
         </Text>
       )}
     </Pressable>
   );
+}
+
+function indicatorColor(variant: PrimaryButtonProps["variant"], { colors }: Theme): string {
+  if (variant === "secondary") return colors.chipText;
+  if (variant === "signature") return colors.onSignatureButton;
+  return colors.onPrimary;
 }
 
 function createStyles({ colors, radius, fonts, fontSize }: Theme) {
@@ -65,9 +77,11 @@ function createStyles({ colors, radius, fonts, fontSize }: Theme) {
     pressed: { backgroundColor: colors.primaryStrong },
     secondary: { backgroundColor: colors.chipBg },
     danger: { backgroundColor: colors.danger },
+    signature: { backgroundColor: colors.signatureButton },
     dimmed: { opacity: 0.85 },
     loading: { opacity: 0.7 },
     label: { color: colors.onPrimary, fontFamily: fonts.displayBold, fontSize: fontSize.button },
     labelSecondary: { color: colors.chipText },
+    labelSignature: { color: colors.onSignatureButton },
   });
 }
