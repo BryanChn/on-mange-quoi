@@ -7,24 +7,70 @@
 
 ### Prochaine conversation : par où commencer
 
-État au 2026-11-20, à lire avant tout le reste.
+#### ⏸️ Arrêt du 2026-11-20 : la suite à faire
 
-- 🟢 **Feu vert** (départ 2026-11-19) : le 19 compte (vote clôturé à 19 h 51 ; ceux du matin et de midi étaient des tests de la roulette). Semaine partielle du 19 au 22 : il faut 4 soirs, donc un vote **clôturé** chaque soir jusqu'à dimanche. Un vote de test reste ouvert dans « Maison » depuis le 20/11 à 8 h 16 : le garder pour le soir, ne pas le clôturer le matin.
+Session arrêtée le 2026-11-20 en début d'après-midi. Tout est mergé et publié (dernière mise à jour EAS `6a08ca13`) ; seule #44 reste ouverte. Détail de la journée juste en dessous.
+
+**Tâches à faire (sans nouvel APK)**
+
+| # | Tâche | Détail |
+| --- | --- | --- |
+| 1 | Feu vert | Un vote **clôturé** chaque soir jusqu'au dimanche 22 (4 soirs pour la semaine partielle). Lancer la requête `private.feu_vert` le lundi 23. Rappel unique en ligne depuis le 20/11 vers 11 h 40 : en tenir compte. |
+| 2 | Observer le rappel unique | Premier cas réel : un membre ne fait rien pendant 1 h après le lancement (avant 21 h) → « Le vote t'attend… ». Vérifier en base : `select reminder_sent_at from vote_sessions` et `net._http_response` (réponse de `notify-vote`). |
+| 3 | Régénérer les types | Docker Desktop lancé : `npm run db:start`, `npm run db:types` (diff attendu : nul, types complétés à la main pour #64 et #65), puis `npm run db:test`. |
+| 4 | Contrôle restant | La déconnexion supprime-t-elle le jeton de `push_tokens` ? |
+| 5 | Test avec 3 à 5 proches | Groupe « Test » (jamais « Maison »), test des 5 secondes + 6 tâches (lancer, proposer, voter, décider, roulette, changer d'avatar), ne pas aider, noter ; corriger ce qui bloque au moins 2 personnes. Puis un **test en temps réel à plusieurs**. |
+| 6 | Captures du README | Elles montrent l'ancien design (avant la carte signature et les avatars) : c'est la première chose que voit un recruteur. |
+| 7 | Politique de confidentialité | Obligatoire avant les stores : notifications, avatar, données minimales (RGPD), suppression du compte. |
+| 8 | Réglage des notifications | Au backlog « avant les stores » (tout couper / groupe par groupe) ; à avancer si le besoin revient. |
+
+**Prochain build (APK) : à mettre en place après le feu vert, en un seul APK**
+
+Tout ce qui change l'empreinte runtime est regroupé pour ne réinstaller qu'une fois sur les deux téléphones.
+
+| Contenu | Pourquoi un APK | À prévoir |
+| --- | --- | --- |
+| **#44** `npm audit fix` + `expo install --fix` | Empreinte `fc288ef…` → `5615415…` | Déjà prête en brouillon. |
+| **Retours haptiques** (`expo-haptics`) | Module natif | 4 moments seulement (étude du 20/11) : cocher / décocher (`TOGGLE_ON` / `TOGGLE_OFF`), roulette (petit clic par plat, puis succès), résultat (`CONFIRM`), action refusée (`REJECT`). `performAndroidHapticsAsync` sur Android (respecte le réglage du téléphone, pas de permission `VIBRATE`). Même image que le visuel, jamais seul. |
+| **Photo de profil perso** (`expo-image-picker`, et redimensionnement) | Module natif | Supabase Storage : bucket privé, chacun écrit sa photo, les membres de ses groupes la lisent (RLS). Colonne `profiles.avatar_url` (ou équivalent) à côté de `avatar`. Taille limitée côté serveur, image réduite avant envoi. Photo supprimée avec le compte (exigé par Apple, RGPD). Case « Photo » déjà réservée dans le sélecteur. |
+
+Marche à suivre du build :
+1. Une branche par sujet, mergées **ensemble** le jour du build : après le merge d'une PR qui change l'empreinte, une mise à jour EAS publiée depuis `main` n'atteint plus les APK installés.
+2. Dans la PR : mettre à jour `.runtime-fingerprint` (la CI compare via `scripts/check-fingerprint.sh`).
+3. `npx --yes eas-cli build:list --limit 3 --non-interactive` (aucun build en cours), puis `npx --yes eas-cli build -p android --profile preview --non-interactive --no-wait`. File d'attente parfois > 4 h sur le plan gratuit.
+4. Installer l'APK sur les **deux** téléphones (par-dessus, comptes gardés), puis tester : parcours complet, notifications (lancement, rappel, résultat), haptique, photo, mises à jour (Mon compte affiche la version).
+
+
+État au 2026-11-20 (fin de journée), à lire avant tout le reste.
+
+- 🟢 **Feu vert** (départ 2026-11-19) : le 19 compte (vote clôturé à 19 h 51 ; ceux du matin et de midi étaient des tests de la roulette). Semaine partielle du 19 au 22 : il faut 4 soirs, donc un vote **clôturé** chaque soir jusqu'à dimanche. ⚠️ **Le rappel unique est en ligne depuis le 2026-11-20 vers 11 h 40** : il peut faire monter la mesure, en tenir compte en lisant les semaines.
 - **Livré le 2026-11-20, tout publié par mise à jour EAS (runtime `fc288ef…`, aucun APK)** :
   - #54 : quand tout le monde a voté, « à toi de clôturer ! » / « Camille peut clôturer ».
   - #55 : **vote optimiste** (`useOptimistic`) : la case se coche au toucher, file d'envoi `createSerialQueue` pour garder l'ordre des touchers. Tests : contre-épreuve sans file (état faux), touchers rapides sur la vraie base (CI).
   - #56 et #57 : **design « carte signature »** (maquette validée : https://claude.ai/artifact/PnYH5QfGK8mWswvxy9zo9X). Clair : chat crème sur tomate (icône « inverse ») ; sombre : chat corail sur `chipBg` (icône « nuit »), palette sombre inchangée. Tokens `signature*` dans les deux palettes (le type commun impose le sombre). Le chat : deux SVG fixes avec `expo-image` (pas de `react-native-svg`, qui demanderait un APK). Écran du vote : avatars des votants, le bouton principal suit l'étape (« Proposer » tant qu'on attend, « Clôturer » quand tout le monde a voté). Groupe : code d'invitation dans une ligne, quitter et supprimer en liens discrets.
   - #58 : suivi des mises à jour : bandeau « Téléchargement… » / « Redémarrer » sur l'accueil, version qui tourne dans Mon compte, vérification au retour au premier plan.
   - #59 : « C'est décidé » et « Bon appétit ! » partout, notification comprise (`notify-vote` **redéployée** le 20/11, répond toujours `401` sans secret).
-- **Ouvert** : #60, mises à jour appliquées sans intervention (rechargement au retour après 10 min d'absence si une mise à jour est déjà téléchargée, puis « L'app vient d'être mise à jour »). #44 attend toujours le feu vert.
+  - #60 : **mises à jour sans intervention** : au retour dans l'app après ≥ 10 min d'absence, si une mise à jour est déjà téléchargée, rechargement immédiat ; sinon vérification et bandeau « Redémarrer ». Jamais de rechargement en arrière-plan (expérimental chez Expo) ni en plein geste. Puis « L'app vient d'être mise à jour », une fois (identifiant annoncé dans AsyncStorage). `useEffectEvent` pour lire « mise à jour téléchargée ? » depuis l'écouteur `AppState`. Modèle : CodePush `ON_NEXT_RESUME`, Google Play « flexible ». **Vérifié sur téléphone** : la mise à jour des avatars s'est appliquée seule (Mon compte : « Mise à jour du 20/11 à 13:46 »).
+  - #62 : **animations légères** (`src/lib/motion.ts`) : coche 150 ms, compteur en fondu, plat ajouté ou retiré en fondu (rien au chargement : `LayoutAnimationConfig skipEntering`), avatar qui se remplit. `transform`, opacité et couleurs seulement ; « réduire les animations » garde fondus et couleurs.
+  - #64 : **rappel unique** (validé et ajouté au MVP le 2026-11-20, CLAUDE.md point 7) : migration `vote_reminders` (`reminder_sent_at`, `send_vote_reminders(reference_time)`, tâche `pg_cron` `vote-reminders` toutes les 10 min), `notify-vote` événement `reminder` (relit qui n'a ni proposé ni voté, jamais l'organisateur). Fenêtre 1 à 3 h après le lancement, 10 h à 21 h (Paris), une seule fois (marque + appel dans la même transaction). Mis en ligne dans l'ordre : fonction d'abord, migration ensuite (sinon un rappel marqué mais refusé par l'ancienne fonction serait perdu). Vérifié en base : tâche active, `service_role` seul autorisé.
+  - #65 et #66 : **avatars prédéfinis** (ajoutés au MVP le 2026-11-20, CLAUDE.md point 8 ; maquette : https://claude.ai/artifact/SPMHDVTEdmRc8syXJU7EFy) : chat, spaghetti, pizza, burger, avocat, ramen ou l'initiale. Migration `profile_avatar` : `profiles.avatar` en liste fermée (`check`), `grant update (avatar)`, RLS sur son propre profil. SVG dans `assets/images/avatars`, identiques en clair et en sombre. Membre attendu : dessin estompé en pointillé. Mis en ligne dans l'ordre : migration d'abord, mise à jour EAS ensuite (sinon l'app lirait une colonne absente). #66 : alignement de la dernière ligne du sélecteur (`flex-start` au lieu de `space-between`).
+  - #61, #63 : journal ; réglage des notifications au backlog.
+- **Ouvert** : seulement #44 (attend le feu vert). Dernière mise à jour publiée : `6a08ca13` (alignement des avatars).
+- **À faire avec Docker Desktop lancé** : `npm run db:types` pour régénérer `src/lib/database.types.ts`, complété **à la main** pour #64 et #65 (Docker arrêté) ; le diff doit être nul. En profiter pour `npm run db:test`. Constat : les scénarios SQL de `supabase/scripts/` ne tournent pas dans la CI (ils affichent « attendu : X », sans échec automatique) ; les nouvelles fonctions SQL sont donc testées en intégration (`tests/integration/`), qui tourne en CI.
 - **Études du jour** : design et prise en main (https://claude.ai/artifact/QtnjnomscochHuCVNtPWYM) : haptique oui mais sur 4 moments (cocher, roulette, résultat, refus), `expo-haptics` = APK, à regrouper avec #44 ; « simple à comprendre ? » ne se sait qu'en testant avec 3 à 5 proches, dans un **groupe de test** (jamais « Maison », qui compte dans le feu vert).
-- **Retour d'usage du 2026-11-20** : « elle ajoute des plats, aucune notification ». Pas un bug : seuls le lancement et la clôture notifient (vérifié en base : `notify-vote` a envoyé `sent 1` à 8 h 16, reçu confirmé par `push-receipts`). Décision : **pas de notification pour les plats**. **Rappel unique** (1 h après le lancement, à qui n'a ni proposé ni voté, entre 10 h et 21 h) proposé, **pas encore validé** : au backlog d'ici là.
+- **Retour d'usage du 2026-11-20** : « elle ajoute des plats, aucune notification ». Pas un bug : seuls le lancement et la clôture notifient (vérifié en base : `notify-vote` a envoyé `sent 1` à 8 h 16, reçu confirmé par `push-receipts`). Décision : **pas de notification pour les plats**. Rappel unique : validé puis livré (#64).
+- **Autres retours d'usage du 2026-11-20** : pouvoir couper les notifications, pour tous les groupes ou groupe par groupe (au backlog, « avant les stores » ; à avancer si le besoin revient) ; photo de profil perso (avec le prochain APK, `expo-image-picker`) ; faire un **test en temps réel avec plusieurs utilisateurs** (en plus du test avec 3 à 5 proches, déroulé détaillé dans la conversation du 20/11 : test des 5 secondes, 6 tâches, ne pas aider, noter, corriger ce qui bloque au moins 2 personnes).
 - **Pièges trouvés le 2026-11-20** :
   - **Décocher après la clôture ne renvoie pas d'erreur** : la politique RLS de suppression filtre `status = 'open'`, le `DELETE` touche 0 ligne et le trigger `lock_session_of_vote` (par ligne) ne se déclenche pas. Le vote reste figé (correct) ; cocher, lui, renvoie `session_closed`. Test d'intégration à jour.
   - **Mise à jour EAS « qui ne passe pas »** : canal, runtime, manifeste et les 58 fichiers vérifiés côté serveur (les fichiers exigent les en-têtes `assetRequestHeaders` du manifeste : un `curl` sans eux reçoit 403, ce n'est pas une panne). Le téléphone a fini par l'appliquer. Depuis #58, Mon compte dit quelle version tourne : regarder là d'abord.
   - Un mail « CI failed » peut viser une branche déjà corrigée : vérifier la branche et l'heure (`gh run list`) avant de s'inquiéter.
 - **Contrôle fait** : `push_tickets` vidée par `push-receipts` (ticket du 20/11 8 h 16 traité à 9 h). Reste : la déconnexion supprime-t-elle le jeton de `push_tokens` ?
-- **Prochaine étape** : merger #60, puis animations légères (case, plat ajouté, compteur ; `reanimated` déjà là, sans APK). Ensuite : test avec 3 à 5 proches, captures du README (elles montrent l'ancien design), politique de confidentialité. Décisions en attente : rappel unique, couleurs d'avatar (par le nom, stable mais deux membres peuvent avoir la même ; ou par l'ordre d'arrivée dans le groupe).
+- **Prochaine étape** :
+  1. Ce soir et chaque soir jusqu'à dimanche : un vote **clôturé** (feu vert) ; observer le premier rappel réel (un membre qui ne fait rien pendant 1 h, avant 21 h).
+  2. Test avec 3 à 5 proches, puis test en temps réel à plusieurs (groupe « Test », jamais « Maison »).
+  3. Captures du README (ancien design visible par les recruteurs), politique de confidentialité (avant les stores).
+  4. Après le feu vert : **un seul APK** pour la photo de profil, l'haptique (4 moments) et #44.
+  - Décision tranchée : couleurs d'avatar → remplacées par le choix de l'utilisateur (#65).
 
 État au 2026-11-19 (historique).
 
