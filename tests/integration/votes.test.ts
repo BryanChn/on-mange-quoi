@@ -19,6 +19,7 @@ import {
   startSession,
   type Proposal,
 } from "../../src/lib/votes.ts";
+import { createSerialQueue } from "../../src/lib/serial-queue.ts";
 import { cleanUp, createGroup, createUser, signInAs, type TestUser } from "./fixtures.ts";
 import { supabase } from "./supabase-test-client.ts";
 
@@ -157,6 +158,69 @@ describe("voter", () => {
     assert.equal(forBea.canClose, true);
     await signInAs(alice);
     assert.equal((await fetchSession(sessionId)).canClose, true);
+  });
+});
+
+// Ce que fait l'écran du vote (vote optimiste) : chaque toucher part dans la file sans
+// attendre le précédent. Le vrai serveur doit finir dans l'état du dernier toucher.
+describe("votes rapides (file d'envoi de l'écran)", () => {
+  test("cinq touchers sans attendre : coché, comme le dernier toucher", async () => {
+    const groupId = await newGroup();
+    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza"]);
+    await signInAs(chloe);
+    const enqueue = createSerialQueue();
+
+    const touches = [true, false, true, false, true];
+    await Promise.all(touches.map((want) => enqueue(() => setVote(idOf("Pizza"), want))));
+
+    const pizza = (await fetchSession(sessionId)).proposals[0];
+    assert.equal(pizza.hasMyVote, true);
+    assert.equal(pizza.voteCount, 1);
+  });
+
+  test("six touchers sans attendre : décoché, et la participation suit", async () => {
+    const groupId = await newGroup();
+    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza", "Tacos"]);
+    await signInAs(chloe);
+    const enqueue = createSerialQueue();
+
+    // Pizza : coché puis décoché trois fois ; Tacos : coché une fois, au milieu.
+    await Promise.all([
+      enqueue(() => setVote(idOf("Pizza"), true)),
+      enqueue(() => setVote(idOf("Pizza"), false)),
+      enqueue(() => setVote(idOf("Tacos"), true)),
+      enqueue(() => setVote(idOf("Pizza"), true)),
+      enqueue(() => setVote(idOf("Pizza"), false)),
+      enqueue(() => setVote(idOf("Tacos"), false)),
+    ]);
+
+    const session = await fetchSession(sessionId);
+    assert.deepEqual(
+      session.proposals.map((p) => [p.name, p.hasMyVote, p.voteCount]),
+      [
+        ["Pizza", false, 0],
+        ["Tacos", false, 0],
+      ],
+    );
+    assert.equal(session.voterIds.includes(session.userId), false);
+  });
+
+  test("un vote refusé (session clôturée) n'empêche pas la file de continuer", async () => {
+    const groupId = await newGroup();
+    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza"]);
+    await voteAs(chloe, idOf("Pizza"));
+    await signInAs(bea);
+    await closeSession(sessionId);
+
+    await signInAs(chloe);
+    const enqueue = createSerialQueue();
+    const refused = enqueue(() => setVote(idOf("Pizza"), false));
+    const next = enqueue(async () => "suite");
+
+    await assert.rejects(refused, (error) => isSessionClosedError(error));
+    assert.equal(await next, "suite");
+    // Le vote déjà enregistré n'a pas bougé.
+    assert.equal((await fetchSession(sessionId)).proposals[0].voteCount, 1);
   });
 });
 

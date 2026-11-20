@@ -29,6 +29,7 @@ import {
   summarizeParticipation,
 } from "@/lib/tonight";
 import { voterIdsWithMe, withMyVote } from "@/lib/optimistic-vote";
+import { createSerialQueue } from "@/lib/serial-queue";
 import {
   addProposal,
   closeSession,
@@ -122,8 +123,9 @@ export default function SessionScreen() {
   );
   const [isVoting, startVoting] = useTransition();
   // Les votes partent un par un, dans l'ordre des touchers : cocher puis décocher vite ne doit
-  // pas arriver au serveur dans le désordre (l'état final serait faux).
-  const voteQueueRef = useRef<Promise<void>>(Promise.resolve());
+  // pas arriver au serveur dans le désordre (l'état final serait faux). Une file par écran,
+  // créée une seule fois (initialisation paresseuse de useState).
+  const [enqueueVote] = useState(createSerialQueue);
 
   // Numéro du dernier rechargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
@@ -218,12 +220,8 @@ export default function SessionScreen() {
 
     startVoting(async () => {
       applyMyVote({ proposalId: proposal.id, wantVote });
-      const request = voteQueueRef.current.then(() => setVote(proposal.id, wantVote));
-      // La file avance même si cet envoi échoue : l'erreur est traitée juste en dessous.
-      voteQueueRef.current = request.catch(() => undefined);
-
       try {
-        await request;
+        await enqueueVote(() => setVote(proposal.id, wantVote));
         // La liste du serveur doit contenir le vote avant que le provisoire disparaisse.
         await loadSession();
       } catch (error) {
