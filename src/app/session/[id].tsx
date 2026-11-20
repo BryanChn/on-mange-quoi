@@ -11,6 +11,7 @@ import {
   useTransition,
 } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -32,6 +33,14 @@ import {
   summarizeParticipation,
 } from "@/lib/tonight";
 import { voterIdsWithMe, withMyVote } from "@/lib/optimistic-vote";
+import {
+  checkEntering,
+  colorTransition,
+  countEntering,
+  dishEntering,
+  dishExiting,
+  dishLayout,
+} from "@/lib/motion";
 import { createSerialQueue } from "@/lib/serial-queue";
 import {
   addProposal,
@@ -335,55 +344,81 @@ export default function SessionScreen() {
                 : "Coche tout ce qui te tente."}
             </Text>
 
-            {proposals.map((item) => {
-              const isLeading = hasVotes && leading.includes(item);
-              return (
-                <View key={item.id} style={[styles.row, item.hasMyVote && styles.rowChecked]}>
-                  <Pressable
-                    style={styles.vote}
-                    onPress={() => handleToggleVote(item)}
-                    disabled={isBusy}
-                    accessibilityRole="checkbox"
-                    accessibilityLabel={`${item.name}, ${voteCountLabel(item.voteCount)}${
-                      isLeading ? `, ${leadLabel.toLowerCase()}` : ""
-                    }`}
-                    accessibilityState={{ checked: item.hasMyVote, disabled: isBusy }}
+            {/* skipEntering : les plats déjà là à l'ouverture ne s'animent pas, seuls les
+                plats ajoutés ensuite apparaissent en fondu. */}
+            <LayoutAnimationConfig skipEntering>
+              {proposals.map((item) => {
+                const isLeading = hasVotes && leading.includes(item);
+                return (
+                  <Animated.View
+                    key={item.id}
+                    entering={dishEntering}
+                    exiting={dishExiting}
+                    layout={dishLayout}
+                    style={[styles.row, colorTransition, item.hasMyVote && styles.rowChecked]}
                   >
-                    <View style={[styles.checkbox, item.hasMyVote && styles.checkboxChecked]}>
-                      {item.hasMyVote ? (
-                        <Feather name="check" size={18} color={theme.colors.onPrimary} />
-                      ) : null}
-                    </View>
-                    <View style={styles.dishText}>
-                      <View style={styles.dishLine}>
-                        <Text style={styles.dish}>{item.name}</Text>
-                        {isLeading ? (
-                          <Chip label={leadLabel} variant="accent" style={styles.leadChip} />
-                        ) : null}
-                      </View>
-                      <Text style={styles.caption}>
-                        {item.voterNames.length > 0
-                          ? item.voterNames.join(", ")
-                          : "Aucun vote pour l’instant"}
-                      </Text>
-                    </View>
-                    <Text style={styles.count}>{item.voteCount}</Text>
-                  </Pressable>
-                  {item.isMine && item.voteCount === 0 ? (
                     <Pressable
-                      onPress={() => handleRemove(item)}
+                      style={styles.vote}
+                      onPress={() => handleToggleVote(item)}
                       disabled={isBusy}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Retirer ${item.name}`}
-                      accessibilityState={{ disabled: isBusy }}
-                      style={({ pressed }) => [styles.remove, pressed && styles.pressed]}
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={`${item.name}, ${voteCountLabel(item.voteCount)}${
+                        isLeading ? `, ${leadLabel.toLowerCase()}` : ""
+                      }`}
+                      accessibilityState={{ checked: item.hasMyVote, disabled: isBusy }}
                     >
-                      <Feather name="x" size={20} color={theme.colors.textMuted} />
+                      <Animated.View
+                        style={[
+                          styles.checkbox,
+                          colorTransition,
+                          item.hasMyVote && styles.checkboxChecked,
+                        ]}
+                      >
+                        {item.hasMyVote ? (
+                          <Animated.View entering={checkEntering}>
+                            <Feather name="check" size={18} color={theme.colors.onPrimary} />
+                          </Animated.View>
+                        ) : null}
+                      </Animated.View>
+                      <View style={styles.dishText}>
+                        <View style={styles.dishLine}>
+                          <Text style={styles.dish}>{item.name}</Text>
+                          {isLeading ? (
+                            <Chip label={leadLabel} variant="accent" style={styles.leadChip} />
+                          ) : null}
+                        </View>
+                        <Text style={styles.caption}>
+                          {item.voterNames.length > 0
+                            ? item.voterNames.join(", ")
+                            : "Aucun vote pour l’instant"}
+                        </Text>
+                      </View>
+                      {/* Clé = le nombre : un nouveau compteur remplace l'ancien et arrive en
+                        fondu, on voit le vote des autres arriver en direct. */}
+                      <Animated.Text
+                        key={item.voteCount}
+                        entering={countEntering}
+                        style={styles.count}
+                      >
+                        {item.voteCount}
+                      </Animated.Text>
                     </Pressable>
-                  ) : null}
-                </View>
-              );
-            })}
+                    {item.isMine && item.voteCount === 0 ? (
+                      <Pressable
+                        onPress={() => handleRemove(item)}
+                        disabled={isBusy}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Retirer ${item.name}`}
+                        accessibilityState={{ disabled: isBusy }}
+                        style={({ pressed }) => [styles.remove, pressed && styles.pressed]}
+                      >
+                        <Feather name="x" size={20} color={theme.colors.textMuted} />
+                      </Pressable>
+                    ) : null}
+                  </Animated.View>
+                );
+              })}
+            </LayoutAnimationConfig>
           </Card>
 
           {showParticipation ? (
