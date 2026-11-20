@@ -1,5 +1,6 @@
 import type { Enums } from "./database.types";
 import { MEMBER_COLUMNS, toMembers, type Member } from "./members";
+import { MY_VOTER_NAME } from "./optimistic-vote";
 import { getUserId, supabase } from "./supabase";
 import { summarizeParticipation, type Participation } from "./tonight";
 
@@ -32,6 +33,9 @@ export type VoteSession = {
   closedAt: string | null;
   // Qui a voté parmi les membres actuels, et qui on attend.
   participation: Participation;
+  // Pour recalculer la participation pendant un vote optimiste (voir optimistic-vote.ts).
+  userId: string;
+  voterIds: string[];
   isOpen: boolean;
   // Organisateur ou owner du groupe : l'écran guide, close_session protège.
   canClose: boolean;
@@ -181,6 +185,8 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     createdAt: data.created_at,
     closedAt: data.closed_at,
     participation: summarizeParticipation(members, [...voterIds], userId),
+    userId,
+    voterIds: [...voterIds],
     isOpen: data.status === "open",
     canClose: data.organizer_id === userId || data.groups?.owner_id === userId,
     winnerProposalId: data.winner_proposal_id,
@@ -194,11 +200,13 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
       voterNames: proposal.votes
         .map((vote) =>
           vote.profile_id === userId
-            ? "toi"
+            ? MY_VOTER_NAME
             : (nameById.get(vote.profile_id) ?? "un ancien membre"),
         )
         // « toi » d'abord, puis l'ordre alphabétique : stable d'un rechargement à l'autre.
-        .sort((a, b) => Number(b === "toi") - Number(a === "toi") || a.localeCompare(b)),
+        .sort(
+          (a, b) => Number(b === MY_VOTER_NAME) - Number(a === MY_VOTER_NAME) || a.localeCompare(b),
+        ),
     })),
   };
 }
