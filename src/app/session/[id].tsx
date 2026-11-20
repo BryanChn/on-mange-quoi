@@ -1,7 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -18,7 +26,9 @@ import {
   formatTime,
   isSameDay,
   participationLine,
+  summarizeParticipation,
 } from "@/lib/tonight";
+import { voterIdsWithMe, withMyVote } from "@/lib/optimistic-vote";
 import {
   addProposal,
   closeSession,
@@ -36,6 +46,11 @@ import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
 const PROPOSAL_NAME_MAX_LENGTH = 60;
+
+// Liste stable tant que la session n'est pas chargée (base de useOptimistic).
+const NO_PROPOSALS: Proposal[] = [];
+
+type MyVote = { proposalId: string; wantVote: boolean };
 
 // Étapes de la clôture : confirmer, c'est tout. Une égalité est tirée au sort par le serveur.
 type CloseStep = "idle" | "confirm";
@@ -86,7 +101,8 @@ export default function SessionScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasFailed, setHasFailed] = useState(false);
   const [dishName, setDishName] = useState("");
-  // Une action à la fois : un double appui ne doit pas cocher puis décocher.
+  // Proposer, retirer, clôturer : une action à la fois (un double appui n'ajoute pas deux plats).
+  // Les votes n'en font pas partie : ils sont optimistes (voir plus bas).
   const [isBusy, setIsBusy] = useState(false);
   // Sous le champ : seulement ce qui concerne le nom tapé. Le reste (réseau, vote, retrait) à part.
   const [nameError, setNameError] = useState<string | null>(null);
@@ -95,6 +111,19 @@ export default function SessionScreen() {
   // Le champ « Proposer un plat » n'apparaît qu'à la demande : la zone basse reste à l'action.
   const [isProposing, setIsProposing] = useState(false);
   const [spin, setSpin] = useState<Spin | null>(null);
+
+  // Vote optimiste : la case se coche dès le toucher. Tant qu'un envoi est en cours, React
+  // affiche la liste du serveur avec les votes provisoires par-dessus ; à la fin, il revient
+  // à la liste du serveur seule, ce qui annule de lui-même un vote refusé.
+  const [proposals, applyMyVote] = useOptimistic(
+    session?.proposals ?? NO_PROPOSALS,
+    (current: Proposal[], { proposalId, wantVote }: MyVote) =>
+      withMyVote(current, proposalId, wantVote),
+  );
+  const [isVoting, startVoting] = useTransition();
+  // Les votes partent un par un, dans l'ordre des touchers : cocher puis décocher vite ne doit
+  // pas arriver au serveur dans le désordre (l'état final serait faux).
+  const voteQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   // Numéro du dernier rechargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
@@ -143,7 +172,8 @@ export default function SessionScreen() {
     loadSession();
   }
 
-  // L'écran ne change qu'après confirmation du serveur : on recharge plutôt que de supposer.
+  // Proposer, retirer, clôturer : l'écran ne change qu'après confirmation du serveur, on
+  // recharge plutôt que de supposer (un nom peut être refusé, un plat déjà voté reste).
   async function runAction(action: () => Promise<void>, failureMessage: string) {
     setNameError(null);
     setActionError(null);
@@ -181,11 +211,30 @@ export default function SessionScreen() {
     }, "Impossible d’ajouter ce plat. Vérifie ton réseau et réessaie.");
   }
 
+  // proposal est le plat affiché, vote provisoire compris : un second toucher décoche.
   function handleToggleVote(proposal: Proposal) {
-    runAction(
-      () => setVote(proposal.id, !proposal.hasMyVote),
-      "Impossible d’enregistrer ton vote. Vérifie ton réseau et réessaie.",
-    );
+    const wantVote = !proposal.hasMyVote;
+    setActionError(null);
+
+    startVoting(async () => {
+      applyMyVote({ proposalId: proposal.id, wantVote });
+      const request = voteQueueRef.current.then(() => setVote(proposal.id, wantVote));
+      // La file avance même si cet envoi échoue : l'erreur est traitée juste en dessous.
+      voteQueueRef.current = request.catch(() => undefined);
+
+      try {
+        await request;
+        // La liste du serveur doit contenir le vote avant que le provisoire disparaisse.
+        await loadSession();
+      } catch (error) {
+        // Clôturé entre-temps : le rechargement affiche le résultat.
+        if (isSessionClosedError(error)) {
+          await loadSession();
+        } else {
+          setActionError("Impossible d’enregistrer ton vote. Vérifie ton réseau et réessaie.");
+        }
+      }
+    });
   }
 
   function handleRemove(proposal: Proposal) {
@@ -229,7 +278,18 @@ export default function SessionScreen() {
     return <SessionResult session={session} now={loadedAt} styles={styles} />;
   }
 
-  const { proposals, canClose } = session;
+  const { canClose } = session;
+  // Participation recalculée avec le vote provisoire : « Il ne manque plus que toi » disparaît
+  // dès le toucher, sans attendre le serveur.
+  const participation = summarizeParticipation(
+    session.members,
+    voterIdsWithMe(
+      session.voterIds,
+      session.userId,
+      proposals.some((proposal) => proposal.hasMyVote),
+    ),
+    session.userId,
+  );
   const leading = getLeadingProposals(proposals);
   const tiedNames = leading.map((proposal) => proposal.name).join(", ");
   const hasVotes = proposals.some((proposal) => proposal.voteCount > 0);
@@ -326,13 +386,13 @@ export default function SessionScreen() {
 
           {showParticipation ? (
             <Text style={styles.status}>
-              {participationLine(session.participation, {
+              {participationLine(participation, {
                 canClose,
                 organizerName: session.organizerName,
               })}
             </Text>
           ) : null}
-          {canClose || (showParticipation && everyoneHasVoted(session.participation)) ? null : (
+          {canClose || (showParticipation && everyoneHasVoted(participation)) ? null : (
             <Text style={styles.status}>
               L’organisateur clôturera le vote quand tout le monde aura voté.
             </Text>
@@ -374,7 +434,7 @@ export default function SessionScreen() {
                 <PrimaryButton
                   label="Clôturer le vote"
                   onPress={() => setCloseStep("confirm")}
-                  isDisabled={isBusy}
+                  isDisabled={isBusy || isVoting}
                 />
               ) : null}
               <PrimaryButton
@@ -392,7 +452,13 @@ export default function SessionScreen() {
                 {leading.length > 1 ? `Égalité entre ${tiedNames} : la roulette va trancher. ` : ""}
                 Clôturer maintenant ? Plus personne ne pourra voter ni proposer.
               </Text>
-              <PrimaryButton label="Clôturer" onPress={() => handleClose()} isLoading={isBusy} />
+              {/* Pas de clôture pendant l'envoi d'un vote : il serait refusé et perdu. */}
+              <PrimaryButton
+                label="Clôturer"
+                onPress={() => handleClose()}
+                isLoading={isBusy}
+                isDisabled={isVoting}
+              />
               <TextButton
                 label="Annuler"
                 onPress={() => setCloseStep("idle")}
