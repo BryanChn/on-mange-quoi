@@ -1,13 +1,32 @@
 # Journal de bord
 
-État du projet au **2026-11-19**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-20**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
 ### Prochaine conversation : par où commencer
 
-État au 2026-11-19, à lire avant tout le reste.
+État au 2026-11-20, à lire avant tout le reste.
+
+- 🟢 **Feu vert** (départ 2026-11-19) : le 19 compte (vote clôturé à 19 h 51 ; ceux du matin et de midi étaient des tests de la roulette). Semaine partielle du 19 au 22 : il faut 4 soirs, donc un vote **clôturé** chaque soir jusqu'à dimanche. Un vote de test reste ouvert dans « Maison » depuis le 20/11 à 8 h 16 : le garder pour le soir, ne pas le clôturer le matin.
+- **Livré le 2026-11-20, tout publié par mise à jour EAS (runtime `fc288ef…`, aucun APK)** :
+  - #54 : quand tout le monde a voté, « à toi de clôturer ! » / « Camille peut clôturer ».
+  - #55 : **vote optimiste** (`useOptimistic`) : la case se coche au toucher, file d'envoi `createSerialQueue` pour garder l'ordre des touchers. Tests : contre-épreuve sans file (état faux), touchers rapides sur la vraie base (CI).
+  - #56 et #57 : **design « carte signature »** (maquette validée : https://claude.ai/artifact/PnYH5QfGK8mWswvxy9zo9X). Clair : chat crème sur tomate (icône « inverse ») ; sombre : chat corail sur `chipBg` (icône « nuit »), palette sombre inchangée. Tokens `signature*` dans les deux palettes (le type commun impose le sombre). Le chat : deux SVG fixes avec `expo-image` (pas de `react-native-svg`, qui demanderait un APK). Écran du vote : avatars des votants, le bouton principal suit l'étape (« Proposer » tant qu'on attend, « Clôturer » quand tout le monde a voté). Groupe : code d'invitation dans une ligne, quitter et supprimer en liens discrets.
+  - #58 : suivi des mises à jour : bandeau « Téléchargement… » / « Redémarrer » sur l'accueil, version qui tourne dans Mon compte, vérification au retour au premier plan.
+  - #59 : « C'est décidé » et « Bon appétit ! » partout, notification comprise (`notify-vote` **redéployée** le 20/11, répond toujours `401` sans secret).
+- **Ouvert** : #60, mises à jour appliquées sans intervention (rechargement au retour après 10 min d'absence si une mise à jour est déjà téléchargée, puis « L'app vient d'être mise à jour »). #44 attend toujours le feu vert.
+- **Études du jour** : design et prise en main (https://claude.ai/artifact/QtnjnomscochHuCVNtPWYM) : haptique oui mais sur 4 moments (cocher, roulette, résultat, refus), `expo-haptics` = APK, à regrouper avec #44 ; « simple à comprendre ? » ne se sait qu'en testant avec 3 à 5 proches, dans un **groupe de test** (jamais « Maison », qui compte dans le feu vert).
+- **Retour d'usage du 2026-11-20** : « elle ajoute des plats, aucune notification ». Pas un bug : seuls le lancement et la clôture notifient (vérifié en base : `notify-vote` a envoyé `sent 1` à 8 h 16, reçu confirmé par `push-receipts`). Décision : **pas de notification pour les plats**. **Rappel unique** (1 h après le lancement, à qui n'a ni proposé ni voté, entre 10 h et 21 h) proposé, **pas encore validé** : au backlog d'ici là.
+- **Pièges trouvés le 2026-11-20** :
+  - **Décocher après la clôture ne renvoie pas d'erreur** : la politique RLS de suppression filtre `status = 'open'`, le `DELETE` touche 0 ligne et le trigger `lock_session_of_vote` (par ligne) ne se déclenche pas. Le vote reste figé (correct) ; cocher, lui, renvoie `session_closed`. Test d'intégration à jour.
+  - **Mise à jour EAS « qui ne passe pas »** : canal, runtime, manifeste et les 58 fichiers vérifiés côté serveur (les fichiers exigent les en-têtes `assetRequestHeaders` du manifeste : un `curl` sans eux reçoit 403, ce n'est pas une panne). Le téléphone a fini par l'appliquer. Depuis #58, Mon compte dit quelle version tourne : regarder là d'abord.
+  - Un mail « CI failed » peut viser une branche déjà corrigée : vérifier la branche et l'heure (`gh run list`) avant de s'inquiéter.
+- **Contrôle fait** : `push_tickets` vidée par `push-receipts` (ticket du 20/11 8 h 16 traité à 9 h). Reste : la déconnexion supprime-t-elle le jeton de `push_tokens` ?
+- **Prochaine étape** : merger #60, puis animations légères (case, plat ajouté, compteur ; `reanimated` déjà là, sans APK). Ensuite : test avec 3 à 5 proches, captures du README (elles montrent l'ancien design), politique de confidentialité. Décisions en attente : rappel unique, couleurs d'avatar (par le nom, stable mais deux membres peuvent avoir la même ; ou par l'ordre d'arrivée dans le groupe).
+
+État au 2026-11-19 (historique).
 
 - ✅ **Test à deux réussi le 2026-11-18** (APK `71c4ac98` sur les deux téléphones) : le lancement d'un vote notifie l'autre membre, toucher la notification ouvre le vote, la clôture envoie « C'est réglé : … » aux deux. Le correctif de #34 est confirmé à deux (l'écran du groupe passe à « Voter » puis à « Dernier vote » sans recharger). Points 3 et 4 de la liste ci-dessous : faits.
 - 🟢 **Feu vert démarré : date de départ = 2026-11-19** (lendemain du test). Requête à lancer chaque semaine :
