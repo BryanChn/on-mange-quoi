@@ -122,6 +122,7 @@ Une décision à prendre dans un groupe, lancée par un membre (l'organisateur).
 | `status` | enum `session_status` (`open`, `closed`) | not null · default `'open'` |
 | `winner_proposal_id` | `uuid` | FK composée `(winner_proposal_id, id)` → `proposals(id, session_id)` `on delete no action` : le gagnant est forcément de cette session et ne peut pas être supprimé |
 | `decided_by` | enum `decision_method` (`vote`, `tirage`, `organisateur`) | `organisateur` : sessions d'avant le 2026-11-19 seulement, `close_session` le refuse désormais |
+| `reminder_sent_at` | `timestamptz` | nullable · rappel unique déjà envoyé (migration `vote_reminders`) ; écrite seulement par `send_vote_reminders`, aucun droit d'écriture pour l'app |
 | `created_at` | `timestamptz` | not null · default `now()` |
 | `closed_at` | `timestamptz` | |
 | | | **check** : `closed` ⇔ `winner_proposal_id`, `decided_by` et `closed_at` renseignés |
@@ -163,6 +164,8 @@ Une ligne = un téléphone d'un membre, pour les notifications (lancement et ré
 RLS : chacun **lit et supprime** ses jetons, rien d'autre. Enregistrement par `register_push_token(token)` (`security definer`) : un téléphone partagé change de propriétaire. L'app supprime le jeton **avant** `signOut()` (après, la RLS refuse en silence). L'envoi se fait côté serveur, qui supprime les jetons refusés par Expo (`DeviceNotRegistered`).
 
 **Envoi** (migration `notify_vote_sessions`) : les triggers `notify_vote_session_opened` (`after insert`) et `notify_vote_session_closed` (`after update of status`, seulement `open` → `closed`) appellent l'Edge Function `notify-vote` par `call_edge_function` (`pg_net`), avec l'identifiant de la session. La requête ne part qu'après `commit` et ne fait pas attendre le vote. L'adresse de base des fonctions et le secret partagé sont lus dans **Vault** (`edge_functions_url`, `edge_functions_secret`) : absents (base locale, tests), rien n'est appelé. La fonction relit la session avec la clé `service_role`, prévient les autres membres au lancement et tout le groupe au résultat, supprime les jetons refusés dès le ticket (`DeviceNotRegistered`) et garde les tickets acceptés dans `push_tickets`.
+
+**Rappel unique** (migration `vote_reminders`, 2026-11-20) : `pg_cron` lance `send_vote_reminders()` toutes les 10 minutes (tâche `vote-reminders`). Elle marque `reminder_sent_at` sur chaque vote ouvert depuis 1 à 3 h, pas encore relancé, où un membre (hors organisateur) n'a ni proposé ni voté, entre 10 h et 21 h (Paris), puis appelle `notify-vote` avec l'événement `reminder`. La marque et l'appel sont dans la même transaction : jamais deux rappels pour un vote. `notify-vote` recalcule qui relancer au moment de l'envoi. Réservée à `service_role` (et à `pg_cron`) ; paramètre `reference_time` pour les tests.
 
 ### push_tickets
 Ticket d'Expo en attente de son reçu (migration `push_receipts`). Expo répond en deux temps : un ticket tout de suite, un reçu environ 15 min plus tard (gardé 24 h) ; un jeton mort peut n'apparaître que dans le reçu.

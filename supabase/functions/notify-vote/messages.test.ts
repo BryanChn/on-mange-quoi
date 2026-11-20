@@ -20,7 +20,10 @@ const base = {
   organizerName: "Bryan",
   winnerName: null,
   recipients,
+  participantIds: [] as string[],
 };
+
+const CHLOE = "00000000-0000-0000-0000-00000000000c";
 
 test("parseNotifyRequest accepte un corps valide", () => {
   assert.deepEqual(parseNotifyRequest({ session_id: SESSION_ID, event: "opened" }), {
@@ -34,6 +37,10 @@ test("parseNotifyRequest refuse tout le reste", () => {
   assert.equal(parseNotifyRequest("texte"), null);
   assert.equal(parseNotifyRequest({ session_id: "pas-un-uuid", event: "opened" }), null);
   assert.equal(parseNotifyRequest({ session_id: SESSION_ID, event: "deleted" }), null);
+  assert.deepEqual(parseNotifyRequest({ session_id: SESSION_ID, event: "reminder" }), {
+    sessionId: SESSION_ID,
+    event: "reminder",
+  });
   assert.equal(parseNotifyRequest({ session_id: SESSION_ID }), null);
 });
 
@@ -73,4 +80,29 @@ test("un jeton en double ne sonne qu'une fois", () => {
     recipients: [...recipients, recipients[0]],
   });
   assert.equal(messages.length, 3);
+});
+
+test("rappel : seulement les membres qui n'ont ni proposé ni voté, jamais l'organisateur", () => {
+  const withChloe: Recipient[] = [
+    ...recipients,
+    { profileId: CHLOE, token: "ExponentPushToken[telephoneChloe]" },
+  ];
+  // La compagne a voté : seule Chloé est relancée (Bryan a lancé le vote).
+  const messages = buildMessages({
+    ...base,
+    event: "reminder",
+    recipients: withChloe,
+    participantIds: [COMPAGNE],
+  });
+  assert.deepEqual(
+    messages.map((message) => message.to),
+    ["ExponentPushToken[telephoneChloe]"],
+  );
+  assert.equal(messages[0].body, "Le vote t'attend : propose un plat ou coche ce qui te tente.");
+  assert.deepEqual(messages[0].data, { sessionId: SESSION_ID });
+});
+
+test("rappel : tout le monde a participé, aucun envoi", () => {
+  const messages = buildMessages({ ...base, event: "reminder", participantIds: [COMPAGNE] });
+  assert.equal(messages.length, 0);
 });

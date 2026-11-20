@@ -61,9 +61,9 @@ On ne passe à la version suivante qu'une fois son feu vert atteint ; sinon on a
 4. Le plat avec le plus de votes gagne.
 5. En cas d'égalité : tirage au sort automatique parmi les ex æquo, à la clôture. Personne ne choisit à la main (2026-11-19 : le choix de l'organisateur était vécu comme un passage en force).
 6. Votes visibles en temps réel par tout le groupe.
-7. **Notifications push** aux membres du groupe : au **lancement** d'un vote (les autres membres ; l'appui ouvre le vote) et au **résultat** (« C'est réglé : Pizza » ; l'appui ouvre le résultat) (ajouté le 2026-11-13 : un membre absent, qui travaille tard, doit pouvoir proposer, voter et savoir ce qu'on mange, sinon la décision n'est plus collective).
+7. **Notifications push** aux membres du groupe : au **lancement** d'un vote (les autres membres ; l'appui ouvre le vote) et au **résultat** (« C'est décidé : Pizza. Bon appétit ! » ; l'appui ouvre le résultat) (ajouté le 2026-11-13 : un membre absent, qui travaille tard, doit pouvoir proposer, voter et savoir ce qu'on mange, sinon la décision n'est plus collective). **Rappel unique** (ajouté le 2026-11-20) : 1 h après le lancement, une seule relance aux membres qui n'ont ni proposé ni voté (hors organisateur), entre 10 h et 21 h (Paris), au plus tard 3 h après le lancement, rien si le vote est clos. Jamais répété. Pas de notification pour les plats proposés (décidé le 2026-11-20).
 
-Hors MVP, volontairement : présence, heure limite, notifications autres que le lancement et le résultat d'un vote (dont « ce groupe a été supprimé », rappels planifiés), commande groupée, invités, liste de courses, recettes, stock.
+Hors MVP, volontairement : présence, heure limite, notifications autres que le lancement, le rappel unique et le résultat d'un vote (dont « ce groupe a été supprimé », rappels répétés ou planifiés à heure fixe), commande groupée, invités, liste de courses, recettes, stock.
 
 ### Règles du vote (tranchées le 2026-10-26)
 

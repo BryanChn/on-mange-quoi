@@ -117,3 +117,35 @@ export async function cleanUp(): Promise<void> {
     if (deleteError) throw deleteError;
   }
 }
+
+// ─── rappel unique (send_vote_reminders) ─────────────────
+// Clé admin : created_at n'est pas modifiable par l'app (droits par colonne), et la fonction
+// est réservée à pg_cron et à service_role.
+
+// Antidate le lancement d'une session (simule « lancé il y a 70 min »).
+export async function setSessionCreatedAt(sessionId: string, createdAt: Date): Promise<void> {
+  const { error } = await admin
+    .from("vote_sessions")
+    .update({ created_at: createdAt.toISOString() })
+    .eq("id", sessionId);
+  if (error) throw error;
+}
+
+// Exécute ce que pg_cron lance toutes les 10 minutes, à l'heure choisie.
+export async function sendVoteReminders(referenceTime: Date): Promise<number> {
+  const { data, error } = await admin.rpc("send_vote_reminders", {
+    reference_time: referenceTime.toISOString(),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function reminderSentAt(sessionId: string): Promise<string | null> {
+  const { data, error } = await admin
+    .from("vote_sessions")
+    .select("reminder_sent_at")
+    .eq("id", sessionId)
+    .single();
+  if (error) throw error;
+  return data.reminder_sent_at;
+}

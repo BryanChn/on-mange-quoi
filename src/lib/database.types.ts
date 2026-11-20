@@ -131,14 +131,14 @@ isOneToOne: false
                   ]
                 },"vote_sessions": {
                   Row: {
-                    "closed_at": string | null,"created_at": string,"decided_by": Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id": string,"organizer_id": string | null,"status": Database["public"]['Enums']["session_status"],"winner_proposal_id": string | null
+                    "closed_at": string | null,"created_at": string,"decided_by": Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id": string,"organizer_id": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["session_status"],"winner_proposal_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id"?: string,"organizer_id"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"winner_proposal_id"?: string | null
+                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id"?: string,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"winner_proposal_id"?: string | null
                   }
                   Update: {
-                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id"?: string,"id"?: string,"organizer_id"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"winner_proposal_id"?: string | null
+                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id"?: string,"id"?: string,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"winner_proposal_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -201,6 +201,7 @@ isOneToOne: false
 "group_id": string,
 "id": string,
 "organizer_id": string | null,
+"reminder_sent_at": string | null,
 "status": Database["public"]['Enums']["session_status"],
 "winner_proposal_id": string | null
             }
@@ -255,6 +256,9 @@ isOneToOne: false
                            },
 "register_push_token":
 { Args: { "new_token": string }; Returns: undefined
+                           }
+"send_vote_reminders":
+{ Args: { "reference_time"?: string }; Returns: number
                            }
           }
           Enums: {
