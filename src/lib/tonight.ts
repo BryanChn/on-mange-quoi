@@ -134,6 +134,28 @@ export function voteProgressLabel(proposalCount: number, participation: Particip
   return `${proposals} · ${voters}`;
 }
 
+export function everyoneHasVoted({ votedCount, memberCount }: Participation): boolean {
+  return memberCount > 0 && votedCount === memberCount;
+}
+
+// Sous la liste du vote : « 2 sur 3 ont voté · Léa n’a pas encore voté ». Quand tout le
+// monde a voté, il n'y a plus rien à attendre : on dit qui peut clôturer. Sans organisateur
+// (il a quitté le groupe), c'est l'owner qui clôture : on ne le nomme pas, l'écran ne le
+// connaît pas.
+export function participationLine(
+  participation: Participation,
+  closer: { canClose: boolean; organizerName: string | null },
+): string {
+  const { votedCount, memberCount, pendingLabel } = participation;
+
+  if (everyoneHasVoted(participation)) {
+    if (closer.canClose) return "Tout le monde a voté : à toi de clôturer !";
+    if (closer.organizerName) return `Tout le monde a voté : ${closer.organizerName} peut clôturer`;
+    return pendingLabel;
+  }
+  return `${votedCount} sur ${memberCount} ${votedCount > 1 ? "ont" : "a"} voté · ${pendingLabel}`;
+}
+
 const IDLE_LINES = [
   "Le frigo attend tes ordres.",
   "Quelqu’un a forcément une idée.",

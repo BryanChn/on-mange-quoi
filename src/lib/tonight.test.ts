@@ -5,10 +5,12 @@ import { getInitial, pickAvatarColor } from "./avatar.ts";
 import { pickSuccessor, toMembers, type Member } from "./members.ts";
 import {
   dayLabel,
+  everyoneHasVoted,
   formatTime,
   groupSubtitle,
   idleLine,
   leadingTitle,
+  participationLine,
   pickTonight,
   summarizeParticipation,
   voteProgressLabel,
@@ -148,6 +150,46 @@ test("voteProgressLabel : sans plat, seul, personne, singulier, pluriel", () => 
   assert.equal(voteProgressLabel(2, of(0, 3)), "2 plats proposés · personne n’a encore voté");
   assert.equal(voteProgressLabel(1, of(1, 3)), "1 plat proposé · 1 personne sur 3 a voté");
   assert.equal(voteProgressLabel(3, of(2, 3)), "3 plats proposés · 2 personnes sur 3 ont voté");
+});
+
+test("participationLine : on attend encore quelqu'un", () => {
+  const closer = { canClose: true, organizerName: "Bryan" };
+  assert.equal(
+    participationLine(summarizeParticipation(members, [ME], ME), closer),
+    "1 sur 3 a voté · Camille et 1 autre n’ont pas encore voté",
+  );
+  assert.equal(
+    participationLine(summarizeParticipation(members, [ME, "c"], ME), closer),
+    "2 sur 3 ont voté · Léa n’a pas encore voté",
+  );
+});
+
+test("participationLine : tout le monde a voté, on dit qui clôture", () => {
+  const all = summarizeParticipation(members, [ME, "c", "l"], ME);
+  assert.equal(
+    participationLine(all, { canClose: true, organizerName: "Bryan" }),
+    "Tout le monde a voté : à toi de clôturer !",
+  );
+  assert.equal(
+    participationLine(all, { canClose: false, organizerName: "Camille" }),
+    "Tout le monde a voté : Camille peut clôturer",
+  );
+  // Organisateur parti : l'owner clôture, l'écran ne connaît pas son nom.
+  assert.equal(
+    participationLine(all, { canClose: false, organizerName: null }),
+    "Tout le monde a voté",
+  );
+});
+
+test("everyoneHasVoted : groupe vide, partiel, complet", () => {
+  const of = (votedCount: number, memberCount: number) => ({
+    votedCount,
+    memberCount,
+    pendingLabel: "",
+  });
+  assert.equal(everyoneHasVoted(of(0, 0)), false);
+  assert.equal(everyoneHasVoted(of(2, 3)), false);
+  assert.equal(everyoneHasVoted(of(3, 3)), true);
 });
 
 test("idleLine : la même phrase toute la journée", () => {
