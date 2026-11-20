@@ -13,10 +13,13 @@ import {
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
 import { PrimaryButton } from "@/components/primary-button";
 import { Roulette } from "@/components/roulette";
+import { SignatureCard } from "@/components/signature-card";
+import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
@@ -47,6 +50,8 @@ import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
 const PROPOSAL_NAME_MAX_LENGTH = 60;
+// Avatars de la participation : au-delà, la phrase dessous dit qui on attend.
+const MAX_AVATARS = 6;
 
 // Liste stable tant que la session n'est pas chargée (base de useOptimistic).
 const NO_PROPOSALS: Proposal[] = [];
@@ -279,24 +284,23 @@ export default function SessionScreen() {
   const { canClose } = session;
   // Participation recalculée avec le vote provisoire : « Il ne manque plus que toi » disparaît
   // dès le toucher, sans attendre le serveur.
-  const participation = summarizeParticipation(
-    session.members,
-    voterIdsWithMe(
-      session.voterIds,
-      session.userId,
-      proposals.some((proposal) => proposal.hasMyVote),
-    ),
+  const voterIds = voterIdsWithMe(
+    session.voterIds,
     session.userId,
+    proposals.some((proposal) => proposal.hasMyVote),
   );
+  const participation = summarizeParticipation(session.members, voterIds, session.userId);
   const leading = getLeadingProposals(proposals);
   const tiedNames = leading.map((proposal) => proposal.name).join(", ");
   const hasVotes = proposals.some((proposal) => proposal.voteCount > 0);
   const leadLabel = leading.length > 1 ? "Ex æquo" : "En tête";
   const startedAt = formatTime(new Date(session.createdAt));
-  // Clôturer devient l'action principale dès qu'il y a de quoi décider.
   const canCloseNow = canClose && proposals.length > 0;
   // Seul dans le groupe, le décompte des votants n'apprend rien.
   const showParticipation = proposals.length > 0 && session.members.length > 1;
+  // Le bouton principal dit l'étape attendue : proposer tant qu'on attend quelqu'un, clôturer
+  // quand tout le monde a voté. Clôturer reste possible avant, en lien texte.
+  const isTimeToClose = canCloseNow && (!showParticipation || everyoneHasVoted(participation));
 
   // Sans aucun plat, il n'y a rien d'autre à faire que proposer : le champ est déjà ouvert.
   const showField = isProposing || proposals.length === 0;
@@ -383,18 +387,30 @@ export default function SessionScreen() {
           </Card>
 
           {showParticipation ? (
-            <Text style={styles.status}>
-              {participationLine(participation, {
-                canClose,
-                organizerName: session.organizerName,
-              })}
-            </Text>
+            <View style={styles.participation}>
+              <View style={styles.avatars}>
+                {session.members.slice(0, MAX_AVATARS).map((member) => (
+                  <Avatar
+                    key={member.id}
+                    name={member.name}
+                    size={36}
+                    isPending={!voterIds.includes(member.id)}
+                  />
+                ))}
+              </View>
+              <Text style={styles.participationText}>
+                {participationLine(participation, {
+                  canClose,
+                  organizerName: session.organizerName,
+                })}
+              </Text>
+              {canClose || everyoneHasVoted(participation) ? null : (
+                <Text style={styles.status}>
+                  L’organisateur clôturera le vote quand tout le monde aura voté.
+                </Text>
+              )}
+            </View>
           ) : null}
-          {canClose || (showParticipation && everyoneHasVoted(participation)) ? null : (
-            <Text style={styles.status}>
-              L’organisateur clôturera le vote quand tout le monde aura voté.
-            </Text>
-          )}
         </ScrollView>
 
         <View style={styles.footer}>
@@ -426,21 +442,36 @@ export default function SessionScreen() {
             </>
           ) : null}
 
-          {closeStep === "idle" && !showField ? (
+          {closeStep === "idle" && !showField && isTimeToClose ? (
             <>
+              <PrimaryButton
+                label="Clôturer le vote"
+                onPress={() => setCloseStep("confirm")}
+                isDisabled={isBusy || isVoting}
+              />
+              <PrimaryButton
+                label="Proposer un plat"
+                variant="secondary"
+                onPress={() => setIsProposing(true)}
+                isDisabled={isBusy}
+              />
+            </>
+          ) : null}
+
+          {closeStep === "idle" && !showField && !isTimeToClose ? (
+            <>
+              <PrimaryButton
+                label="Proposer un plat"
+                onPress={() => setIsProposing(true)}
+                isDisabled={isBusy}
+              />
               {canCloseNow ? (
-                <PrimaryButton
-                  label="Clôturer le vote"
+                <TextButton
+                  label="Clôturer quand même"
                   onPress={() => setCloseStep("confirm")}
                   isDisabled={isBusy || isVoting}
                 />
               ) : null}
-              <PrimaryButton
-                label="Proposer un plat"
-                variant={canCloseNow ? "secondary" : "primary"}
-                onPress={() => setIsProposing(true)}
-                isDisabled={isBusy}
-              />
             </>
           ) : null}
 
@@ -477,7 +508,6 @@ type SessionResultProps = {
 };
 
 function SessionResult({ session, now, styles }: SessionResultProps) {
-  const { colors } = useTheme();
   const winner = session.proposals.find((proposal) => proposal.id === session.winnerProposalId);
   const winnerName = winner?.name ?? "Plat introuvable";
   const closedAt = session.closedAt ? new Date(session.closedAt) : null;
@@ -498,18 +528,16 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <GroupTitle name={session.groupName} />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <View style={styles.badge}>
-            <Feather name="check" size={64} color={colors.onAccent} />
-          </View>
-          <Text style={styles.muted}>
+        <SignatureCard style={styles.hero}>
+          <SignatureCat size={96} />
+          <Text style={styles.heroLabel}>
             {closedAt ? `${session.groupName} · ${dayLabel(closedAt, now)}` : session.groupName}
           </Text>
           <Text style={styles.winner} accessibilityRole="header">
             {isTonight ? `Ce soir, c’est\n${winnerName} !` : winnerName}
           </Text>
           {decision ? <Chip label={decision} variant="accent" style={styles.leadChip} /> : null}
-        </View>
+        </SignatureCard>
 
         <Card>
           {session.proposals.map((proposal) => {
@@ -519,7 +547,7 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
                 key={proposal.id}
                 style={styles.result}
                 accessible
-                accessibilityLabel={`${proposal.name}, ${voteCountLabel(proposal.voteCount)}${
+                accessibilityLabel={`${proposal.name}, ${proposal.voteCount} sur ${scale}${
                   isWinner ? ", gagnant" : ""
                 }`}
               >
@@ -527,7 +555,10 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
                   <Text style={[styles.resultName, isWinner && styles.resultNameWinner]}>
                     {proposal.name}
                   </Text>
-                  <Text style={styles.caption}>{voteCountLabel(proposal.voteCount)}</Text>
+                  {/* « 2 sur 3 » : chacun pouvait cocher plusieurs plats, la barre se lit seule. */}
+                  <Text style={styles.caption}>
+                    {proposal.voteCount} sur {scale}
+                  </Text>
                 </View>
                 <View style={styles.track}>
                   <View
@@ -541,10 +572,6 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
               </View>
             );
           })}
-          <Text style={styles.caption}>
-            Barres sur {scale} personne{scale > 1 ? "s" : ""} : chacun pouvait cocher plusieurs
-            plats.
-          </Text>
         </Card>
       </ScrollView>
       <View style={styles.footer}>
@@ -604,7 +631,23 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     pressed: { opacity: 0.6 },
     dishText: { flex: 1, gap: spacing.xs },
     dishLine: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm },
-    dish: { flexShrink: 1, color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
+    dish: { flexShrink: 1, color: colors.text, fontFamily: fonts.displayBold, fontSize: 19 },
+    participation: {
+      alignItems: "center",
+      gap: spacing.sm,
+      padding: spacing.lg,
+      borderRadius: radius.lg,
+      borderWidth: 1.5,
+      borderStyle: "dashed",
+      borderColor: colors.border,
+    },
+    avatars: { flexDirection: "row", gap: spacing.sm },
+    participationText: {
+      color: colors.text,
+      fontSize: fontSize.body,
+      fontWeight: "600",
+      textAlign: "center",
+    },
     leadChip: { alignSelf: "center" },
     count: {
       minWidth: 28,
@@ -623,20 +666,13 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     },
     panelText: { color: colors.text, fontSize: fontSize.body, lineHeight: 26 },
     error: { color: colors.danger, fontSize: fontSize.small },
-    hero: { alignItems: "center", gap: spacing.md },
-    badge: {
-      width: 132,
-      height: 132,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: radius.pill,
-      backgroundColor: colors.accent,
-    },
+    hero: { alignItems: "center", paddingVertical: spacing.xl },
+    heroLabel: { color: colors.onSignatureMuted, fontSize: fontSize.small },
     winner: {
-      color: colors.text,
+      color: colors.onSignature,
       fontFamily: fonts.display,
-      fontSize: fontSize.title,
-      lineHeight: 42,
+      fontSize: fontSize.screenTitle,
+      lineHeight: 36,
       textAlign: "center",
     },
     result: { gap: 6 },
