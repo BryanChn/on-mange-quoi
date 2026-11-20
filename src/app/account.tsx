@@ -1,4 +1,5 @@
 import { useHeaderHeight } from "expo-router/react-navigation";
+import { useUpdates } from "expo-updates";
 import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,13 +11,25 @@ import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { deleteAccount, fetchDeletionImpact, type DeletionImpact } from "@/lib/account";
+import { versionLabel } from "@/lib/app-version";
 import { signOut } from "@/lib/notifications";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
+import { canCheckForUpdates, fetchLatestUpdate, restartOnLatestUpdate } from "@/lib/updates";
 import { useTheme, type Theme } from "@/theme";
 
 // idle → loading (calcul des conséquences) → confirm → deleting. Une suppression réussie
 // déconnecte : le layout renvoie alors à l'écran de connexion, cet écran disparaît.
 type DeleteStep = "idle" | "loading" | "confirm" | "deleting";
+
+type UpdateCheck = "idle" | "checking" | "upToDate" | "restarting" | "failed";
+
+const UPDATE_CHECK_LABELS: Record<UpdateCheck, string> = {
+  idle: "Vérifier les mises à jour",
+  checking: "Recherche d’une mise à jour…",
+  upToDate: "Tu as la dernière version",
+  restarting: "Redémarrage sur la nouvelle version…",
+  failed: "Vérification impossible : réessaie",
+};
 
 export default function AccountScreen() {
   const theme = useTheme();
@@ -34,6 +47,8 @@ export default function AccountScreen() {
   const [step, setStep] = useState<DeleteStep>("idle");
   const [impact, setImpact] = useState<DeletionImpact | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { currentlyRunning } = useUpdates();
+  const [updateCheck, setUpdateCheck] = useState<UpdateCheck>("idle");
 
   function handleStartRename() {
     setNameDraft(displayName);
@@ -99,6 +114,23 @@ export default function AccountScreen() {
 
   const isConfirming = (step === "confirm" || step === "deleting") && impact !== null;
 
+  // Vérification à la demande : sur cet écran, redémarrer ne fait rien perdre, la nouvelle
+  // version s'applique donc tout de suite.
+  async function handleCheckUpdate() {
+    setUpdateCheck("checking");
+    try {
+      const result = await fetchLatestUpdate();
+      if (result === "upToDate") {
+        setUpdateCheck("upToDate");
+        return;
+      }
+      setUpdateCheck("restarting");
+      await restartOnLatestUpdate();
+    } catch {
+      setUpdateCheck("failed");
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -149,6 +181,17 @@ export default function AccountScreen() {
             <ListCard>
               <ListRow icon="edit-2" label="Changer mon nom" onPress={handleStartRename} />
               <ListRow icon="log-out" label="Se déconnecter" onPress={signOut} />
+            </ListCard>
+            <ListCard>
+              <ListRow
+                icon="smartphone"
+                label={UPDATE_CHECK_LABELS[updateCheck]}
+                subtitle={versionLabel(currentlyRunning)}
+                onPress={handleCheckUpdate}
+                isDisabled={
+                  !canCheckForUpdates || updateCheck === "checking" || updateCheck === "restarting"
+                }
+              />
             </ListCard>
             <ListCard>
               <ListRow
