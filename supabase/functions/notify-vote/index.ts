@@ -1,5 +1,6 @@
-// notify-vote : envoie les notifications push d'un vote (lancement, résultat).
-// Appelée par le trigger notify_vote_session (pg_net), jamais par l'app.
+// notify-vote : envoie les notifications push d'un vote (lancement, résultat, rappel).
+// Appelée par le trigger notify_vote_session et par send_vote_reminders (pg_net), jamais
+// par l'app.
 
 import {
   chunk,
@@ -31,11 +32,11 @@ Deno.serve(async (request) => {
   if (sessionError) return internalError("Lecture de la session", sessionError);
   if (!session) return json(404, { error: "session_not_found" });
 
-  // Vote déjà clôturé avant l'envoi du lancement : prévenir ne servirait plus à rien.
-  const expectedStatus = notify.event === "opened" ? "open" : "closed";
+  // Vote déjà clôturé avant l'envoi du lancement ou du rappel : prévenir ne servirait plus à rien.
+  const expectedStatus = notify.event === "closed" ? "closed" : "open";
   if (session.status !== expectedStatus) return json(200, { sent: 0, skipped: "stale_event" });
 
-  const [groupResult, organizerResult, winnerResult, membersResult] = await Promise.all([
+  const [groupResult, organizerResult, winnerResult, membersResult, proposalsResult] = await Promise.all([
     supabase.from("groups").select("name").eq("id", session.group_id).single(),
     session.organizer_id
       ? supabase.from("profiles").select("display_name").eq("id", session.organizer_id).maybeSingle()
@@ -44,8 +45,12 @@ Deno.serve(async (request) => {
       ? supabase.from("proposals").select("name").eq("id", session.winner_proposal_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
     supabase.from("group_members").select("profile_id").eq("group_id", session.group_id),
+    // Rappel : qui a déjà proposé ou voté, relu au moment de l'envoi.
+    notify.event === "reminder"
+      ? supabase.from("proposals").select("proposed_by, votes(profile_id)").eq("session_id", session.id)
+      : Promise.resolve({ data: [], error: null }),
   ]);
-  const readError = [groupResult, organizerResult, winnerResult, membersResult].find(
+  const readError = [groupResult, organizerResult, winnerResult, membersResult, proposalsResult].find(
     (result) => result.error,
   )?.error;
   if (readError) return internalError("Lecture du groupe", readError);
@@ -65,6 +70,10 @@ Deno.serve(async (request) => {
     organizerName: organizerResult.data?.display_name ?? null,
     winnerName: winnerResult.data?.name ?? null,
     recipients: (tokens ?? []).map((row) => ({ profileId: row.profile_id, token: row.token })),
+    participantIds: (proposalsResult.data ?? []).flatMap((proposal) => [
+      ...(proposal.proposed_by ? [proposal.proposed_by] : []),
+      ...proposal.votes.map((vote) => vote.profile_id),
+    ]),
   });
 
   const forgotten: string[] = [];
