@@ -9,6 +9,7 @@ import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
 import { ListCard, ListRow } from "@/components/list";
 import { PrimaryButton } from "@/components/primary-button";
+import { SignatureCard } from "@/components/signature-card";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import {
@@ -228,94 +229,67 @@ export default function GroupScreen() {
           <Text style={styles.memberNames} numberOfLines={1}>
             {group.members.map((member) => member.name).join(", ")}
           </Text>
-          <Pressable
-            onPress={() => handleShare(group)}
-            accessibilityRole="button"
-            accessibilityLabel="Inviter avec le code du groupe"
-            hitSlop={6}
-            style={({ pressed }) => [styles.inviteButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.inviteButtonLabel}>Inviter</Text>
-          </Pressable>
         </View>
       </View>
 
-      <Card>
-        {latestSession?.isOpen ? (
-          <>
-            <Chip label="Vote en cours" hasDot />
-            <Text style={styles.cardTitle}>On mange quoi ce soir ?</Text>
-            <Text style={styles.muted}>Un vote est ouvert : coche tout ce qui te tente.</Text>
-            <PrimaryButton label="Voter" onPress={() => openSession(latestSession.id)} />
-          </>
-        ) : (
-          <>
-            {latestSession ? (
-              <>
-                <Chip label="Dernier vote" />
-                <Pressable
-                  onPress={() => openSession(latestSession.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Voir le résultat du dernier vote : ${latestSession.winnerName}`}
-                  style={({ pressed }) => [styles.lastResult, pressed && styles.pressed]}
-                >
-                  <Text style={[styles.cardTitle, styles.lastWinner]}>
-                    {latestSession.winnerName}
-                  </Text>
-                  <Feather name="chevron-right" size={22} color={theme.colors.textMuted} />
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Text style={styles.cardTitle}>Aucun vote pour l’instant</Text>
-                <Text style={styles.muted}>
-                  Lance le premier : chacun coche ce qui lui fait envie.
+      {/* Vote en cours : carte neutre, comme sur l'accueil. Sinon, la carte signature. */}
+      {latestSession?.isOpen ? (
+        <Card>
+          <Chip label="Vote en cours" hasDot />
+          <Text style={styles.cardTitle}>On mange quoi ce soir ?</Text>
+          <Text style={styles.muted}>Un vote est ouvert : coche tout ce qui te tente.</Text>
+          <PrimaryButton label="Voter" onPress={() => openSession(latestSession.id)} />
+        </Card>
+      ) : (
+        <SignatureCard>
+          {latestSession ? (
+            <>
+              <Text style={styles.signatureMuted}>Dernier vote</Text>
+              <Pressable
+                onPress={() => openSession(latestSession.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Voir le résultat du dernier vote : ${latestSession.winnerName}`}
+                style={({ pressed }) => [styles.lastResult, pressed && styles.pressed]}
+              >
+                <Text style={[styles.signatureTitle, styles.lastWinner]}>
+                  {latestSession.winnerName}
                 </Text>
-              </>
-            )}
-            <PrimaryButton
-              label="Lancer un vote"
-              onPress={handleStartVote}
-              isLoading={isStarting}
-            />
-          </>
-        )}
-        {error ? (
-          <Text style={styles.error} accessibilityRole="alert">
-            {error}
-          </Text>
-        ) : null}
-      </Card>
-
-      <Card style={styles.invite}>
-        <Text style={styles.inviteLabel}>Code d’invitation</Text>
-        <Text style={styles.inviteCode} selectable>
-          {group.invite_code}
-        </Text>
-        <Text style={styles.inviteHint}>
-          Envoie-le avec « Inviter », ou dicte-le : il se saisit dans « Rejoindre avec un code ».
-        </Text>
-      </Card>
-
-      {leaveStep === "confirm" || leaveStep === "leaving" || deleteStep !== "idle" ? null : (
-        <ListCard>
-          <ListRow
-            icon="log-out"
-            label={leaveStep === "loading" ? "Chargement…" : "Quitter le groupe"}
-            onPress={handleAskLeave}
-            isDisabled={leaveStep === "loading"}
+                <Feather name="chevron-right" size={22} color={theme.colors.onSignature} />
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.signatureTitle}>Aucun vote pour l’instant</Text>
+              <Text style={styles.signatureMuted}>
+                Lance le premier : chacun coche ce qui lui fait envie.
+              </Text>
+            </>
+          )}
+          <PrimaryButton
+            label="Lancer un vote"
+            variant="signature"
+            onPress={handleStartVote}
+            isLoading={isStarting}
           />
-          {isOwner ? (
-            <ListRow
-              icon="trash-2"
-              label="Supprimer le groupe"
-              variant="danger"
-              onPress={handleAskDelete}
-              isDisabled={leaveStep === "loading"}
-            />
-          ) : null}
-        </ListCard>
+        </SignatureCard>
       )}
+      {/* Sous la carte : la couleur d'erreur ne se lit pas sur la tomate. */}
+      {error ? (
+        <Text style={styles.error} accessibilityRole="alert">
+          {error}
+        </Text>
+      ) : null}
+
+      {/* Le code ne sert qu'à l'arrivée d'un membre : une ligne, pas une carte de tous les jours. */}
+      <ListCard>
+        <ListRow
+          icon="user-plus"
+          label="Inviter quelqu’un"
+          subtitle={`Code ${group.invite_code} · à envoyer ou à dicter`}
+          onPress={() => handleShare(group)}
+          accessibilityLabel={`Inviter quelqu’un avec le code ${group.invite_code}`}
+        />
+      </ListCard>
 
       {(leaveStep === "confirm" || leaveStep === "leaving") && leaveImpact ? (
         <Card>
@@ -356,6 +330,26 @@ export default function GroupScreen() {
         </Card>
       ) : null}
 
+      {/* Actions destructrices en liens discrets, en bas : jamais aussi visibles que l'action
+          principale. La confirmation reste obligatoire (cartes ci-dessus). */}
+      {leaveStep === "confirm" || leaveStep === "leaving" || deleteStep !== "idle" ? null : (
+        <View style={styles.dangerLinks}>
+          <TextButton
+            label={leaveStep === "loading" ? "Chargement…" : "Quitter le groupe"}
+            onPress={handleAskLeave}
+            isDisabled={leaveStep === "loading"}
+          />
+          {isOwner ? (
+            <TextButton
+              label="Supprimer le groupe"
+              variant="danger"
+              onPress={handleAskDelete}
+              isDisabled={leaveStep === "loading"}
+            />
+          ) : null}
+        </View>
+      )}
+
       {leaveError || deleteError ? (
         <Text style={styles.error} accessibilityRole="alert">
           {leaveError ?? deleteError}
@@ -365,7 +359,7 @@ export default function GroupScreen() {
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
+function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
     pressed: { opacity: 0.6 },
@@ -379,15 +373,6 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     members: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     avatars: { flexDirection: "row", gap: spacing.xs },
     memberNames: { flex: 1, color: colors.textMuted, fontSize: fontSize.small },
-    inviteButton: {
-      height: 36,
-      justifyContent: "center",
-      paddingHorizontal: spacing.lg,
-      borderRadius: radius.pill,
-      borderWidth: 1.5,
-      borderColor: colors.inputBorder,
-    },
-    inviteButtonLabel: { color: colors.text, fontSize: fontSize.small, fontWeight: "600" },
     cardTitle: {
       color: colors.text,
       fontFamily: fonts.display,
@@ -395,15 +380,20 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       lineHeight: 30,
     },
     muted: { color: colors.textMuted, fontSize: fontSize.small },
-    invite: { alignItems: "center", gap: spacing.sm },
-    inviteLabel: { color: colors.textMuted, fontSize: fontSize.small, fontWeight: "600" },
-    inviteCode: {
-      color: colors.text,
-      fontFamily: fonts.displayBold,
-      fontSize: 30,
-      letterSpacing: 2,
+    signatureTitle: {
+      color: colors.onSignature,
+      fontFamily: fonts.display,
+      fontSize: fontSize.heading,
+      lineHeight: 30,
     },
-    inviteHint: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },
+    signatureMuted: { color: colors.onSignatureMuted, fontSize: fontSize.small },
+    // Poussés en bas de l'écran (container en flexGrow), côte à côte.
+    dangerLinks: {
+      marginTop: "auto",
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.xl,
+    },
     error: { color: colors.danger, fontSize: fontSize.small },
     lastResult: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     lastWinner: { flex: 1 },

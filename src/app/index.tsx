@@ -8,6 +8,8 @@ import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
 import { InitialTile, ListCard, ListRow } from "@/components/list";
 import { PrimaryButton } from "@/components/primary-button";
+import { SignatureCard } from "@/components/signature-card";
+import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { getInitial } from "@/lib/avatar";
@@ -28,6 +30,8 @@ import { useTheme, type Theme } from "@/theme";
 
 // Au-delà, les avatars déborderaient de la carte : le texte à côté dit qui manque.
 const MAX_AVATARS = 5;
+// Le chat de la carte signature : assez grand pour être vu, sans manger la place du titre.
+const CAT_SIZE = 72;
 
 // loadedAt : « aujourd'hui » au moment du chargement. Lire l'horloge pendant le rendu le
 // rendrait impur ; la date voyage donc avec les données.
@@ -253,49 +257,63 @@ function TonightCard({
     );
   }
 
+  // C'est réglé et rien de prévu : la carte signature, avec le chat. Le vote en cours reste
+  // une carte neutre, son contenu (plats, votants) est ce qu'il faut lire.
   if (tonight.kind === "decided") {
     const { group, session } = tonight;
 
     return (
-      <Card>
-        <Chip label={`${group.name} · c’est réglé`} variant="accent" />
-        <Text style={styles.cardTitle} accessibilityRole="header">
-          Ce soir, c’est {session.winnerName} !
-        </Text>
+      <SignatureCard>
+        <View style={styles.signatureTop}>
+          <View style={styles.signatureText}>
+            <Chip label={`${group.name} · c’est réglé`} variant="accent" />
+            <Text style={styles.signatureTitle} accessibilityRole="header">
+              Ce soir, c’est {session.winnerName} !
+            </Text>
+          </View>
+          <SignatureCat size={CAT_SIZE} />
+        </View>
         <PrimaryButton
           label="Voir le résultat"
-          variant="secondary"
+          variant="signature"
           onPress={() => openSession(session.id)}
         />
-      </Card>
+      </SignatureCard>
     );
   }
 
   const { groupToStart } = tonight;
 
   return (
-    <Card>
-      <Text style={styles.cardTitle} accessibilityRole="header">
-        Rien de prévu ce soir
-      </Text>
-      {groupToStart ? (
-        <>
-          <Text style={styles.muted}>{idleLine(now)}</Text>
+    <View style={styles.tonight}>
+      <SignatureCard>
+        <View style={styles.signatureTop}>
+          <View style={styles.signatureText}>
+            <Text style={styles.signatureTitle} accessibilityRole="header">
+              Rien de prévu ce soir
+            </Text>
+            <Text style={styles.signatureMuted}>
+              {groupToStart ? idleLine(now) : "Choisis un groupe ci-dessous pour lancer le vote."}
+            </Text>
+          </View>
+          <SignatureCat size={CAT_SIZE} />
+        </View>
+        {groupToStart ? (
           <PrimaryButton
             label="Lancer le vote"
+            variant="signature"
             onPress={() => onStart(groupToStart)}
             isLoading={isStarting}
           />
-        </>
-      ) : (
-        <Text style={styles.muted}>Choisis un groupe ci-dessous pour lancer le vote.</Text>
-      )}
+        ) : null}
+      </SignatureCard>
+      {/* Sous la carte : la couleur d'erreur ne se lit pas sur la tomate. */}
       {error ? (
         <Text style={styles.error} accessibilityRole="alert">
           {error}
         </Text>
       ) : null}
-    </Card>
+    </View>
   );
 }
 
@@ -343,6 +361,16 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       lineHeight: 30,
     },
     muted: { color: colors.textMuted, fontSize: fontSize.small },
+    tonight: { gap: spacing.sm },
+    signatureTop: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    signatureText: { flex: 1, gap: spacing.sm },
+    signatureTitle: {
+      color: colors.onSignature,
+      fontFamily: fonts.display,
+      fontSize: fontSize.heading,
+      lineHeight: 30,
+    },
+    signatureMuted: { color: colors.onSignatureMuted, fontSize: fontSize.small },
     voters: { flexDirection: "row", alignItems: "center", gap: spacing.md },
     votersLabel: { flex: 1 },
     avatars: { flexDirection: "row" },
