@@ -1,10 +1,14 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
 
+import { updateMyAvatar } from "./account";
+import type { AvatarId } from "./avatar";
 import type { Tables } from "./database.types";
 import { useSession } from "./session";
 import { supabase } from "./supabase";
 
-type Profile = Pick<Tables<"profiles">, "id" | "display_name">;
+type Profile = Pick<Tables<"profiles">, "id" | "display_name" | "avatar">;
+
+const PROFILE_COLUMNS = "id, display_name, avatar";
 
 // Même limite que la colonne profiles.display_name.
 export const DISPLAY_NAME_MAX_LENGTH = 30;
@@ -24,6 +28,8 @@ type ProfileState = {
   retry: () => void;
   // Crée le profil à la première connexion, ou change le nom ensuite.
   saveDisplayName: (displayName: string) => Promise<void>;
+  // Avatar prédéfini, ou null pour revenir à l'initiale.
+  saveAvatar: (avatar: AvatarId | null) => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileState | null>(null);
@@ -31,7 +37,7 @@ const ProfileContext = createContext<ProfileState | null>(null);
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name")
+    .select(PROFILE_COLUMNS)
     .eq("id", userId)
     .maybeSingle();
 
@@ -81,11 +87,18 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     const { data, error } = await supabase
       .from("profiles")
       .upsert({ id: userId, display_name: displayName })
-      .select("id, display_name")
+      .select(PROFILE_COLUMNS)
       .single();
 
     if (error) throw error;
     setLoaded({ userId, profile: data, hasFailed: false });
+  }
+
+  async function saveAvatar(avatar: AvatarId | null) {
+    if (!userId || !current?.profile) throw new Error("Aucun profil chargé.");
+    await updateMyAvatar(avatar);
+    const updated = { ...current.profile, avatar };
+    setLoaded({ userId, profile: updated, hasFailed: false });
   }
 
   const value: ProfileState = {
@@ -94,6 +107,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     hasFailed: current?.hasFailed ?? false,
     retry,
     saveDisplayName,
+    saveAvatar,
   };
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;

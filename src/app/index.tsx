@@ -146,7 +146,7 @@ export default function Index() {
           hitSlop={8}
           style={({ pressed }) => pressed && styles.pressed}
         >
-          <Avatar name={displayName} size={44} />
+          <Avatar name={displayName} avatar={profile?.avatar} size={44} />
         </Pressable>
       </View>
 
@@ -244,7 +244,11 @@ function TonightCard({
                   key={member.id}
                   style={[styles.avatarRing, index > 0 && styles.avatarOverlap]}
                 >
-                  <Avatar name={member.name} isPending={!session.voterIds.includes(member.id)} />
+                  <Avatar
+                    name={member.name}
+                    avatar={member.avatar}
+                    isPending={!session.voterIds.includes(member.id)}
+                  />
                 </View>
               ))}
             </View>

@@ -1,17 +1,20 @@
 // Un membre de groupe, tel que l'app l'affiche. Toutes les requêtes passent par toMembers :
 // le nom de secours et l'ordre sont décidés une seule fois, ici.
 
-export type Member = { id: string; name: string; joinedAt: string };
+// avatar : tel qu'en base (null = l'initiale). Le composant Avatar le valide (toAvatarId) :
+// pas d'import ici, pour que ce fichier reste testable avec node --test.
+export type Member = { id: string; name: string; joinedAt: string; avatar: string | null };
 
-// Forme renvoyée par la jointure group_members(profile_id, joined_at, profiles(display_name)).
+// Forme renvoyée par la jointure group_members(profile_id, joined_at, profiles(…)).
 export type MemberRow = {
   profile_id: string;
   joined_at: string;
-  profiles: { display_name: string } | null;
+  profiles: { display_name: string; avatar: string | null } | null;
 };
 
 // La jointure est sélectionnée partout avec ce texte : une seule source, pas de faute de frappe.
-export const MEMBER_COLUMNS = "group_members(profile_id, joined_at, profiles(display_name))";
+export const MEMBER_COLUMNS =
+  "group_members(profile_id, joined_at, profiles(display_name, avatar))";
 
 // Même ordre que leave_group : le plus ancien d'abord (joined_at), puis l'identifiant pour
 // départager. Les uuid en minuscules se comparent comme Postgres les trie.
@@ -27,6 +30,7 @@ export function toMembers(rows: MemberRow[]): Member[] {
       id: row.profile_id,
       name: row.profiles?.display_name ?? "Un membre",
       joinedAt: row.joined_at,
+      avatar: row.profiles?.avatar ?? null,
     }))
     .sort(compareByJoinDate);
 }

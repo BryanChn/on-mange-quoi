@@ -85,6 +85,7 @@ Infos publiques d'un compte. Email et connexion restent dans `auth.users` (pas d
 | --- | --- | --- |
 | `id` | `uuid` | PK · FK → `auth.users(id)` `on delete cascade` |
 | `display_name` | `varchar(30)` | not null · non vide après `trim` |
+| `avatar` | `text` | nullable (null = l'initiale) · `check` dans la liste `chat`, `spaghetti`, `pizza`, `burger`, `avocat`, `ramen` (migration `profile_avatar`) · modifiable par l'app (`grant update (avatar)`), sur son seul profil (RLS) |
 | `created_at` | `timestamptz` | not null · default `now()` |
 
 ### groups

@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { getInitial, pickAvatarColor } from "./avatar.ts";
+import {
+  AVATAR_BACKGROUNDS,
+  AVATAR_IDS,
+  getInitial,
+  pickAvatarColor,
+  toAvatarId,
+} from "./avatar.ts";
 import { pickSuccessor, toMembers, type Member } from "./members.ts";
 import {
   dayLabel,
@@ -21,9 +27,9 @@ import {
 
 const ME = "me";
 const members: Member[] = [
-  { id: ME, name: "Bryan", joinedAt: "2026-10-01T10:00:00Z" },
-  { id: "c", name: "Camille", joinedAt: "2026-10-02T10:00:00Z" },
-  { id: "l", name: "Léa", joinedAt: "2026-10-03T10:00:00Z" },
+  { id: ME, name: "Bryan", joinedAt: "2026-10-01T10:00:00Z", avatar: null },
+  { id: "c", name: "Camille", joinedAt: "2026-10-02T10:00:00Z", avatar: "chat" },
+  { id: "l", name: "Léa", joinedAt: "2026-10-03T10:00:00Z", avatar: null },
 ];
 // Jeudi 12 novembre 2026, 19 h, heure du téléphone.
 const now = new Date(2026, 10, 12, 19, 0);
@@ -48,25 +54,42 @@ test("getInitial : première lettre en majuscule, espaces ignorés, nom vide", (
   assert.equal(getInitial("🍕 Léa"), "🍕");
 });
 
-test("toMembers : nom de secours, du plus ancien au plus récent", () => {
+test("toMembers : nom de secours, avatar transmis, du plus ancien au plus récent", () => {
   const rows = [
-    { profile_id: "b", joined_at: "2026-10-02T10:00:00Z", profiles: { display_name: "Léa" } },
+    {
+      profile_id: "b",
+      joined_at: "2026-10-02T10:00:00Z",
+      profiles: { display_name: "Léa", avatar: "pizza" },
+    },
     { profile_id: "a", joined_at: "2026-10-01T10:00:00Z", profiles: null },
   ];
   assert.deepEqual(toMembers(rows), [
-    { id: "a", name: "Un membre", joinedAt: "2026-10-01T10:00:00Z" },
-    { id: "b", name: "Léa", joinedAt: "2026-10-02T10:00:00Z" },
+    { id: "a", name: "Un membre", joinedAt: "2026-10-01T10:00:00Z", avatar: null },
+    { id: "b", name: "Léa", joinedAt: "2026-10-02T10:00:00Z", avatar: "pizza" },
   ]);
 });
 
 test("pickSuccessor : le plus ancien des autres, l'identifiant départage, personne si seul", () => {
   assert.equal(pickSuccessor(members, ME)?.name, "Camille");
   const sameDay = [
-    { id: "z", name: "Zoé", joinedAt: "2026-10-05T10:00:00Z" },
-    { id: "y", name: "Yann", joinedAt: "2026-10-05T10:00:00Z" },
+    { id: "z", name: "Zoé", joinedAt: "2026-10-05T10:00:00Z", avatar: null },
+    { id: "y", name: "Yann", joinedAt: "2026-10-05T10:00:00Z", avatar: null },
   ];
   assert.equal(pickSuccessor([...sameDay, members[0]], ME)?.name, "Yann");
   assert.equal(pickSuccessor([members[0]], ME), null);
+});
+
+test("toAvatarId : les six avatars, sinon l'initiale (null)", () => {
+  for (const id of AVATAR_IDS) assert.equal(toAvatarId(id), id);
+  assert.equal(toAvatarId(null), null);
+  assert.equal(toAvatarId(undefined), null);
+  assert.equal(toAvatarId(""), null);
+  // Valeur ajoutée par une version plus récente de l'app : l'initiale, pas de plantage.
+  assert.equal(toAvatarId("licorne"), null);
+});
+
+test("AVATAR_BACKGROUNDS : un fond pour chaque avatar", () => {
+  assert.deepEqual(Object.keys(AVATAR_BACKGROUNDS).sort(), [...AVATAR_IDS].sort());
 });
 
 test("pickAvatarColor : stable pour un même nom, toujours dans la palette", () => {

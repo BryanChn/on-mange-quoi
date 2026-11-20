@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from "react-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
+import { AvatarPicker } from "@/components/avatar-picker";
 import { Card } from "@/components/card";
 import { ListCard, ListRow } from "@/components/list";
 import { PrimaryButton } from "@/components/primary-button";
@@ -12,6 +13,7 @@ import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { deleteAccount, fetchDeletionImpact, type DeletionImpact } from "@/lib/account";
 import { versionLabel } from "@/lib/app-version";
+import type { AvatarId } from "@/lib/avatar";
 import { signOut } from "@/lib/notifications";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
 import { canCheckForUpdates, fetchLatestUpdate, restartOnLatestUpdate } from "@/lib/updates";
@@ -36,7 +38,7 @@ export default function AccountScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
-  const { profile, saveDisplayName } = useProfile();
+  const { profile, saveDisplayName, saveAvatar } = useProfile();
   const displayName = profile?.display_name ?? "";
 
   const [isRenaming, setIsRenaming] = useState(false);
@@ -47,8 +49,22 @@ export default function AccountScreen() {
   const [step, setStep] = useState<DeleteStep>("idle");
   const [impact, setImpact] = useState<DeletionImpact | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const { currentlyRunning } = useUpdates();
   const [updateCheck, setUpdateCheck] = useState<UpdateCheck>("idle");
+
+  async function handleSelectAvatar(avatar: AvatarId | null) {
+    setAvatarError(null);
+    setIsSavingAvatar(true);
+    try {
+      await saveAvatar(avatar);
+    } catch {
+      setAvatarError("Impossible d’enregistrer ton avatar. Vérifie ton réseau et réessaie.");
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  }
 
   function handleStartRename() {
     setNameDraft(displayName);
@@ -145,7 +161,7 @@ export default function AccountScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.identity}>
-          <Avatar name={displayName} size={72} />
+          <Avatar name={displayName} avatar={profile?.avatar} size={72} />
           <Text style={styles.title} accessibilityRole="header">
             {displayName}
           </Text>
@@ -178,6 +194,22 @@ export default function AccountScreen() {
 
         {!isRenaming && !isConfirming ? (
           <>
+            <Card>
+              <Text style={styles.confirmTitle}>Ton avatar</Text>
+              <AvatarPicker
+                name={displayName}
+                selected={profile?.avatar ?? null}
+                onSelect={handleSelectAvatar}
+                isDisabled={isSavingAvatar}
+              />
+              {avatarError ? (
+                <Text style={styles.error} accessibilityRole="alert">
+                  {avatarError}
+                </Text>
+              ) : (
+                <Text style={styles.hint}>La photo perso arrive avec une prochaine version.</Text>
+              )}
+            </Card>
             <ListCard>
               <ListRow icon="edit-2" label="Changer mon nom" onPress={handleStartRename} />
               <ListRow icon="log-out" label="Se déconnecter" onPress={signOut} />
@@ -272,5 +304,6 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     list: { gap: spacing.sm },
     warning: { color: colors.danger, fontSize: fontSize.small, fontWeight: "600" },
     error: { color: colors.danger, fontSize: fontSize.small },
+    hint: { color: colors.textMuted, fontSize: fontSize.caption },
   });
 }
