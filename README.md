@@ -1,6 +1,6 @@
 # On mange quoi ?
 
-> De « on mange quoi ? » à « c'est réglé » en moins de 2 minutes.
+> De « on mange quoi ? » à « c'est décidé » en moins de 2 minutes.
 
 Application mobile qui sert à décider ensemble du repas du soir. Un membre du foyer lance un vote. Chacun propose des plats et coche tous ceux qui lui conviennent. Le plat qui a le plus de votes gagne. En cas d'égalité, une roulette tranche, et le même plat s'affiche sur tous les téléphones.
 

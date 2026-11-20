@@ -42,7 +42,9 @@ export function buildMessages(input: MessageInput): ExpoMessage[] {
   const body =
     input.event === "opened"
       ? `${input.organizerName ?? "Quelqu'un"} a lancé un vote : propose et vote !`
-      : `C'est réglé : ${input.winnerName ?? "le vote est terminé"}`;
+      : input.winnerName
+        ? `C'est décidé : ${input.winnerName}. Bon appétit !`
+        : "Le vote est terminé.";
 
   // Un même jeton ne doit sonner qu'une fois, même s'il apparaît deux fois.
   const tokens = [...new Set(recipients.map((recipient) => recipient.token))];

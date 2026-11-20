@@ -537,6 +537,7 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
             {isTonight ? `Ce soir, c’est\n${winnerName} !` : winnerName}
           </Text>
           {decision ? <Chip label={decision} variant="accent" style={styles.leadChip} /> : null}
+          <Text style={styles.heroLabel}>Bon appétit !</Text>
         </SignatureCard>
 
         <Card>
@@ -575,7 +576,7 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
         </Card>
       </ScrollView>
       <View style={styles.footer}>
-        <PrimaryButton label="C’est réglé" onPress={() => router.dismissTo("/")} />
+        <PrimaryButton label="C’est décidé" onPress={() => router.dismissTo("/")} />
         <TextButton label="Retour au groupe" onPress={() => backToGroup(session.groupId)} />
       </View>
     </SafeAreaView>

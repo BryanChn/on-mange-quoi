@@ -13,7 +13,7 @@ import {
 const message = (to: string): ExpoMessage => ({
   to,
   title: "Famille",
-  body: "C'est réglé : Pizza",
+  body: "C'est décidé : Pizza. Bon appétit !",
   data: {},
   sound: "default",
   channelId: "default",
