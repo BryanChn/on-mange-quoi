@@ -53,10 +53,12 @@ export function AvatarPicker({ name, selected, onSelect, isDisabled = false }: A
 
 function createStyles({ colors, spacing, fontSize }: Theme) {
   return StyleSheet.create({
+    // Cases de 25 % alignées à gauche : la dernière ligne (incomplète) reste sous les
+    // colonnes du dessus. space-between écartait ses avatars jusqu'aux bords.
     grid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      justifyContent: "space-between",
+      justifyContent: "flex-start",
       rowGap: spacing.lg,
     },
     // Quatre par ligne ; 64 de large : zone tactile confortable (≥ 48).
