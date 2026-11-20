@@ -9,7 +9,7 @@ import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { useNotificationRedirect, usePushRegistration } from "@/lib/notifications";
 import { ProfileProvider, useProfile } from "@/lib/profile";
 import { SessionProvider, useSession } from "@/lib/session";
-import { useUpdateCheckOnForeground } from "@/lib/updates";
+import { useAutomaticUpdates } from "@/lib/updates";
 import { useTheme } from "@/theme";
 
 // Arrivée directe sur un écran (rechargement web, lien partagé) : l'accueil est placé
@@ -36,8 +36,9 @@ function RootNavigator() {
   // Avant les retours anticipés (règle des hooks). Seulement avec un profil : on ne
   // demande pas la permission sur l'écran de connexion ou de choix du nom.
   usePushRegistration(profile ? session?.user.id : undefined);
-  // Les mises à jour EAS arrivent aussi en revenant dans l'app, pas seulement au lancement.
-  useUpdateCheckOnForeground();
+  // Mises à jour EAS sans intervention : vérifiées au retour dans l'app, appliquées d'elles-
+  // mêmes après une longue absence (voir src/lib/updates.ts).
+  useAutomaticUpdates();
   // Ouvre le vote seulement une fois la pile de navigation montée avec les écrans protégés.
   // Profil en échec (réseau) : on attend le nouvel essai au lieu de jeter la notification.
   useNotificationRedirect(
