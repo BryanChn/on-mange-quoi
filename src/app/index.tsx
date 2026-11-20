@@ -11,6 +11,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
+import { UpdateBanner } from "@/components/update-banner";
 import { TextButton } from "@/components/text-button";
 import { getInitial } from "@/lib/avatar";
 import { fetchHome, subscribeToHome, type Home } from "@/lib/home";
@@ -148,6 +149,8 @@ export default function Index() {
           <Avatar name={displayName} size={44} />
         </Pressable>
       </View>
+
+      <UpdateBanner />
 
       {hasGroups ? (
         <>
