@@ -205,22 +205,35 @@ describe("votes rapides (file d'envoi de l'écran)", () => {
     assert.equal(session.voterIds.includes(session.userId), false);
   });
 
-  test("un vote refusé (session clôturée) n'empêche pas la file de continuer", async () => {
+  test("après la clôture : cocher est refusé sans bloquer la file, décocher ne retire rien", async () => {
     const groupId = await newGroup();
-    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza"]);
+    const { sessionId, idOf } = await sessionWithDishes(groupId, ["Pizza", "Tacos"]);
     await voteAs(chloe, idOf("Pizza"));
     await signInAs(bea);
     await closeSession(sessionId);
 
     await signInAs(chloe);
     const enqueue = createSerialQueue();
-    const refused = enqueue(() => setVote(idOf("Pizza"), false));
+    // Décocher : la RLS de suppression ne voit plus la ligne (session close), le DELETE
+    // touche 0 ligne et le trigger de verrou ne se déclenche pas. Pas d'erreur, mais rien
+    // n'est retiré : l'écran recharge ensuite et affiche le résultat.
+    const unvote = enqueue(() => setVote(idOf("Pizza"), false));
+    // Cocher : le trigger de verrou refuse, avec l'erreur que l'app reconnaît.
+    const vote = enqueue(() => setVote(idOf("Tacos"), true));
     const next = enqueue(async () => "suite");
 
-    await assert.rejects(refused, (error) => isSessionClosedError(error));
+    await unvote;
+    await assert.rejects(vote, (error) => isSessionClosedError(error));
     assert.equal(await next, "suite");
-    // Le vote déjà enregistré n'a pas bougé.
-    assert.equal((await fetchSession(sessionId)).proposals[0].voteCount, 1);
+
+    const proposals = (await fetchSession(sessionId)).proposals;
+    assert.deepEqual(
+      proposals.map((p) => [p.name, p.voteCount]),
+      [
+        ["Pizza", 1],
+        ["Tacos", 0],
+      ],
+    );
   });
 });
 
