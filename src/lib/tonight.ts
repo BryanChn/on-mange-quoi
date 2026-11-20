@@ -160,7 +160,7 @@ const IDLE_LINES = [
   "Le frigo attend tes ordres.",
   "Quelqu’un a forcément une idée.",
   "Une envie ? Mets-la au vote.",
-  "Deux minutes, et c’est réglé.",
+  "Deux minutes, et c’est décidé.",
 ];
 
 // Petite phrase de la carte quand rien n'est prévu : elle change chaque jour, mais reste

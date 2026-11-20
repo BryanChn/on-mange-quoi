@@ -260,7 +260,7 @@ function TonightCard({
     );
   }
 
-  // C'est réglé et rien de prévu : la carte signature, avec le chat. Le vote en cours reste
+  // C'est décidé et rien de prévu : la carte signature, avec le chat. Le vote en cours reste
   // une carte neutre, son contenu (plats, votants) est ce qu'il faut lire.
   if (tonight.kind === "decided") {
     const { group, session } = tonight;
@@ -269,10 +269,11 @@ function TonightCard({
       <SignatureCard>
         <View style={styles.signatureTop}>
           <View style={styles.signatureText}>
-            <Chip label={`${group.name} · c’est réglé`} variant="accent" />
+            <Chip label={`${group.name} · c’est décidé`} variant="accent" />
             <Text style={styles.signatureTitle} accessibilityRole="header">
               Ce soir, c’est {session.winnerName} !
             </Text>
+            <Text style={styles.signatureMuted}>Bon appétit !</Text>
           </View>
           <SignatureCat size={CAT_SIZE} />
         </View>

@@ -70,7 +70,7 @@ export default function SignIn() {
             On mange quoi <Text style={styles.questionMark}>?</Text>
           </Text>
           <Text style={styles.tagline}>
-            De « on mange quoi ? » à « c’est réglé » en moins de 2 minutes.
+            De « on mange quoi ? » à « c’est décidé » en moins de 2 minutes.
           </Text>
         </View>
 

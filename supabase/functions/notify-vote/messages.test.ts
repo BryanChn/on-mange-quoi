@@ -57,7 +57,12 @@ test("lancement par un compte supprimé : tout le monde est prévenu, sans nom",
 test("résultat : tout le groupe, organisateur compris", () => {
   const messages = buildMessages({ ...base, event: "closed", winnerName: "Pizza" });
   assert.equal(messages.length, 3);
-  assert.equal(messages[0].body, "C'est réglé : Pizza");
+  assert.equal(messages[0].body, "C'est décidé : Pizza. Bon appétit !");
+});
+
+test("résultat sans plat gagnant connu : pas de « Bon appétit » sur rien", () => {
+  const messages = buildMessages({ ...base, event: "closed", winnerName: null });
+  assert.equal(messages[0].body, "Le vote est terminé.");
 });
 
 test("un jeton en double ne sonne qu'une fois", () => {
