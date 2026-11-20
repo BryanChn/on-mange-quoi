@@ -12,7 +12,13 @@ import { Roulette } from "@/components/roulette";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
-import { dayLabel, formatTime, isSameDay, type Participation } from "@/lib/tonight";
+import {
+  dayLabel,
+  everyoneHasVoted,
+  formatTime,
+  isSameDay,
+  participationLine,
+} from "@/lib/tonight";
 import {
   addProposal,
   closeSession,
@@ -46,12 +52,6 @@ const DECISION_LABELS: Record<DecisionMethod, string> = {
 function voteCountLabel(count: number): string {
   if (count === 0) return "aucun vote";
   return `${count} vote${count > 1 ? "s" : ""}`;
-}
-
-// « 2 sur 3 ont voté · Léa n’a pas encore voté ».
-function participationLine({ votedCount, memberCount, pendingLabel }: Participation): string {
-  if (votedCount === memberCount) return pendingLabel;
-  return `${votedCount} sur ${memberCount} ${votedCount > 1 ? "ont" : "a"} voté · ${pendingLabel}`;
 }
 
 // dismissTo dépile jusqu'au groupe (ou le remplace s'il n'est pas dans la pile) :
@@ -237,6 +237,8 @@ export default function SessionScreen() {
   const startedAt = formatTime(new Date(session.createdAt));
   // Clôturer devient l'action principale dès qu'il y a de quoi décider.
   const canCloseNow = canClose && proposals.length > 0;
+  // Seul dans le groupe, le décompte des votants n'apprend rien.
+  const showParticipation = proposals.length > 0 && session.members.length > 1;
 
   // Sans aucun plat, il n'y a rien d'autre à faire que proposer : le champ est déjà ouvert.
   const showField = isProposing || proposals.length === 0;
@@ -322,10 +324,15 @@ export default function SessionScreen() {
             })}
           </Card>
 
-          {proposals.length > 0 && session.members.length > 1 ? (
-            <Text style={styles.status}>{participationLine(session.participation)}</Text>
+          {showParticipation ? (
+            <Text style={styles.status}>
+              {participationLine(session.participation, {
+                canClose,
+                organizerName: session.organizerName,
+              })}
+            </Text>
           ) : null}
-          {canClose ? null : (
+          {canClose || (showParticipation && everyoneHasVoted(session.participation)) ? null : (
             <Text style={styles.status}>
               L’organisateur clôturera le vote quand tout le monde aura voté.
             </Text>
