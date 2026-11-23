@@ -43,12 +43,12 @@ L'app commence dans le foyer, mais elle vise une publication sur les stores et u
 
 ## Roadmap
 
-On ne passe à la version suivante qu'une fois son feu vert atteint ; sinon on améliore la version en cours.
+Le feu vert mesure l'usage réel, **sans bloquer la suite** (décidé le 2026-11-23 : le projet sert d'abord à apprendre et à construire une app qui m'intéresse, pas à valider un marché). On passe à la version suivante quand la précédente est livrée et propre.
 
 | Version | Contenu | Feu vert |
 | --- | --- | --- |
-| **MVP · Décider** (en cours) | Voir ci-dessous | Le foyer décide via l'app 4 soirs sur 7, trois semaines de suite |
-| V1 · Cuisiner | Recettes, commande groupée, invités sans compte, liste de courses | Une soirée à 8+ sans commande passée par WhatsApp |
+| **MVP · Décider** (livré) | Voir ci-dessous | Le foyer décide via l'app 4 soirs sur 7, trois semaines de suite |
+| **V1 · Cuisiner** (en cours) | Recettes, commande groupée, invités sans compte, liste de courses | Une soirée à 8+ sans commande passée par WhatsApp |
 | V2 · S'inspirer | Import de recettes (réseaux sociaux, IA), suggestions, préférences | Le groupe cuisine régulièrement des recettes importées |
 | V3 · Le stock | Stock du foyer, seuils, scan code-barres | À définir |
 | V4 · Dépenses | Analyse des dépenses, habitudes de consommation | À définir (recoupe les stats de V3, prix non disponibles avant) |
