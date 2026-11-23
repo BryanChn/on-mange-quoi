@@ -101,10 +101,78 @@ export async function profileExists(userId: string): Promise<boolean> {
   return count === 1;
 }
 
+// ─── invités anonymes (soirées) ──────────────────────────
+// Un invité n'a ni email ni mot de passe : on garde les jetons de sa session pour pouvoir
+// « redevenir » lui après être passé par un autre compte.
+export type TestGuest = { id: string; accessToken: string; refreshToken: string };
+
+const createdGuests: TestGuest[] = [];
+
+export async function signInAsNewGuest(): Promise<TestGuest> {
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error) throw error;
+  if (!data.session || !data.user) throw new Error("Connexion anonyme sans session.");
+
+  const guest = {
+    id: data.user.id,
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+  };
+  createdGuests.push(guest);
+  return guest;
+}
+
+export async function signInAsGuest(guest: TestGuest): Promise<void> {
+  const { error } = await supabase.auth.setSession({
+    access_token: guest.accessToken,
+    refresh_token: guest.refreshToken,
+  });
+  if (error) throw error;
+}
+
+// Remplit une soirée sans passer par le lien (test du plafond de 20) : clé admin.
+export async function addMembersDirectly(groupId: string, users: TestUser[]): Promise<void> {
+  const { error } = await admin
+    .from("group_members")
+    .insert(users.map((user) => ({ group_id: groupId, profile_id: user.id })));
+  if (error) throw error;
+}
+
+// Exécute ce que pg_cron lance toutes les heures, à l'heure choisie.
+export async function purgeSoirees(referenceTime: Date): Promise<number> {
+  const { data, error } = await admin.rpc("purge_soirees", {
+    reference_time: referenceTime.toISOString(),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function soireeOrderedAt(groupId: string): Promise<Date> {
+  const { data, error } = await admin
+    .from("groups")
+    .select("ordered_at")
+    .eq("id", groupId)
+    .single();
+  if (error) throw error;
+  if (!data.ordered_at) throw new Error("Soirée sans date de commande.");
+  return new Date(data.ordered_at);
+}
+
 // Supprime les groupes puis les comptes de cette exécution (profiles et votes suivent en cascade).
-// Les comptes déjà supprimés par un test (delete_account) sont ignorés.
+// Les comptes déjà supprimés par un test (delete_account, purge) sont ignorés.
 export async function cleanUp(): Promise<void> {
   await supabase.auth.signOut({ scope: "local" });
+  const guestIds = createdGuests.map((guest) => guest.id);
+  if (guestIds.length > 0) {
+    // Une soirée peut être passée à un invité (départ du responsable) : ses groupes d'abord.
+    const { error } = await admin.from("groups").delete().in("owner_id", guestIds);
+    if (error) throw error;
+    for (const id of guestIds) {
+      if (!(await userExists(id))) continue;
+      const { error: deleteError } = await admin.auth.admin.deleteUser(id);
+      if (deleteError) throw deleteError;
+    }
+  }
   const ids = createdUsers.map((user) => user.id);
   if (ids.length === 0) return;
 
