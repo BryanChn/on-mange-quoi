@@ -12,7 +12,7 @@ On mange quoi ? aide un groupe (un foyer, des amis) à décider ensemble de ce q
 
 ## Qui est responsable de tes données
 
-L'app est développée et éditée par Bryan Chaine, développeur indépendant, responsable du traitement au sens du RGPD.
+L'app est développée et éditée par un développeur indépendant, responsable du traitement au sens du RGPD.
 
 Contact pour toute question sur tes données : **omq.app@gmail.com**.
 
