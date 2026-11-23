@@ -27,7 +27,7 @@ import { useTheme, type Theme } from "@/theme";
 
 type Styles = ReturnType<typeof createStyles>;
 
-// Lien partagé d'une soirée : on-mange-quoi.expo.app/s/<jeton>, ou dans l'app. Ouvert à
+// Lien partagé d'une soirée : on-mange-quoi.expo.app/rejoindre/<jeton>, ou dans l'app. Ouvert à
 // tous : sans compte, on rejoint avec un pseudo (connexion anonyme) ; avec un compte, en un
 // toucher. Le layout ne démonte pas cet écran pendant l'arrivée (voir isJoinRoute).
 export default function JoinSoireeScreen() {

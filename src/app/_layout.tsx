@@ -36,10 +36,10 @@ function RootNavigator() {
   const segments = useSegments();
   // Invité d'une soirée : connexion anonyme, sans email. Il n'a accès qu'à sa soirée.
   const isGuest = session?.user.is_anonymous === true;
-  // Page du lien d'une soirée (/s/<jeton>) : ouverte à tous, et elle gère elle-même son
+  // Page du lien d'une soirée (/rejoindre/<jeton>) : ouverte à tous, et elle gère elle-même son
   // chargement. Elle ne doit pas être démontée quand un invité se connecte (la session
   // change, le profil se recharge) : il perdrait son pseudo en pleine arrivée.
-  const isJoinRoute = segments[0] === "s";
+  const isJoinRoute = segments[0] === "rejoindre";
   // Avant les retours anticipés (règle des hooks). Seulement avec un profil : on ne
   // demande pas la permission sur l'écran de connexion ou de choix du nom. Jamais pour un
   // invité (pas de notification pour les invités, V1).
@@ -135,7 +135,7 @@ function RootNavigator() {
       </Stack.Protected>
 
       {/* Lien d'une soirée : sans garde, avec ou sans compte. */}
-      <Stack.Screen name="s/[token]" options={{ headerShown: false }} />
+      <Stack.Screen name="rejoindre/[token]" options={{ headerShown: false }} />
     </Stack>
   );
 }

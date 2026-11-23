@@ -85,9 +85,19 @@ function voteCountLabel(count: number): string {
 }
 
 // dismissTo dépile jusqu'au groupe (ou le remplace s'il n'est pas dans la pile) :
-// avec push, la flèche retour du groupe ramènerait au résultat.
-function backToGroup(groupId: string) {
-  router.dismissTo({ pathname: "/group/[id]", params: { id: groupId } });
+// avec push, la flèche retour du groupe ramènerait au résultat. Une soirée a son écran.
+function backToGroup(session: Pick<VoteSession, "groupId" | "isSoiree">) {
+  if (session.isSoiree) {
+    router.dismissTo({ pathname: "/soiree/[id]", params: { id: session.groupId } });
+  } else {
+    router.dismissTo({ pathname: "/group/[id]", params: { id: session.groupId } });
+  }
+}
+
+// Ce qu'on propose : un plat dans un foyer, un resto dans une soirée (« Où on mange ? »).
+// Deux noms masculins : toutes les phrases de l'écran restent justes.
+function itemNoun(session: Pick<VoteSession, "isSoiree"> | null): "plat" | "resto" {
+  return session?.isSoiree ? "resto" : "plat";
 }
 
 // Roulette à jouer pour une session qui vient d'être tirée au sort : les ex æquo
@@ -210,10 +220,12 @@ export default function SessionScreen() {
     }
   }
 
+  const noun = itemNoun(session);
+
   function handlePropose() {
     const cleanName = dishName.trim();
     if (cleanName === "") {
-      setNameError("Entre le nom d’un plat.");
+      setNameError(`Entre le nom d’un ${noun}.`);
       return;
     }
 
@@ -222,9 +234,9 @@ export default function SessionScreen() {
       if (isAdded) {
         setDishName("");
       } else {
-        setNameError("Ce plat est déjà proposé : coche-le dans la liste.");
+        setNameError(`Ce ${noun} est déjà proposé : coche-le dans la liste.`);
       }
-    }, "Impossible d’ajouter ce plat. Vérifie ton réseau et réessaie.");
+    }, `Impossible d’ajouter ce ${noun}. Vérifie ton réseau et réessaie.`);
   }
 
   // proposal est le plat affiché, vote provisoire compris : un second toucher décoche.
@@ -253,8 +265,8 @@ export default function SessionScreen() {
     runAction(async () => {
       const isRemoved = await removeProposal(proposal.id);
       if (!isRemoved)
-        setActionError("Quelqu’un a déjà voté pour ce plat : il reste dans la liste.");
-    }, "Impossible de retirer ce plat. Vérifie ton réseau et réessaie.");
+        setActionError(`Quelqu’un a déjà voté pour ce ${noun} : il reste dans la liste.`);
+    }, `Impossible de retirer ce ${noun}. Vérifie ton réseau et réessaie.`);
   }
 
   // La roulette se lance ensuite d'elle-même : le rechargement voit la session passer à
@@ -340,7 +352,7 @@ export default function SessionScreen() {
             </View>
             <Text style={styles.muted}>
               {proposals.length === 0
-                ? "Pas encore de plat. Propose le premier !"
+                ? `Pas encore de ${noun}. Propose le premier !`
                 : "Coche tout ce qui te tente."}
             </Text>
 
@@ -459,11 +471,11 @@ export default function SessionScreen() {
           {closeStep === "idle" && showField ? (
             <>
               <TextField
-                label="Proposer un plat"
+                label={`Proposer un ${noun}`}
                 value={dishName}
                 onChangeText={setDishName}
                 error={nameError}
-                placeholder="Bolognaise"
+                placeholder={session.isSoiree ? "Pizza Roma" : "Bolognaise"}
                 autoCapitalize="sentences"
                 autoFocus
                 maxLength={PROPOSAL_NAME_MAX_LENGTH}
@@ -471,7 +483,11 @@ export default function SessionScreen() {
                 onSubmitEditing={handlePropose}
                 submitBehavior="submit"
               />
-              <PrimaryButton label="Ajouter ce plat" onPress={handlePropose} isLoading={isBusy} />
+              <PrimaryButton
+                label={`Ajouter ce ${noun}`}
+                onPress={handlePropose}
+                isLoading={isBusy}
+              />
               {proposals.length > 0 ? (
                 <TextButton label="Fermer" onPress={stopProposing} isDisabled={isBusy} />
               ) : null}
@@ -486,7 +502,7 @@ export default function SessionScreen() {
                 isDisabled={isBusy || isVoting}
               />
               <PrimaryButton
-                label="Proposer un plat"
+                label={`Proposer un ${noun}`}
                 variant="secondary"
                 onPress={() => setIsProposing(true)}
                 isDisabled={isBusy}
@@ -497,7 +513,7 @@ export default function SessionScreen() {
           {closeStep === "idle" && !showField && !isTimeToClose ? (
             <>
               <PrimaryButton
-                label="Proposer un plat"
+                label={`Proposer un ${noun}`}
                 onPress={() => setIsProposing(true)}
                 isDisabled={isBusy}
               />
@@ -545,7 +561,7 @@ type SessionResultProps = {
 
 function SessionResult({ session, now, styles }: SessionResultProps) {
   const winner = session.proposals.find((proposal) => proposal.id === session.winnerProposalId);
-  const winnerName = winner?.name ?? "Plat introuvable";
+  const winnerName = winner?.name ?? (session.isSoiree ? "Resto introuvable" : "Plat introuvable");
   const closedAt = session.closedAt ? new Date(session.closedAt) : null;
   const isTonight = closedAt !== null && isSameDay(closedAt, now);
   // Échelle des barres : le nombre de membres, ou plus si d'anciens membres avaient voté.
@@ -612,8 +628,15 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
         </Card>
       </ScrollView>
       <View style={styles.footer}>
-        <PrimaryButton label="C’est décidé" onPress={() => router.dismissTo("/")} />
-        <TextButton label="Retour au groupe" onPress={() => backToGroup(session.groupId)} />
+        {session.isSoiree ? (
+          // Le resto est choisi : la suite, c'est la commande de chacun.
+          <PrimaryButton label="Écrire ma commande" onPress={() => backToGroup(session)} />
+        ) : (
+          <>
+            <PrimaryButton label="C’est décidé" onPress={() => router.dismissTo("/")} />
+            <TextButton label="Retour au groupe" onPress={() => backToGroup(session)} />
+          </>
+        )}
       </View>
     </SafeAreaView>
   );

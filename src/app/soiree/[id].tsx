@@ -11,6 +11,7 @@ import { ListCard, ListRow } from "@/components/list";
 import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
+import { SoireeOrder } from "@/components/soiree-order";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
@@ -296,18 +297,7 @@ export default function SoireeScreen() {
           </SignatureCard>
         )
       ) : (
-        <Card>
-          <Chip
-            label={soiree.step === "passee" ? "Commande passée" : "Commande ouverte"}
-            hasDot={soiree.step === "commande"}
-          />
-          <Text style={styles.cardTitle}>{soiree.restaurant}</Text>
-          <Text style={styles.muted}>
-            {soiree.step === "passee"
-              ? "La soirée reste lisible 24 h, puis elle est effacée."
-              : "Chacun pourra bientôt écrire sa commande ici."}
-          </Text>
-        </Card>
+        <SoireeOrder soiree={soiree} userId={userId} isOwner={isOwner} onChanged={loadSoiree} />
       )}
 
       {error ? (
