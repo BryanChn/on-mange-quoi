@@ -23,7 +23,7 @@
 | 2 | Observer le rappel unique | Premier cas réel : un membre ne fait rien pendant 1 h après le lancement (avant 21 h). Vérifier `reminder_sent_at` et `net._http_response`. |
 | 5 | Test avec 3 à 5 proches | Groupe « Test » (jamais « Maison »), test des 5 secondes + 6 tâches (lancer, proposer, voter, décider, roulette, changer d'avatar), ne pas aider, noter ; corriger ce qui bloque au moins 2 personnes. Puis un **test en temps réel à plusieurs**. |
 | 6 | Captures du README | Elles montrent l'ancien design (avant la carte signature et les avatars) : c'est la première chose que voit un recruteur. |
-| 7 | Politique de confidentialité | Obligatoire avant les stores : notifications, avatar, données minimales (RGPD), suppression du compte. |
+| 7 | Politique de confidentialité | ✅ Rédigée le 2026-11-23 (`docs/politique-de-confidentialite.md`), liens dans Mon compte et sur l'écran de connexion (`Linking`, sans APK). Reste avant les stores : vider le dossier « Envoyés » de `omq.app@gmail.com` (il garde chaque adresse et chaque code) ou passer à un service d'envoi transactionnel (backlog) ; relire la politique à chaque nouvelle donnée (photo de profil : Storage, à ajouter au tableau). |
 | 8 | Réglage des notifications | Au backlog « avant les stores » (tout couper / groupe par groupe) ; à avancer si le besoin revient. |
 
 **Prochain build (APK) : à mettre en place après le feu vert, en un seul APK**
