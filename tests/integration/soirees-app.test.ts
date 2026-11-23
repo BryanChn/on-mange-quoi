@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { fetchGroups } from "../../src/lib/groups.ts";
+import { fetchGroups, isSoireeGroup, joinGroup } from "../../src/lib/groups.ts";
 import { fetchHome } from "../../src/lib/home.ts";
 import { fetchSession, startSession } from "../../src/lib/votes.ts";
 import {
@@ -25,6 +25,7 @@ import {
 } from "../../src/lib/soirees.ts";
 import { toJoinFailure } from "../../src/lib/soiree-rules.ts";
 import {
+  addMembersDirectly,
   cleanUp,
   createGroup,
   createUser,
@@ -244,5 +245,51 @@ describe("la commande", () => {
     await signInAs(alice);
     const foyerSession = await startSession(foyerId);
     assert.equal((await fetchSession(foyerSession)).isSoiree, false);
+  });
+});
+
+describe("rejoindre une soirée avec son code (déjà l'app)", () => {
+  test("avec son compte : membre, et l'app sait que c'est une soirée", async () => {
+    const soiree = await aliceCreates();
+    const { inviteCode } = await fetchSoiree(soiree.id);
+    assert.match(inviteCode, /^[A-Z2-9]{8}$/);
+
+    await signInAs(bea);
+    const joinedId = await joinGroup(inviteCode.toLowerCase());
+    assert.equal(joinedId, soiree.id);
+    assert.equal(await isSoireeGroup(soiree.id), true);
+    const joined = (await fetchSoiree(soiree.id)).members.find((member) => member.id === bea.id);
+    assert.equal(joined?.isGuest, false);
+  });
+
+  test("mêmes règles que le lien : refusé après « Commande passée » ou à 20", async () => {
+    const closed = await aliceCreates();
+    const closedCode = (await fetchSoiree(closed.id)).inviteCode;
+    await chooseRestaurant(closed.id, "Kebab");
+    await markOrdered(closed.id);
+    await signInAs(dan);
+    const closedFailure = await joinGroup(closedCode).then(
+      () => null,
+      (error: unknown) => toJoinFailure(error),
+    );
+    assert.equal(closedFailure, "soiree_closed");
+
+    const full = await aliceCreates();
+    const fullCode = (await fetchSoiree(full.id)).inviteCode;
+    const others: TestUser[] = [];
+    for (let i = 0; i < 19; i++) others.push(await createUser(`Plein${i}`));
+    await addMembersDirectly(full.id, others);
+    await signInAs(dan);
+    const fullFailure = await joinGroup(fullCode).then(
+      () => null,
+      (error: unknown) => toJoinFailure(error),
+    );
+    assert.equal(fullFailure, "soiree_full");
+  });
+
+  test("un foyer se rejoint toujours avec son code", async () => {
+    const foyerId = await createGroup(alice, [bea]);
+    await signInAs(bea);
+    assert.equal(await isSoireeGroup(foyerId), false);
   });
 });
