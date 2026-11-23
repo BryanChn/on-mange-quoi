@@ -1,6 +1,8 @@
 import { Logo } from "@/components/logo";
 import { PrimaryButton } from "@/components/primary-button";
+import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
+import { openPrivacyPolicy } from "@/lib/privacy";
 import { supabase } from "@/lib/supabase";
 import { useTheme, type Theme } from "@/theme";
 import type { AuthError } from "@supabase/supabase-js";
@@ -92,6 +94,7 @@ export default function SignIn() {
           <Text style={styles.hint}>
             Pas de mot de passe : un code à 6 chiffres arrive par email.
           </Text>
+          <TextButton label="Confidentialité" onPress={openPrivacyPolicy} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

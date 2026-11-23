@@ -15,6 +15,7 @@ import { deleteAccount, fetchDeletionImpact, type DeletionImpact } from "@/lib/a
 import { versionLabel } from "@/lib/app-version";
 import type { AvatarId } from "@/lib/avatar";
 import { signOut } from "@/lib/notifications";
+import { openPrivacyPolicy } from "@/lib/privacy";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
 import { canCheckForUpdates, fetchLatestUpdate, restartOnLatestUpdate } from "@/lib/updates";
 import { useTheme, type Theme } from "@/theme";
@@ -223,6 +224,13 @@ export default function AccountScreen() {
                 isDisabled={
                   !canCheckForUpdates || updateCheck === "checking" || updateCheck === "restarting"
                 }
+              />
+              <ListRow
+                icon="shield"
+                label="Confidentialité"
+                subtitle="Tes données et tes droits"
+                onPress={openPrivacyPolicy}
+                accessibilityLabel="Politique de confidentialité, s’ouvre dans le navigateur"
               />
             </ListCard>
             <ListCard>
