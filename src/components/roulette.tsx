@@ -3,6 +3,7 @@ import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
 
 import { buildSpin } from "@/lib/roulette";
 import { useTheme, type Theme } from "@/theme";
+import { hapticConfirm, hapticTick } from "@/lib/haptics";
 
 // Temps laissé sur le gagnant avant d'afficher le résultat.
 const PAUSE_ON_WINNER_MS = 1200;
@@ -34,10 +35,12 @@ export function Roulette({ names, winnerIndex, onDone }: RouletteProps) {
     function play(step: number) {
       if (step === steps.length) {
         setIsStopped(true);
+        hapticConfirm();
         timer = setTimeout(() => onDoneRef.current(), PAUSE_ON_WINNER_MS);
         return;
       }
       setActiveIndex(steps[step].index);
+      hapticTick();
       timer = setTimeout(() => play(step + 1), steps[step].delayMs);
     }
 

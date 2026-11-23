@@ -7,6 +7,7 @@ import { Chip } from "@/components/chip";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
+import { hapticConfirm, hapticReject } from "@/lib/haptics";
 import { shareOrderText } from "@/lib/share-soiree";
 import { namesWithoutOrder, orderText, summarizeOrder } from "@/lib/soiree-rules";
 import {
@@ -56,6 +57,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
 
   // Commande figée entre-temps (« Commande passée ») : pas une panne, on recharge.
   function fail(writeError: unknown, message: string) {
+    hapticReject();
     if (isOrderingClosedError(writeError)) {
       onChanged();
     } else {
@@ -116,6 +118,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
     setIsOrdering(true);
     try {
       await markOrdered(soiree.id);
+      hapticConfirm();
       setIsConfirmingOrder(false);
       onChanged();
     } catch {

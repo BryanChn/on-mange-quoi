@@ -55,6 +55,7 @@ import {
   type Proposal,
   type VoteSession,
 } from "@/lib/votes";
+import { hapticConfirm, hapticReject, hapticToggle } from "@/lib/haptics";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
@@ -164,8 +165,10 @@ export default function SessionScreen() {
       .then(
         (loadedSession) => {
           if (latestRequestRef.current !== requestId) return;
-          if (wasOpenRef.current && !loadedSession.isOpen && loadedSession.decidedBy === "tirage") {
-            setSpin(spinFor(loadedSession));
+          if (wasOpenRef.current && !loadedSession.isOpen) {
+            // Clôture vue en direct : la roulette (tirage), ou le résultat tout de suite.
+            if (loadedSession.decidedBy === "tirage") setSpin(spinFor(loadedSession));
+            else hapticConfirm();
           }
           wasOpenRef.current = loadedSession.isOpen;
           setSession(loadedSession);
@@ -210,6 +213,7 @@ export default function SessionScreen() {
       await loadSession();
     } catch (error) {
       // Clôturé entre-temps : pas une panne réseau, le rechargement affiche le résultat.
+      hapticReject();
       if (isSessionClosedError(error)) {
         await loadSession();
       } else {
@@ -234,6 +238,7 @@ export default function SessionScreen() {
       if (isAdded) {
         setDishName("");
       } else {
+        hapticReject();
         setNameError(`Ce ${noun} est déjà proposé : coche-le dans la liste.`);
       }
     }, `Impossible d’ajouter ce ${noun}. Vérifie ton réseau et réessaie.`);
@@ -243,6 +248,8 @@ export default function SessionScreen() {
   function handleToggleVote(proposal: Proposal) {
     const wantVote = !proposal.hasMyVote;
     setActionError(null);
+    // Au toucher, avec la case qui se coche (vote optimiste) : jamais l'un sans l'autre.
+    hapticToggle(wantVote);
 
     startVoting(async () => {
       applyMyVote({ proposalId: proposal.id, wantVote });
@@ -251,6 +258,7 @@ export default function SessionScreen() {
         // La liste du serveur doit contenir le vote avant que le provisoire disparaisse.
         await loadSession();
       } catch (error) {
+        hapticReject();
         // Clôturé entre-temps : le rechargement affiche le résultat.
         if (isSessionClosedError(error)) {
           await loadSession();
@@ -264,8 +272,10 @@ export default function SessionScreen() {
   function handleRemove(proposal: Proposal) {
     runAction(async () => {
       const isRemoved = await removeProposal(proposal.id);
-      if (!isRemoved)
+      if (!isRemoved) {
+        hapticReject();
         setActionError(`Quelqu’un a déjà voté pour ce ${noun} : il reste dans la liste.`);
+      }
     }, `Impossible de retirer ce ${noun}. Vérifie ton réseau et réessaie.`);
   }
 
