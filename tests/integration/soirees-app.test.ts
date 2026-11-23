@@ -8,9 +8,15 @@ import { after, before, describe, test } from "node:test";
 
 import { fetchGroups } from "../../src/lib/groups.ts";
 import { fetchHome } from "../../src/lib/home.ts";
+import { fetchSession, startSession } from "../../src/lib/votes.ts";
 import {
+  addOrderItem,
   chooseRestaurant,
   createSoiree,
+  isOrderingClosedError,
+  markOrdered,
+  removeOrderItem,
+  setOrderItemQuantity,
   fetchFirstSoireeId,
   fetchSoiree,
   fetchSoireePreview,
@@ -165,5 +171,78 @@ describe("accueil : les soirées à part des foyers", () => {
       (await fetchGroups()).map((group) => group.id),
       [foyerId],
     );
+  });
+});
+
+describe("la commande", () => {
+  async function soireeWithTom() {
+    const soiree = await aliceCreates();
+    await signOutCompletely();
+    await joinSoiree(soiree.joinToken, { name: "Tom", avatar: null });
+    const tom = await trackCurrentGuest();
+    await signInAs(alice);
+    await chooseRestaurant(soiree.id, "Kebab du coin");
+    return { soiree, tom };
+  }
+
+  test("chacun ajoute, ajuste et retire ses lignes ; tout le monde les lit", async () => {
+    const { soiree, tom } = await soireeWithTom();
+    await addOrderItem(soiree.id, { label: " Kebab sauce blanche ", note: "  " });
+    await signInAsGuest(tom);
+    await addOrderItem(soiree.id, { label: "Tacos XL", note: "sans oignon" });
+    const tacos = (await fetchSoiree(soiree.id)).items.find((item) => item.label === "Tacos XL");
+    assert.ok(tacos);
+    await setOrderItemQuantity(tacos.id, 2);
+
+    await signInAs(alice);
+    const items = (await fetchSoiree(soiree.id)).items;
+    assert.deepEqual(
+      items.map(({ profileId, label, quantity, note }) => ({ profileId, label, quantity, note })),
+      [
+        { profileId: alice.id, label: "Kebab sauce blanche", quantity: 1, note: null },
+        { profileId: tom.id, label: "Tacos XL", quantity: 2, note: "sans oignon" },
+      ],
+    );
+  });
+
+  test("on ne modifie pas la ligne d'un autre ; la responsable peut la retirer", async () => {
+    const { soiree, tom } = await soireeWithTom();
+    await signInAsGuest(tom);
+    await addOrderItem(soiree.id, { label: "Tacos", note: null });
+    const tacos = (await fetchSoiree(soiree.id)).items[0];
+
+    await signInAs(bea);
+    await joinSoiree(soiree.joinToken);
+    await assert.rejects(setOrderItemQuantity(tacos.id, 5), /non modifiée/);
+    await assert.rejects(removeOrderItem(tacos.id), /non retirée/);
+
+    await signInAs(alice);
+    await removeOrderItem(tacos.id);
+    assert.deepEqual((await fetchSoiree(soiree.id)).items, []);
+  });
+
+  test("« Commande passée » fige tout : l'écran reconnaît le refus", async () => {
+    const { soiree, tom } = await soireeWithTom();
+    await addOrderItem(soiree.id, { label: "Kebab", note: null });
+    await markOrdered(soiree.id);
+    assert.equal((await fetchSoiree(soiree.id)).step, "passee");
+
+    await signInAsGuest(tom);
+    const refusal = await addOrderItem(soiree.id, { label: "Coca", note: null }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    assert.equal(isOrderingClosedError(refusal), true);
+  });
+
+  test("le vote d'une soirée se sait « soirée » (on y propose des restos)", async () => {
+    const soiree = await aliceCreates();
+    const sessionId = await startSession(soiree.id);
+    assert.equal((await fetchSession(sessionId)).isSoiree, true);
+
+    const foyerId = await createGroup(alice, []);
+    await signInAs(alice);
+    const foyerSession = await startSession(foyerId);
+    assert.equal((await fetchSession(foyerSession)).isSoiree, false);
   });
 });
