@@ -1,0 +1,18 @@
+import { Platform, Share } from "react-native";
+
+import { soireeLink } from "./soirees";
+
+// Partage du lien : la feuille de partage du téléphone (WhatsApp, SMS…). Sur le web, Share
+// passe par navigator.share s'il existe ; sinon on copie le lien. Renvoie ce qui s'est passé,
+// pour que l'écran le dise (« Lien copié »).
+export async function shareSoiree(name: string, joinToken: string): Promise<"shared" | "copied"> {
+  const url = soireeLink(joinToken);
+  const message = `Rejoins ma soirée « ${name} » sur On mange quoi ? ${url}`;
+
+  if (Platform.OS === "web" && typeof navigator !== "undefined" && !navigator.share) {
+    await navigator.clipboard.writeText(url);
+    return "copied";
+  }
+  await Share.share({ message });
+  return "shared";
+}
