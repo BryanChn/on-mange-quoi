@@ -178,7 +178,12 @@ export default function JoinSoireeScreen() {
 
         {joinsWithProfile ? (
           <View style={styles.me}>
-            <Avatar name={profile.display_name} avatar={profile.avatar} size={44} />
+            <Avatar
+              name={profile.display_name}
+              avatar={profile.avatar}
+              photoPath={profile.photo_path}
+              size={44}
+            />
             <Text style={styles.meText}>Tu rejoins en tant que {profile.display_name}</Text>
           </View>
         ) : (

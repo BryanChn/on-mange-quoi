@@ -223,7 +223,13 @@ export default function GroupScreen() {
         <View style={styles.members}>
           <View style={styles.avatars}>
             {group.members.slice(0, MAX_AVATARS).map((member) => (
-              <Avatar key={member.id} name={member.name} avatar={member.avatar} size={30} />
+              <Avatar
+                key={member.id}
+                name={member.name}
+                avatar={member.avatar}
+                photoPath={member.photoPath}
+                size={30}
+              />
             ))}
           </View>
           <Text style={styles.memberNames} numberOfLines={1}>
