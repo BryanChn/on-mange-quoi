@@ -7,7 +7,6 @@ import { PrimaryButton } from "@/components/primary-button";
 import { TextField } from "@/components/text-field";
 import { useProfile } from "@/lib/profile";
 import { defaultSoireeName, SOIREE_NAME_MAX_LENGTH } from "@/lib/soiree-rules";
-import { shareSoiree } from "@/lib/share-soiree";
 import { createSoiree } from "@/lib/soirees";
 import { useTheme, type Theme } from "@/theme";
 
@@ -32,20 +31,16 @@ export default function NewSoiree() {
     setError(null);
     setIsSaving(true);
 
-    let soiree: { id: string; joinToken: string };
     try {
-      soiree = await createSoiree(cleanName);
+      const soiree = await createSoiree(cleanName);
+      // replace : le retour ramène à l'accueil, pas à ce formulaire déjà envoyé. On invite
+      // ensuite, quand on veut, depuis la soirée (retour d'usage du 2026-11-24 : le partage
+      // ouvert d'office n'était pas intuitif).
+      router.replace({ pathname: "/soiree/[id]", params: { id: soiree.id } });
     } catch {
       setError("Impossible de créer la soirée. Vérifie ton réseau et réessaie.");
       setIsSaving(false);
-      return;
     }
-
-    // replace : le retour ramène à l'accueil, pas à ce formulaire déjà envoyé.
-    router.replace({ pathname: "/soiree/[id]", params: { id: soiree.id } });
-    // Créer une soirée, c'est pour inviter : le partage s'ouvre tout de suite. Fermé ou
-    // impossible, rien n'est perdu : « Inviter quelqu'un » reste sur l'écran de la soirée.
-    shareSoiree(cleanName, soiree.joinToken).catch(() => {});
   }
 
   return (
@@ -58,8 +53,8 @@ export default function NewSoiree() {
         Une soirée à organiser ?
       </Text>
       <Text style={styles.subtitle}>
-        Tu partages un lien, chacun rejoint avec ou sans l’app. On choisit où manger, puis chacun
-        écrit sa commande.
+        Crée la soirée, puis invite qui tu veux : avec un lien (même sans l’app) ou un code. On
+        choisit où manger, puis chacun écrit sa commande.
       </Text>
       <TextField
         label="Nom de la soirée"
@@ -73,7 +68,7 @@ export default function NewSoiree() {
         onSubmitEditing={handleCreate}
       />
       <Text style={styles.hint}>Tes invités verront ce nom.</Text>
-      <PrimaryButton label="Créer et inviter" onPress={handleCreate} isLoading={isSaving} />
+      <PrimaryButton label="Créer la soirée" onPress={handleCreate} isLoading={isSaving} />
     </KeyboardAvoidingView>
   );
 }

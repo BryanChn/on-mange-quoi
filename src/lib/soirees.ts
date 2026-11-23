@@ -27,6 +27,8 @@ export type SoireeDetail = {
   step: SoireeStep;
   restaurant: string | null;
   joinToken: string;
+  // À taper dans « Rejoindre avec un code » par quelqu'un qui a déjà l'app.
+  inviteCode: string;
   // Du plus ancien au plus récent.
   members: SoireeMember[];
   // Dans l'ordre d'ajout.
@@ -44,7 +46,7 @@ export type SoireePreview = {
 };
 
 const SOIREE_COLUMNS =
-  "id, name, owner_id, kind, soiree_step, restaurant, join_token, group_members(profile_id, joined_at, profiles(display_name, avatar, is_guest))";
+  "id, name, invite_code, owner_id, kind, soiree_step, restaurant, join_token, group_members(profile_id, joined_at, profiles(display_name, avatar, is_guest))";
 
 // create_soiree : soirée, lien et inscription du créateur dans la même transaction.
 export async function createSoiree(name: string): Promise<{ id: string; joinToken: string }> {
@@ -79,6 +81,7 @@ export async function fetchSoiree(soireeId: string): Promise<SoireeDetail> {
     step: data.soiree_step,
     restaurant: data.restaurant,
     joinToken: data.join_token,
+    inviteCode: data.invite_code,
     members: data.group_members
       .map((row) => ({
         id: row.profile_id,
