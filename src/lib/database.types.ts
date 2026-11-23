@@ -51,14 +51,14 @@ isOneToOne: false
                   ]
                 },"groups": {
                   Row: {
-                    "created_at": string,"id": string,"invite_code": string,"name": string,"owner_id": string
+                    "created_at": string,"id": string,"invite_code": string,"join_token": string | null,"kind": Database["public"]['Enums']["group_kind"],"name": string,"ordered_at": string | null,"owner_id": string,"restaurant": string | null,"soiree_step": Database["public"]['Enums']["soiree_step"] | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"invite_code": string,"name": string,"owner_id": string
+                    "created_at"?: string,"id"?: string,"invite_code": string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"name": string,"ordered_at"?: string | null,"owner_id": string,"restaurant"?: string | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"invite_code"?: string,"name"?: string,"owner_id"?: string
+                    "created_at"?: string,"id"?: string,"invite_code"?: string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"name"?: string,"ordered_at"?: string | null,"owner_id"?: string,"restaurant"?: string | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
                   }
                   Relationships: [
                     {
@@ -67,6 +67,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"order_items": {
+                  Row: {
+                    "created_at": string,"group_id": string,"id": string,"label": string,"note": string | null,"profile_id": string,"quantity": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"group_id": string,"id"?: string,"label": string,"note"?: string | null,"profile_id"?: string,"quantity"?: number
+                  }
+                  Update: {
+                    "created_at"?: string,"group_id"?: string,"id"?: string,"label"?: string,"note"?: string | null,"profile_id"?: string,"quantity"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "order_items_group_id_profile_id_fkey"
+      columns: ["group_id","profile_id"]
+isOneToOne: false
+      referencedRelation: "group_members"
+      referencedColumns: ["group_id","profile_id"]
     }
                   ]
                 },"profiles": {
@@ -216,6 +236,25 @@ isOneToOne: false
             "call_edge_function":
 { Args: { "function_name": string,"payload": Json }; Returns: undefined
                            },
+"choose_restaurant":
+{ Args: { "restaurant_name": string,"target_group_id": string }; Returns: {
+              "created_at": string,
+"id": string,
+"invite_code": string,
+"join_token": string | null,
+"kind": Database["public"]['Enums']["group_kind"],
+"name": string,
+"ordered_at": string | null,
+"owner_id": string,
+"restaurant": string | null,
+"soiree_step": Database["public"]['Enums']["soiree_step"] | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "groups"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "close_session":
 { Args: { "chosen_proposal_id"?: string,"method"?: Database["public"]['Enums']["decision_method"],"target_session_id": string }; Returns: {
               "closed_at": string | null,
@@ -239,8 +278,32 @@ isOneToOne: false
               "created_at": string,
 "id": string,
 "invite_code": string,
+"join_token": string | null,
+"kind": Database["public"]['Enums']["group_kind"],
 "name": string,
-"owner_id": string
+"ordered_at": string | null,
+"owner_id": string,
+"restaurant": string | null,
+"soiree_step": Database["public"]['Enums']["soiree_step"] | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "groups"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"create_soiree":
+{ Args: { "soiree_name": string }; Returns: {
+              "created_at": string,
+"id": string,
+"invite_code": string,
+"join_token": string | null,
+"kind": Database["public"]['Enums']["group_kind"],
+"name": string,
+"ordered_at": string | null,
+"owner_id": string,
+"restaurant": string | null,
+"soiree_step": Database["public"]['Enums']["soiree_step"] | null
             }
                           SetofOptions: {
         from: "*"
@@ -254,10 +317,16 @@ isOneToOne: false
 "generate_invite_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"generate_join_token":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "get_session_result":
 { Args: { "target_session_id": string }; Returns: {
               "is_leading": boolean,"name": string,"proposal_id": string,"vote_count": number
             }[]
+                           },
+"is_anonymous_user":
+{ Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "is_group_member":
 { Args: { "target_group_id": string }; Returns: boolean
@@ -265,14 +334,42 @@ isOneToOne: false
 "join_group":
 { Args: { "code": string }; Returns: string
                            },
+"join_soiree":
+{ Args: { "guest_avatar"?: string,"guest_name"?: string,"token": string }; Returns: string
+                           },
 "leave_group":
 { Args: { "new_owner_id"?: string,"target_group_id": string }; Returns: undefined
                            },
 "lock_open_session":
 { Args: { "target_session_id": string }; Returns: undefined
                            },
+"lock_soiree_ordering":
+{ Args: { "target_group_id": string }; Returns: undefined
+                           },
+"mark_ordered":
+{ Args: { "target_group_id": string }; Returns: {
+              "created_at": string,
+"id": string,
+"invite_code": string,
+"join_token": string | null,
+"kind": Database["public"]['Enums']["group_kind"],
+"name": string,
+"ordered_at": string | null,
+"owner_id": string,
+"restaurant": string | null,
+"soiree_step": Database["public"]['Enums']["soiree_step"] | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "groups"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "proposal_has_votes":
 { Args: { "target_proposal_id": string }; Returns: boolean
+                           },
+"purge_soirees":
+{ Args: { "reference_time"?: string }; Returns: number
                            },
 "regenerate_invite_code":
 { Args: { "target_group_id": string }; Returns: string
@@ -285,7 +382,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "decision_method": "vote"|"tirage"|"organisateur","session_status": "open"|"closed"
+            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","session_status": "open"|"closed","soiree_step": "choix"|"commande"|"passee"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -405,7 +502,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "decision_method": ["vote", "tirage", "organisateur"],"session_status": ["open", "closed"]
+            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"session_status": ["open", "closed"],"soiree_step": ["choix", "commande", "passee"]
           }
         }
 } as const

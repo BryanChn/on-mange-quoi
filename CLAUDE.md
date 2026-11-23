@@ -40,6 +40,9 @@ L'app commence dans le foyer, mais elle vise une publication sur les stores et u
 | Session de vote | Une décision à prendre dans un groupe, lancée par un membre (l'organisateur) |
 | Proposition | Un plat soumis au vote (ex. « Bolognaise », « Pizza ») |
 | Vote | Un membre approuve une proposition. Plusieurs approbations par personne possibles |
+| Soirée (V1) | Groupe éphémère pour organiser un repas à plusieurs (ex. « Kebab samedi »). Rejoint par un lien, effacé 24 h après la commande |
+| Invité (V1) | Participant d'une soirée sans compte : un pseudo, une connexion anonyme. N'a accès qu'à sa soirée |
+| Ligne de commande (V1) | Ce qu'une personne commande dans une soirée : article (texte libre), quantité, remarque |
 
 ## Roadmap
 
@@ -79,6 +82,18 @@ Hors MVP, volontairement : présence, heure limite, notifications autres que le 
 
 En cas d'égalité, `close_session` tire au sort parmi les ex æquo, sans rien demander à l'organisateur.
 Le tirage s'affiche comme une **roulette animée** sur tous les téléphones. Le résultat est tiré **une seule fois** et enregistré en base ; l'animation se contente de s'arrêter sur ce résultat, pour que tout le monde voie le même plat. La façon dont le gagnant a été désigné est enregistrée (`vote`, `tirage`, `organisateur`).
+
+## V1 · Cuisiner : soirées (en cours, tranché le 2026-11-23)
+
+Étude : https://claude.ai/artifact/7GqZQEu78cCoVNV2refUQ7. Une soirée remplace les commandes notées sur papier ou envoyées par WhatsApp.
+
+1. Tout compte réel crée une soirée et partage son lien (WhatsApp, SMS). On la rejoint avec son compte, ou avec un pseudo (page web si l'app n'est pas installée).
+2. « Où on mange ? » : vote existant avec des restaurants, ou resto fixé directement par le responsable (vote facultatif).
+3. Puis la liste de commande : chacun ajoute ses lignes (texte libre, quantité, remarque) et voit celles des autres, en direct. Le responsable a le récapitulatif (regroupé pour le comptoir, et par personne).
+4. Le responsable marque « Commande passée » : tout se fige, historique de 24 h, puis la soirée et les comptes invités sont effacés (soirée abandonnée : 7 jours).
+5. Le responsable peut retirer une ligne ou une personne. 20 participants au plus. Une carte sur l'accueil tant que la soirée existe.
+
+Plus tard, volontairement : paiement et partage de la note (chacun paie sa part), catalogue des enseignes, notifications aux invités, transformer un invité en compte.
 
 ## Commandes
 

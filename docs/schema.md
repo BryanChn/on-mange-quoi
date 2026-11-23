@@ -1,4 +1,4 @@
-# Schéma de données · MVP Décider
+# Schéma de données · MVP Décider et V1 Soirées
 
 Base Postgres (Supabase). Les migrations SQL sont dans `supabase/migrations/`.
 La Row Level Security est activée sur **toutes** les tables : un membre ne voit que ses groupes.
@@ -99,6 +99,12 @@ Groupe permanent (ex. « Famille »). Chaque repas est une nouvelle session, le 
 | `owner_id` | `uuid` | not null · FK → `profiles(id)` `on delete restrict` |
 | `invite_code` | `varchar(12)` | not null · unique · généré côté serveur |
 | `created_at` | `timestamptz` | not null · default `now()` |
+| `kind` | enum `group_kind` (`foyer`, `soiree`) | not null · default `'foyer'` (migration `soirees`, 2026-11-23) |
+| `soiree_step` | enum `soiree_step` (`choix`, `commande`, `passee`) | soirée seulement · changée par les fonctions, jamais par l'app |
+| `restaurant` | `varchar(60)` | soirée seulement · fixé par `choose_restaurant` ou gagnant du vote |
+| `ordered_at` | `timestamptz` | soirée seulement · « Commande passée », départ des 24 h d'historique |
+| `join_token` | `text` | soirée seulement · unique · lien partagé, 128 bits (22 caractères) |
+| | | `check groups_kind_check` : un foyer n'a aucune donnée de soirée ; une soirée a une étape et un lien, un resto dès `commande`, `ordered_at` si et seulement si `passee` |
 
 ### group_members
 
@@ -179,6 +185,23 @@ Ticket d'Expo en attente de son reçu (migration `push_receipts`). Expo répond 
 
 RLS activée **sans politique** et aucun droit pour `anon` / `authenticated` : invisible pour l'app, seule la clé `service_role` y accède. **pg_cron** appelle `push-receipts` toutes les 30 min : elle purge les tickets de plus de 24 h, lit les reçus des tickets de plus de 15 min, supprime les jetons `DeviceNotRegistered` (et donc leurs tickets) puis les tickets traités.
 
+### order_items
+
+Une ligne de la commande d'une soirée (migration `soirees`). Texte libre : le catalogue des enseignes viendra plus tard.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | `uuid` | PK · default `gen_random_uuid()` |
+| `group_id` | `uuid` | not null · index |
+| `profile_id` | `uuid` | not null · default `auth.uid()` |
+| `label` | `varchar(80)` | not null · non vide après `trim` |
+| `quantity` | `smallint` | not null · default 1 · entre 1 et 20 |
+| `note` | `varchar(120)` | nullable · non vide après `trim` (« sans oignon ») |
+| `created_at` | `timestamptz` | not null · default `now()` |
+| | | **FK composée** `(group_id, profile_id)` → `group_members` `on delete cascade` : une ligne appartient à un membre ; retiré de la soirée, ses lignes partent |
+
+RLS : les membres lisent toutes les lignes de leur soirée ; chacun ajoute et modifie les siennes ; l'auteur **ou le responsable** supprime. Droits par colonne : `insert (group_id, profile_id, label, quantity, note)`, `update (label, quantity, note)`. Le trigger `order_items_lock_soiree` (`lock_soiree_ordering`, verrou partagé) refuse toute écriture hors de l'étape `commande` avec le hint `ordering_closed` : erreur claire, jamais un filtrage silencieux. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
+
 ## Règles que le schéma seul ne garantit pas
 
 À couvrir par la RLS ou des fonctions, et à tester :
@@ -193,6 +216,24 @@ RLS activée **sans politique** et aucun droit pour `anon` / `authenticated` : i
 - À la suppression d'un compte, ses propositions **sans vote** dans les sessions **ouvertes** sont supprimées ; les autres restent (`proposed_by` à `null`). Jamais le gagnant d'une session fermée : la base le refuse (FK `no action`).
 - Parcours de suppression de compte : prévenir d'abord l'utilisateur (groupes dont il est owner, votes en cours qu'il organise) et lui proposer de choisir à qui transférer ; à défaut, transfert automatique.
 - **Droits par colonne** : la RLS choisit les lignes, pas les colonnes. `authenticated` n'a `insert` / `update` que sur les colonnes que l'app écrit (migration `restrict_column_privileges`) ; `id`, `created_at`, `status` et le résultat viennent des défauts et des fonctions. **Toute nouvelle table ou colonne** : révoquer `insert, update` puis accorder colonne par colonne (Supabase accorde tout par défaut).
+
+## Soirées (migration `soirees`, 2026-11-23)
+
+Une soirée est un groupe `kind = 'soiree'` : les invités en deviennent membres, donc la RLS par groupe et le vote marchent tels quels. Étude : https://claude.ai/artifact/7GqZQEu78cCoVNV2refUQ7
+
+| Fonction | Qui | Effet |
+| --- | --- | --- |
+| `create_soiree(nom)` | vrai compte | soirée à l'étape `choix`, lien tiré, créateur responsable et membre |
+| `join_soiree(jeton, pseudo, avatar)` | tout compte, **seule porte d'un anonyme** | crée le profil d'un invité, ajoute le membre ; refus : `invalid_link`, `name_required`, `soiree_closed` (étape `passee`), `soiree_full` (20) |
+| `choose_restaurant(soirée, nom)` | responsable | `choix` → `commande` ; refus si un vote est ouvert (`vote_open`) |
+| trigger `vote_sessions_open_soiree_ordering` | clôture d'un vote | à l'étape `choix`, le plat gagnant devient le resto et la commande s'ouvre (`close_session` inchangée) |
+| `mark_ordered(soirée)` | responsable | `commande` → `passee`, `ordered_at = now()` : lignes et lien figés |
+| `purge_soirees(reference_time)` | `pg_cron` (tâche `purge-soirees`, toutes les heures), `service_role` | efface les soirées passées depuis 24 h ou créées depuis 7 jours, puis les comptes anonymes sans groupe (créés depuis plus d'1 h) |
+
+- **Comptes anonymes** (invités) : ils ont le rôle `authenticated`, comme un vrai compte. `is_anonymous_user()` (claim `is_anonymous` du JWT) les refuse dans `create_group`, `join_group`, `create_soiree` et au lancement d'un vote. Ils proposent, votent et commandent dans leur soirée.
+- Un vote ne se lance dans une soirée qu'à l'étape `choix` (politique d'insert de `vote_sessions`).
+- Responsable qui part : la soirée passe au membre le plus ancien, comme un foyer, même s'il est invité anonyme (il peut alors passer la commande).
+- Tests : `tests/integration/soirees.test.ts` (23 cas, contre-épreuve faite sur le blocage des anonymes).
 
 ## Mesure du feu vert (schéma `private`)
 
