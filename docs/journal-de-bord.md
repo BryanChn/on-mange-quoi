@@ -7,6 +7,13 @@
 
 ### Prochaine conversation : par où commencer
 
+#### 📦 Build `63ec05ef` du 2026-11-23 : à installer sur les deux téléphones
+
+- **Lot APK mergé** (#76 à #79, pile repliée par le haut : une seule CI), migration `profile_photo` en ligne, site publié avec `/.well-known/assetlinks.json` (validé par l'API Digital Asset Links de Google sur le domaine de production).
+- **Build `63ec05ef` réussi** (commit `c21e6c9`, empreinte `bebbdad…`, 49 min de file et de build). APK : https://expo.dev/artifacts/eas/vyfuHSylw8oaAvQz00_x5Y3p7gIQaE7aKkX5eujuPfk.apk. Vérifié dans l'APK : même certificat que dans `assetlinks.json`, filtre `/rejoindre/`, permission caméra, pas de micro.
+- **À tester après installation** (par-dessus, comptes gardés) : lien de soirée envoyé sur WhatsApp → l'app s'ouvre et on rejoint avec son compte ; vibrations (cocher, roulette, refus) ; photo prise, visible sur l'autre téléphone, puis retirée ; Mon compte affiche la version. Si un lien rouvre le navigateur : Réglages Android → Applications → On mange quoi ? → Ouvrir par défaut → liens vérifiés.
+- Depuis le merge du lot, les mises à jour EAS n'atteignent plus l'ancien APK (`fc288ef…`).
+
 #### 🚀 V1 lancée le 2026-11-23 : les soirées
 
 - **Décision** : le feu vert ne bloque plus la suite (#70). Le projet sert d'abord à apprendre ; la mesure reste un indicateur.
