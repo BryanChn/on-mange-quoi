@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>On mange quoi ?</title>
+    <meta
+      name="description"
+      content="Décidez ensemble de ce que vous mangez, et passez la commande d'une soirée sans papier ni messages éparpillés."
+    />
+    <!--
+      Version web de l'app : surtout pour les invités des soirées (lien privé, avec un jeton).
+      noindex : rien à indexer, et un lien de soirée ne doit jamais sortir dans une recherche.
+      Ne PAS bloquer aussi ces pages dans robots.txt : Google ne lirait plus ce noindex.
+      no-referrer : en suivant un lien vers un autre site, l'adresse de la page (et son jeton)
+      ne lui est pas transmise.
+    -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#FFF1E2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161514" media="(prefers-color-scheme: dark)" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>Active JavaScript pour utiliser On mange quoi ?</noscript>
+    <div id="root"></div>
+  </body>
+</html>
