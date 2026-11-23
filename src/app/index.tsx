@@ -146,7 +146,12 @@ export default function Index() {
           hitSlop={8}
           style={({ pressed }) => pressed && styles.pressed}
         >
-          <Avatar name={displayName} avatar={profile?.avatar} size={44} />
+          <Avatar
+            name={displayName}
+            avatar={profile?.avatar}
+            photoPath={profile?.photo_path}
+            size={44}
+          />
         </Pressable>
       </View>
 
@@ -259,6 +264,7 @@ function TonightCard({
                   <Avatar
                     name={member.name}
                     avatar={member.avatar}
+                    photoPath={member.photoPath}
                     isPending={!session.voterIds.includes(member.id)}
                   />
                 </View>
@@ -365,7 +371,12 @@ function SoireeCard({ soiree, styles }: { soiree: HomeSoiree; styles: Styles }) 
         <View style={styles.avatars}>
           {soiree.members.slice(0, MAX_AVATARS).map((member, index) => (
             <View key={member.id} style={[styles.avatarRing, index > 0 && styles.avatarOverlap]}>
-              <Avatar name={member.name} avatar={member.avatar} size={28} />
+              <Avatar
+                name={member.name}
+                avatar={member.avatar}
+                photoPath={member.photoPath}
+                size={28}
+              />
             </View>
           ))}
         </View>

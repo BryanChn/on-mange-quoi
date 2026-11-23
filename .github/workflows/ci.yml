@@ -65,7 +65,8 @@ jobs:
       # Base, authentification, API REST et passerelle (kong) suffisent aux tests :
       # les autres services sont coupés pour démarrer plus vite. Les migrations sont appliquées au démarrage.
       - name: Démarrer Supabase en local
-        run: npx supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+        # Stockage (storage-api) gardé : les photos de profil sont testées (photos.test.ts).
+        run: npx supabase start -x realtime,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 
       - name: Tests d'intégration
         run: bash tests/integration/run.sh

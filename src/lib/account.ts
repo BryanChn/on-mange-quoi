@@ -1,6 +1,7 @@
 import type { AvatarId } from "./avatar";
 import { MEMBER_COLUMNS, pickSuccessor, toMembers } from "./members";
 import { getUserId, supabase } from "./supabase";
+import { removeAllMyPhotos } from "./photo-storage";
 
 // Conséquence de la suppression pour un groupe dont l'utilisateur est owner.
 // successorName null : il y est seul, le groupe sera supprimé.
@@ -49,6 +50,9 @@ export async function fetchDeletionImpact(): Promise<DeletionImpact> {
 // déconnecte. scope local : le compte n'existe plus, inutile de prévenir le serveur ;
 // on efface seulement la session enregistrée sur le téléphone.
 export async function deleteAccount(): Promise<void> {
+  // La photo d'abord : la base ne peut pas supprimer un fichier elle-même. Échec ici = compte
+  // intact, rien de perdu ni d'oublié derrière.
+  await removeAllMyPhotos();
   const { error } = await supabase.rpc("delete_account");
   if (error) throw error;
 

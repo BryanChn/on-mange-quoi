@@ -86,6 +86,7 @@ Infos publiques d'un compte. Email et connexion restent dans `auth.users` (pas d
 | `id` | `uuid` | PK · FK → `auth.users(id)` `on delete cascade` |
 | `display_name` | `varchar(30)` | not null · non vide après `trim` |
 | `avatar` | `text` | nullable (null = l'initiale) · `check` dans la liste `chat`, `spaghetti`, `pizza`, `burger`, `avocat`, `ramen` (migration `profile_avatar`) · modifiable par l'app (`grant update (avatar)`), sur son seul profil (RLS) |
+| `photo_path` | `text` | nullable · photo perso dans le bucket `avatars`, `<id>/<uuid>.jpg` (`check` : son propre dossier) ; `grant update (photo_path)` (migration `profile_photo`) |
 | `is_guest` | `boolean` | not null · default `false` · vrai pour un invité de soirée (profil créé par `join_soiree` depuis un compte anonyme) ; écrit par le serveur seulement (migration `soirees_preview_and_guests`) |
 | `created_at` | `timestamptz` | not null · default `now()` |
 
@@ -202,6 +203,10 @@ Une ligne de la commande d'une soirée (migration `soirees`). Texte libre : le c
 | | | **FK composée** `(group_id, profile_id)` → `group_members` `on delete cascade` : une ligne appartient à un membre ; retiré de la soirée, ses lignes partent |
 
 RLS : les membres lisent toutes les lignes de leur soirée ; chacun ajoute et modifie les siennes ; l'auteur **ou le responsable** supprime. Droits par colonne : `insert (group_id, profile_id, label, quantity, note)`, `update (label, quantity, note)`. Le trigger `order_items_lock_soiree` (`lock_soiree_ordering`, verrou partagé) refuse toute écriture hors de l'étape `commande` avec le hint `ordering_closed` : erreur claire, jamais un filtrage silencieux. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
+
+## Photo de profil (migration `profile_photo`, 2026-11-25)
+
+Bucket **privé** `avatars` : 1 Mo au plus, `image/jpeg` seulement (contrôlé par Supabase). Un dossier par compte (`<id>/`), un nouveau fichier à chaque envoi (pas de cache périmé), l'ancien supprimé. Règles sur `storage.objects` : envoyer et supprimer dans son seul dossier (jamais un compte anonyme) ; lire, donc créer un lien temporaire, si c'est sa photo ou si `shares_group_with(dossier)` (un groupe ou une soirée en commun). Supabase interdit de supprimer un fichier en SQL (`protect_objects_delete`) : l'app efface ses photos (`removeAllMyPhotos`) **avant** `delete_account`. Réduction à 512 px sur le téléphone (métadonnées et position GPS effacées). Tests : `tests/integration/photos.test.ts`.
 
 ## Règles que le schéma seul ne garantit pas
 
