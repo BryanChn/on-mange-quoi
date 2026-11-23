@@ -26,6 +26,8 @@ export type VoteSession = {
   groupId: string;
   // Rappelé dans l'en-tête : un membre de plusieurs groupes sait pour lequel il vote.
   groupName: string;
+  // Vote « Où on mange ? » d'une soirée : on y propose des restos, pas des plats.
+  isSoiree: boolean;
   members: Member[];
   // null : l'organisateur a quitté le groupe ou supprimé son compte.
   organizerName: string | null;
@@ -161,7 +163,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     .from("vote_sessions")
     .select(
       `group_id, status, organizer_id, winner_proposal_id, decided_by, created_at, closed_at,
-      groups(owner_id, name, ${MEMBER_COLUMNS}),
+      groups(owner_id, name, kind, ${MEMBER_COLUMNS}),
       proposals!proposals_session_id_fkey(id, name, proposed_by, votes(profile_id))`,
     )
     .eq("id", sessionId)
@@ -180,6 +182,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     groupId: data.group_id,
     // Toujours présent : la RLS ne montre une session qu'aux membres de son groupe.
     groupName: data.groups?.name ?? "",
+    isSoiree: data.groups?.kind === "soiree",
     members,
     organizerName: data.organizer_id ? (nameById.get(data.organizer_id) ?? null) : null,
     createdAt: data.created_at,
