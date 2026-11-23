@@ -14,7 +14,21 @@
         "foregroundImage": "./assets/images/omq-android-foreground.png",
         "monochromeImage": "./assets/images/omq-android-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "on-mange-quoi.expo.app",
+              "pathPrefix": "/rejoindre/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "single",
@@ -39,6 +53,14 @@
         {
           "icon": "./assets/images/omq-notification.png",
           "color": "#C93421"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "On mange quoi ? accède à tes photos pour ta photo de profil.",
+          "cameraPermission": "On mange quoi ? utilise l’appareil photo pour ta photo de profil.",
+          "microphonePermission": false
         }
       ]
     ],

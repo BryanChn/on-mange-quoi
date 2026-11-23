@@ -155,6 +155,13 @@ export async function addMembersDirectly(groupId: string, users: TestUser[]): Pr
   if (error) throw error;
 }
 
+// Fichiers de la photo de profil d'un compte (clé admin : voit au-delà des règles d'accès).
+export async function listPhotos(userId: string): Promise<string[]> {
+  const { data, error } = await admin.storage.from("avatars").list(userId);
+  if (error) throw error;
+  return data.map((file) => `${userId}/${file.name}`);
+}
+
 // Exécute ce que pg_cron lance toutes les heures, à l'heure choisie.
 export async function purgeSoirees(referenceTime: Date): Promise<number> {
   const { data, error } = await admin.rpc("purge_soirees", {

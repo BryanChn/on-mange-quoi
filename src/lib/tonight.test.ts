@@ -27,9 +27,9 @@ import {
 
 const ME = "me";
 const members: Member[] = [
-  { id: ME, name: "Bryan", joinedAt: "2026-10-01T10:00:00Z", avatar: null },
-  { id: "c", name: "Camille", joinedAt: "2026-10-02T10:00:00Z", avatar: "chat" },
-  { id: "l", name: "Léa", joinedAt: "2026-10-03T10:00:00Z", avatar: null },
+  { id: ME, name: "Bryan", joinedAt: "2026-10-01T10:00:00Z", avatar: null, photoPath: null },
+  { id: "c", name: "Camille", joinedAt: "2026-10-02T10:00:00Z", avatar: "chat", photoPath: null },
+  { id: "l", name: "Léa", joinedAt: "2026-10-03T10:00:00Z", avatar: null, photoPath: null },
 ];
 // Jeudi 12 novembre 2026, 19 h, heure du téléphone.
 const now = new Date(2026, 10, 12, 19, 0);
@@ -59,21 +59,27 @@ test("toMembers : nom de secours, avatar transmis, du plus ancien au plus récen
     {
       profile_id: "b",
       joined_at: "2026-10-02T10:00:00Z",
-      profiles: { display_name: "Léa", avatar: "pizza" },
+      profiles: { display_name: "Léa", avatar: "pizza", photo_path: "b/photo.jpg" },
     },
     { profile_id: "a", joined_at: "2026-10-01T10:00:00Z", profiles: null },
   ];
   assert.deepEqual(toMembers(rows), [
-    { id: "a", name: "Un membre", joinedAt: "2026-10-01T10:00:00Z", avatar: null },
-    { id: "b", name: "Léa", joinedAt: "2026-10-02T10:00:00Z", avatar: "pizza" },
+    { id: "a", name: "Un membre", joinedAt: "2026-10-01T10:00:00Z", avatar: null, photoPath: null },
+    {
+      id: "b",
+      name: "Léa",
+      joinedAt: "2026-10-02T10:00:00Z",
+      avatar: "pizza",
+      photoPath: "b/photo.jpg",
+    },
   ]);
 });
 
 test("pickSuccessor : le plus ancien des autres, l'identifiant départage, personne si seul", () => {
   assert.equal(pickSuccessor(members, ME)?.name, "Camille");
   const sameDay = [
-    { id: "z", name: "Zoé", joinedAt: "2026-10-05T10:00:00Z", avatar: null },
-    { id: "y", name: "Yann", joinedAt: "2026-10-05T10:00:00Z", avatar: null },
+    { id: "z", name: "Zoé", joinedAt: "2026-10-05T10:00:00Z", avatar: null, photoPath: null },
+    { id: "y", name: "Yann", joinedAt: "2026-10-05T10:00:00Z", avatar: null, photoPath: null },
   ];
   assert.equal(pickSuccessor([...sameDay, members[0]], ME)?.name, "Yann");
   assert.equal(pickSuccessor([members[0]], ME), null);

@@ -1,7 +1,15 @@
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useUpdates } from "expo-updates";
 import { useMemo, useState } from "react";
-import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -17,6 +25,7 @@ import type { AvatarId } from "@/lib/avatar";
 import { signOut } from "@/lib/notifications";
 import { openPrivacyPolicy } from "@/lib/privacy";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
+import { pickProfilePhoto, type PhotoSource } from "@/lib/profile-photo-picker";
 import { canCheckForUpdates, fetchLatestUpdate, restartOnLatestUpdate } from "@/lib/updates";
 import { useTheme, type Theme } from "@/theme";
 
@@ -39,7 +48,7 @@ export default function AccountScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
-  const { profile, saveDisplayName, saveAvatar } = useProfile();
+  const { profile, saveDisplayName, saveAvatar, savePhoto } = useProfile();
   const displayName = profile?.display_name ?? "";
 
   const [isRenaming, setIsRenaming] = useState(false);
@@ -52,6 +61,8 @@ export default function AccountScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  // Appareil photo refusé : on propose d'ouvrir les réglages du téléphone.
+  const [isCameraDenied, setIsCameraDenied] = useState(false);
   const { currentlyRunning } = useUpdates();
   const [updateCheck, setUpdateCheck] = useState<UpdateCheck>("idle");
 
@@ -62,6 +73,37 @@ export default function AccountScreen() {
       await saveAvatar(avatar);
     } catch {
       setAvatarError("Impossible d’enregistrer ton avatar. Vérifie ton réseau et réessaie.");
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  }
+
+  // Comme dans les autres apps : prendre une photo, ou en choisir une dans la galerie.
+  async function handlePickPhoto(source: PhotoSource) {
+    setAvatarError(null);
+    setIsCameraDenied(false);
+    setIsSavingAvatar(true);
+    try {
+      const picked = await pickProfilePhoto(source);
+      if (picked.kind === "denied") {
+        setIsCameraDenied(true);
+      } else if (picked.kind === "picked") {
+        await savePhoto(picked.bytes);
+      }
+    } catch {
+      setAvatarError("Impossible d’enregistrer ta photo. Vérifie ton réseau et réessaie.");
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  }
+
+  async function handleRemovePhoto() {
+    setAvatarError(null);
+    setIsSavingAvatar(true);
+    try {
+      await savePhoto(null);
+    } catch {
+      setAvatarError("Impossible de retirer ta photo. Vérifie ton réseau et réessaie.");
     } finally {
       setIsSavingAvatar(false);
     }
@@ -162,7 +204,12 @@ export default function AccountScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.identity}>
-          <Avatar name={displayName} avatar={profile?.avatar} size={72} />
+          <Avatar
+            name={displayName}
+            avatar={profile?.avatar}
+            photoPath={profile?.photo_path}
+            size={72}
+          />
           <Text style={styles.title} accessibilityRole="header">
             {displayName}
           </Text>
@@ -195,8 +242,42 @@ export default function AccountScreen() {
 
         {!isRenaming && !isConfirming ? (
           <>
+            <ListCard>
+              {/* Pas d'appareil photo sur la version web. */}
+              {Platform.OS !== "web" ? (
+                <ListRow
+                  icon="camera"
+                  label="Prendre une photo"
+                  onPress={() => handlePickPhoto("camera")}
+                  isDisabled={isSavingAvatar}
+                />
+              ) : null}
+              <ListRow
+                icon="image"
+                label="Choisir dans la galerie"
+                onPress={() => handlePickPhoto("library")}
+                isDisabled={isSavingAvatar}
+              />
+              {profile?.photo_path ? (
+                <ListRow
+                  icon="x-circle"
+                  label="Retirer la photo"
+                  onPress={handleRemovePhoto}
+                  isDisabled={isSavingAvatar}
+                />
+              ) : null}
+            </ListCard>
+            {isCameraDenied ? (
+              <Card>
+                <Text style={styles.text}>
+                  L’appareil photo est bloqué pour l’app. Autorise-le dans les réglages du
+                  téléphone, ou choisis une photo dans la galerie.
+                </Text>
+                <TextButton label="Ouvrir les réglages" onPress={() => Linking.openSettings()} />
+              </Card>
+            ) : null}
             <Card>
-              <Text style={styles.confirmTitle}>Ton avatar</Text>
+              <Text style={styles.confirmTitle}>Ou un avatar</Text>
               <AvatarPicker
                 name={displayName}
                 selected={profile?.avatar ?? null}
@@ -208,7 +289,11 @@ export default function AccountScreen() {
                   {avatarError}
                 </Text>
               ) : (
-                <Text style={styles.hint}>La photo perso arrive avec une prochaine version.</Text>
+                <Text style={styles.hint}>
+                  {profile?.photo_path
+                    ? "Ta photo est affichée. Choisir un avatar la retire."
+                    : "Le même partout, en clair comme en sombre."}
+                </Text>
               )}
             </Card>
             <ListCard>
