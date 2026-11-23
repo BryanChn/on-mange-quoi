@@ -1,24 +1,26 @@
 # Journal de bord
 
-État du projet au **2026-11-20**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-23**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
 ### Prochaine conversation : par où commencer
 
-#### ⏸️ Arrêt du 2026-11-20 : la suite à faire
+#### 🟢 Point du lundi 2026-11-23
 
-Session arrêtée le 2026-11-20 en début d'après-midi. Tout est mergé et publié (dernière mise à jour EAS `6a08ca13`) ; seule #44 reste ouverte. Détail de la journée juste en dessous.
+- **Feu vert, semaine 1 réussie** : semaine du 16 (partielle, 19 au 22) = **4 soirs sur 4** (votes clôturés les 19, 20, 21 et 22). Encore **2 semaines réussies de suite** (du 23/11 au 6/12) : feu vert au plus tôt le dimanche 6 décembre. Même requête chaque lundi (date de départ `2026-11-19`).
+- **Rappel unique : pas encore de cas réel, mais pas de panne.** La tâche `pg_cron` `vote-reminders` tourne (393 exécutions réussies). Le 21/11 (lancé à 13 h 35), l'autre membre a proposé et voté à 14 h 01, avant l'heure du rappel ; les 20 et 22, le vote a été clos dans la minute. À observer encore.
+- **Déconnexion et jeton push : vérifié.** `signOut()` (`src/lib/notifications.ts`) supprime le jeton *avant* de déconnecter (après, la RLS filtrerait la ligne sans erreur) ; la suppression du compte l'efface en cascade. Scénario SQL `test-push-tokens` n°11 et 13 OK ; en base, un seul jeton par membre.
+- **Types régénérés** (`npm run db:types`) : la base locale était en retard de 2 migrations (`supabase migration up --local`, sans `reset`). Avatar et rappel identiques à la version écrite à la main ; ajout de `push_tickets` et `call_edge_function`, oubliés depuis le 17/11 (dans `public` mais fermés à l'app par `revoke` : types seulement, aucun accès). Le fichier est de nouveau 100 % généré. `tsc`, lint, 55 tests unitaires, 46 tests d'intégration, scénarios SQL : tout vert.
+- **Piège** : avant `db:types`, toujours `supabase migration up --local`. Sinon on génère les types d'une base ancienne et le diff montre de fausses suppressions.
 
-**Tâches à faire (sans nouvel APK)**
+**Tâches restantes (sans nouvel APK)**
 
 | # | Tâche | Détail |
 | --- | --- | --- |
-| 1 | Feu vert | Un vote **clôturé** chaque soir jusqu'au dimanche 22 (4 soirs pour la semaine partielle). Lancer la requête `private.feu_vert` le lundi 23. Rappel unique en ligne depuis le 20/11 vers 11 h 40 : en tenir compte. |
-| 2 | Observer le rappel unique | Premier cas réel : un membre ne fait rien pendant 1 h après le lancement (avant 21 h) → « Le vote t'attend… ». Vérifier en base : `select reminder_sent_at from vote_sessions` et `net._http_response` (réponse de `notify-vote`). |
-| 3 | Régénérer les types | Docker Desktop lancé : `npm run db:start`, `npm run db:types` (diff attendu : nul, types complétés à la main pour #64 et #65), puis `npm run db:test`. |
-| 4 | Contrôle restant | La déconnexion supprime-t-elle le jeton de `push_tokens` ? |
+| 1 | Feu vert | Un vote **clôturé** chaque soir ; requête `private.feu_vert` les lundis 30/11 et 7/12. |
+| 2 | Observer le rappel unique | Premier cas réel : un membre ne fait rien pendant 1 h après le lancement (avant 21 h). Vérifier `reminder_sent_at` et `net._http_response`. |
 | 5 | Test avec 3 à 5 proches | Groupe « Test » (jamais « Maison »), test des 5 secondes + 6 tâches (lancer, proposer, voter, décider, roulette, changer d'avatar), ne pas aider, noter ; corriger ce qui bloque au moins 2 personnes. Puis un **test en temps réel à plusieurs**. |
 | 6 | Captures du README | Elles montrent l'ancien design (avant la carte signature et les avatars) : c'est la première chose que voit un recruteur. |
 | 7 | Politique de confidentialité | Obligatoire avant les stores : notifications, avatar, données minimales (RGPD), suppression du compte. |
