@@ -1,0 +1,4 @@
+# Exploration autorisée : chaque page porte <meta name="robots" content="noindex">,
+# que Google doit pouvoir lire. Bloquer ici l'empêcherait de voir ce noindex.
+User-agent: *
+Allow: /
