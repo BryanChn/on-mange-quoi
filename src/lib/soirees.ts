@@ -1,5 +1,6 @@
 import type { Enums } from "./database.types";
 import { compareByJoinDate, type Member } from "./members";
+import type { OrderLine } from "./soiree-rules";
 import { supabase } from "./supabase";
 
 // Soirées (V1) : un groupe éphémère pour organiser un repas à plusieurs. Règles côté serveur
@@ -12,10 +13,12 @@ export type SoireeStep = Enums<"soiree_step">;
 const WEB_URL = "https://on-mange-quoi.expo.app";
 
 export function soireeLink(joinToken: string): string {
-  return `${WEB_URL}/s/${joinToken}`;
+  return `${WEB_URL}/rejoindre/${joinToken}`;
 }
 
 export type SoireeMember = Member & { isGuest: boolean };
+
+export type OrderItem = OrderLine & { id: string };
 
 export type SoireeDetail = {
   id: string;
@@ -26,6 +29,8 @@ export type SoireeDetail = {
   joinToken: string;
   // Du plus ancien au plus récent.
   members: SoireeMember[];
+  // Dans l'ordre d'ajout.
+  items: OrderItem[];
 };
 
 export type SoireePreview = {
@@ -51,14 +56,20 @@ export async function createSoiree(name: string): Promise<{ id: string; joinToke
 
 // single : une soirée absente, ou dont on n'est pas membre (masquée par la RLS), lève une erreur.
 export async function fetchSoiree(soireeId: string): Promise<SoireeDetail> {
-  const { data, error } = await supabase
-    .from("groups")
-    .select(SOIREE_COLUMNS)
-    .eq("id", soireeId)
-    .eq("kind", "soiree")
-    .single();
+  // Deux requêtes en parallèle : order_items pointe vers group_members (FK composée), pas
+  // vers groups, donc PostgREST ne peut pas l'embarquer dans la requête de la soirée.
+  const [soireeResult, itemsResult] = await Promise.all([
+    supabase.from("groups").select(SOIREE_COLUMNS).eq("id", soireeId).eq("kind", "soiree").single(),
+    supabase
+      .from("order_items")
+      .select("id, profile_id, label, quantity, note")
+      .eq("group_id", soireeId)
+      .order("created_at", { ascending: true }),
+  ]);
 
+  const { data, error } = soireeResult;
   if (error) throw error;
+  if (itemsResult.error) throw itemsResult.error;
   if (!data.soiree_step || !data.join_token) throw new Error("Ce groupe n'est pas une soirée.");
 
   return {
@@ -77,6 +88,13 @@ export async function fetchSoiree(soireeId: string): Promise<SoireeDetail> {
         isGuest: row.profiles?.is_guest ?? false,
       }))
       .sort(compareByJoinDate),
+    items: itemsResult.data.map((item) => ({
+      id: item.id,
+      profileId: item.profile_id,
+      label: item.label,
+      quantity: item.quantity,
+      note: item.note,
+    })),
   };
 }
 
@@ -153,6 +171,56 @@ export async function removeParticipant(soireeId: string, profileId: string): Pr
   if (data.length === 0) throw new Error("Participant non retiré.");
 }
 
+// ─── la commande ─────────────────────────────────────────
+// Hors de l'étape « commande », le serveur refuse avec le hint ordering_closed
+// (isOrderingClosedError) : l'écran recharge et montre la commande figée.
+
+// Mêmes limites que les colonnes de order_items.
+export const ORDER_LABEL_MAX_LENGTH = 80;
+export const ORDER_NOTE_MAX_LENGTH = 120;
+export const ORDER_MAX_QUANTITY = 20;
+
+export function isOrderingClosedError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "hint" in error
+    ? error.hint === "ordering_closed"
+    : false;
+}
+
+export async function addOrderItem(
+  soireeId: string,
+  item: { label: string; note: string | null },
+): Promise<void> {
+  const note = item.note?.trim() ? item.note.trim() : null;
+  const { error } = await supabase
+    .from("order_items")
+    .insert({ group_id: soireeId, label: item.label.trim(), note, quantity: 1 });
+  if (error) throw error;
+}
+
+// La RLS ne laisse modifier que ses lignes : 0 ligne touchée = pas la sienne (ou supprimée).
+export async function setOrderItemQuantity(itemId: string, quantity: number): Promise<void> {
+  const { data, error } = await supabase
+    .from("order_items")
+    .update({ quantity })
+    .eq("id", itemId)
+    .select("id");
+  if (error) throw error;
+  if (data.length === 0) throw new Error("Ligne non modifiée.");
+}
+
+// Sa ligne, ou celle de n'importe qui pour le responsable.
+export async function removeOrderItem(itemId: string): Promise<void> {
+  const { data, error } = await supabase.from("order_items").delete().eq("id", itemId).select("id");
+  if (error) throw error;
+  if (data.length === 0) throw new Error("Ligne non retirée.");
+}
+
+// « Commande passée » (responsable) : tout se fige, 24 h d'historique.
+export async function markOrdered(soireeId: string): Promise<void> {
+  const { error } = await supabase.rpc("mark_ordered", { target_group_id: soireeId });
+  if (error) throw error;
+}
+
 // Le responsable fixe le resto sans vote : la commande s'ouvre.
 export async function chooseRestaurant(soireeId: string, restaurant: string): Promise<void> {
   const { error } = await supabase.rpc("choose_restaurant", {
@@ -166,7 +234,8 @@ export async function chooseRestaurant(soireeId: string, restaurant: string): Pr
 // sans nouvel événement avant de recharger, une seule fois.
 const RELOAD_DELAY_MS = 300;
 
-// Appelle onChange quand quelqu'un arrive ou part, ou que l'étape change. Pas de filtre sur
+// Appelle onChange quand quelqu'un arrive ou part, que l'étape change ou qu'une ligne de
+// commande bouge. Pas de filtre sur
 // group_members : un DELETE ne transporte que la clé (limite de Supabase Realtime, voir
 // subscribeToHome) ; la RLS ne laisse passer que les soirées et groupes du membre.
 export function subscribeToSoiree(soireeId: string, onChange: () => void): () => void {
@@ -189,6 +258,8 @@ export function subscribeToSoiree(soireeId: string, onChange: () => void): () =>
       { event: "*", schema: "public", table: "groups", filter: `id=eq.${soireeId}` },
       scheduleReload,
     )
+    // Les lignes de commande des autres, en direct (sans filtre : même raison que plus haut).
+    .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, scheduleReload)
     .subscribe();
 
   return () => {

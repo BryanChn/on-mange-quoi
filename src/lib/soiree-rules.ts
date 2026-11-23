@@ -52,3 +52,86 @@ export const JOIN_FAILURE_MESSAGES: Record<JoinFailure, { title: string; message
     message: "C'est le nom que les autres verront.",
   },
 };
+
+// ─── récapitulatif de la commande ────────────────────────
+
+export type OrderLine = {
+  profileId: string;
+  label: string;
+  quantity: number;
+  note: string | null;
+};
+
+// Une ligne du récapitulatif pour le comptoir : « 3× Kebab sauce blanche », et qui l'a pris.
+export type OrderSummaryLine = {
+  label: string;
+  note: string | null;
+  quantity: number;
+  // « Tom », ou « Tom ×2 » s'il en a pris plusieurs, dans l'ordre d'arrivée des lignes.
+  people: string[];
+};
+
+// « Kebab  Sauce blanche » et « kebab sauce blanche » sont le même article.
+function normalize(text: string | null): string {
+  return (text ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("fr");
+}
+
+function tidy(text: string): string {
+  return text.trim().replace(/\s+/g, " ");
+}
+
+// Regroupe les lignes identiques (même article, même remarque) et additionne les quantités.
+// Une remarque différente fait une ligne à part : sinon le « sans oignon » se perd au comptoir.
+// Les plus demandés d'abord, puis par ordre alphabétique.
+export function summarizeOrder(
+  items: OrderLine[],
+  nameOf: (profileId: string) => string,
+): OrderSummaryLine[] {
+  const groups = new Map<
+    string,
+    { label: string; note: string | null; quantity: number; byPerson: Map<string, number> }
+  >();
+
+  for (const item of items) {
+    const key = `${normalize(item.label)}\u0000${normalize(item.note)}`;
+    const group = groups.get(key) ?? {
+      label: tidy(item.label),
+      note: item.note && item.note.trim() !== "" ? tidy(item.note) : null,
+      quantity: 0,
+      byPerson: new Map<string, number>(),
+    };
+    group.quantity += item.quantity;
+    group.byPerson.set(item.profileId, (group.byPerson.get(item.profileId) ?? 0) + item.quantity);
+    groups.set(key, group);
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      label: group.label,
+      note: group.note,
+      quantity: group.quantity,
+      people: [...group.byPerson].map(([profileId, quantity]) =>
+        quantity > 1 ? `${nameOf(profileId)} ×${quantity}` : nameOf(profileId),
+      ),
+    }))
+    .sort((a, b) => b.quantity - a.quantity || a.label.localeCompare(b.label, "fr"));
+}
+
+// Le récapitulatif en texte, à coller dans une conversation ou à lire au comptoir.
+export function orderText(restaurant: string | null, lines: OrderSummaryLine[]): string {
+  const total = lines.reduce((sum, line) => sum + line.quantity, 0);
+  const header = `${restaurant ?? "Commande"} · ${total} article${total > 1 ? "s" : ""}`;
+  const body = lines.map(
+    (line) => `${line.quantity}× ${line.label}${line.note ? ` (${line.note})` : ""}`,
+  );
+  return [header, ...body].join("\n");
+}
+
+// Qui n'a encore rien commandé (dans l'ordre d'arrivée dans la soirée).
+export function namesWithoutOrder(
+  members: { id: string; name: string }[],
+  items: OrderLine[],
+): string[] {
+  const ordered = new Set(items.map((item) => item.profileId));
+  return members.filter((member) => !ordered.has(member.id)).map((member) => member.name);
+}

@@ -16,3 +16,14 @@ export async function shareSoiree(name: string, joinToken: string): Promise<"sha
   await Share.share({ message });
   return "shared";
 }
+
+// Le récapitulatif de la commande : copié sur le web, partagé sur téléphone (vers les notes,
+// WhatsApp…). Pas de presse-papiers natif sans module (expo-clipboard demanderait un APK).
+export async function shareOrderText(text: string): Promise<"shared" | "copied"> {
+  if (Platform.OS === "web" && typeof navigator !== "undefined") {
+    await navigator.clipboard.writeText(text);
+    return "copied";
+  }
+  await Share.share({ message: text });
+  return "shared";
+}
