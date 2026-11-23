@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bryanchn.onmangequoi",
+      "sha256_cert_fingerprints": [
+        "BD:05:00:8E:85:B1:F2:9B:7B:C0:59:17:DC:BA:A5:69:6C:8E:30:97:1A:C6:DC:F3:80:74:8D:52:FA:AC:6A:B5"
+      ]
+    }
+  }
+]
