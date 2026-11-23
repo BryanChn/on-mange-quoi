@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 
 import { sessionIdFromNotification } from "./notification-link";
+import { clearPhotoUrlCache } from "./photo-storage";
 import { supabase } from "./supabase";
 
 // Notifications push (MVP) : lancement et résultat d'un vote. L'envoi se fait côté serveur ;
@@ -91,6 +92,7 @@ export async function signOut(): Promise<void> {
     // oublié, qui changera de propriétaire à la prochaine connexion sur ce téléphone.
     if (__DEV__) console.warn("Jeton push non supprimé à la déconnexion", error);
   }
+  clearPhotoUrlCache();
   await supabase.auth.signOut();
 }
 

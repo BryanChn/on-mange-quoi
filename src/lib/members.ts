@@ -3,18 +3,25 @@
 
 // avatar : tel qu'en base (null = l'initiale). Le composant Avatar le valide (toAvatarId) :
 // pas d'import ici, pour que ce fichier reste testable avec node --test.
-export type Member = { id: string; name: string; joinedAt: string; avatar: string | null };
+export type Member = {
+  id: string;
+  name: string;
+  joinedAt: string;
+  avatar: string | null;
+  // Photo perso (chemin dans le stockage), prioritaire sur l'avatar dessiné.
+  photoPath: string | null;
+};
 
 // Forme renvoyée par la jointure group_members(profile_id, joined_at, profiles(…)).
 export type MemberRow = {
   profile_id: string;
   joined_at: string;
-  profiles: { display_name: string; avatar: string | null } | null;
+  profiles: { display_name: string; avatar: string | null; photo_path: string | null } | null;
 };
 
 // La jointure est sélectionnée partout avec ce texte : une seule source, pas de faute de frappe.
 export const MEMBER_COLUMNS =
-  "group_members(profile_id, joined_at, profiles(display_name, avatar))";
+  "group_members(profile_id, joined_at, profiles(display_name, avatar, photo_path))";
 
 // Même ordre que leave_group : le plus ancien d'abord (joined_at), puis l'identifiant pour
 // départager. Les uuid en minuscules se comparent comme Postgres les trie.
@@ -31,6 +38,7 @@ export function toMembers(rows: MemberRow[]): Member[] {
       name: row.profiles?.display_name ?? "Un membre",
       joinedAt: row.joined_at,
       avatar: row.profiles?.avatar ?? null,
+      photoPath: row.profiles?.photo_path ?? null,
     }))
     .sort(compareByJoinDate);
 }

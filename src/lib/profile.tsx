@@ -1,14 +1,15 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
 
 import { updateMyAvatar } from "./account";
+import { removeProfilePhoto, uploadProfilePhoto } from "./photo-storage";
 import type { AvatarId } from "./avatar";
 import type { Tables } from "./database.types";
 import { useSession } from "./session";
 import { supabase } from "./supabase";
 
-type Profile = Pick<Tables<"profiles">, "id" | "display_name" | "avatar">;
+type Profile = Pick<Tables<"profiles">, "id" | "display_name" | "avatar" | "photo_path">;
 
-const PROFILE_COLUMNS = "id, display_name, avatar";
+const PROFILE_COLUMNS = "id, display_name, avatar, photo_path";
 
 // Même limite que la colonne profiles.display_name.
 export const DISPLAY_NAME_MAX_LENGTH = 30;
@@ -31,8 +32,10 @@ type ProfileState = {
   reload: () => Promise<void>;
   // Crée le profil à la première connexion, ou change le nom ensuite.
   saveDisplayName: (displayName: string) => Promise<void>;
-  // Avatar prédéfini, ou null pour revenir à l'initiale.
+  // Avatar prédéfini, ou null pour revenir à l'initiale. Retire la photo perso s'il y en a une.
   saveAvatar: (avatar: AvatarId | null) => Promise<void>;
+  // Photo perso (JPEG déjà réduit), ou null pour la retirer.
+  savePhoto: (bytes: Uint8Array | null) => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileState | null>(null);
@@ -109,9 +112,23 @@ export function ProfileProvider({ children }: PropsWithChildren) {
 
   async function saveAvatar(avatar: AvatarId | null) {
     if (!userId || !current?.profile) throw new Error("Aucun profil chargé.");
+    // Choisir un dessin, c'est renoncer à la photo : sinon elle continuerait de s'afficher.
+    if (current.profile.photo_path) await removeProfilePhoto(current.profile.photo_path);
     await updateMyAvatar(avatar);
-    const updated = { ...current.profile, avatar };
+    const updated = { ...current.profile, avatar, photo_path: null };
     setLoaded({ userId, profile: updated, hasFailed: false });
+  }
+
+  async function savePhoto(bytes: Uint8Array | null) {
+    if (!userId || !current?.profile) throw new Error("Aucun profil chargé.");
+    const previous = current.profile.photo_path;
+    let photo_path: string | null = null;
+    if (bytes) {
+      photo_path = await uploadProfilePhoto(bytes, previous);
+    } else if (previous) {
+      await removeProfilePhoto(previous);
+    }
+    setLoaded({ userId, profile: { ...current.profile, photo_path }, hasFailed: false });
   }
 
   const value: ProfileState = {
@@ -122,6 +139,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     reload,
     saveDisplayName,
     saveAvatar,
+    savePhoto,
   };
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
