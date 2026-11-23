@@ -7,6 +7,16 @@
 
 ### Prochaine conversation : par où commencer
 
+#### 🚀 V1 lancée le 2026-11-23 : les soirées
+
+- **Décision** : le feu vert ne bloque plus la suite (#70). Le projet sert d'abord à apprendre ; la mesure reste un indicateur.
+- **Première fonctionnalité de la V1 : les soirées** (commande groupée + invités sans compte). Périmètre dans `CLAUDE.md` (section V1), étude : https://claude.ai/artifact/7GqZQEu78cCoVNV2refUQ7. Première version de l'étude fausse (j'avais compris « des invités qui votent ») : refaite après ma description d'une vraie soirée kebab.
+- **5 PR prévues** : (1) base de données, (2) app web en ligne (EAS Hosting), (3) créer et rejoindre une soirée, (4) où on mange puis la commande, (5) le lien ouvre l'app (avec le lot APK : photo de profil, haptique, #44). L'APK attend plusieurs fonctionnalités.
+- **PR 1 (`feat/soirees-base`)** : migration `soirees`, 23 tests d'intégration, contre-épreuve faite. **Mise en ligne, dans l'ordre** : `npm run db:push` (la migration bloque les anonymes), **puis seulement** activer la connexion anonyme dans le tableau de bord (Authentication → Sign In / Providers → « Allow anonymous sign-ins »). Dans l'autre ordre, un anonyme pourrait rejoindre un foyer avec un code. Rien ne presse : l'app n'utilise pas encore les soirées (activer avant la PR 3).
+- **Piège pour la PR 3** : `fetchGroups` (`src/lib/groups.ts`) lit tous les groupes ; une soirée y apparaîtrait comme un foyer. Filtrer `kind = 'foyer'` dans la liste des groupes.
+- **Piège Postgres** : un trigger `BEFORE` passe avant le `WITH CHECK` de la RLS. Un non-membre qui écrit une ligne est refusé par le verrou (`ordering_closed`, message neutre) avant la RLS.
+- **Piège des tests** : `createUser` numérote ses emails ; en parallèle (`Promise.all`), deux comptes auraient le même email. Créer les comptes un par un.
+
 #### 🟢 Point du lundi 2026-11-23
 
 - **Feu vert, semaine 1 réussie** : semaine du 16 (partielle, 19 au 22) = **4 soirs sur 4** (votes clôturés les 19, 20, 21 et 22). Encore **2 semaines réussies de suite** (du 23/11 au 6/12) : feu vert au plus tôt le dimanche 6 décembre. Même requête chaque lundi (date de départ `2026-11-19`).
