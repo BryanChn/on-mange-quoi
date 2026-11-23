@@ -204,7 +204,7 @@ Une ligne de la commande d'une soirée (migration `soirees`). Texte libre : le c
 
 RLS : les membres lisent toutes les lignes de leur soirée ; chacun ajoute et modifie les siennes ; l'auteur **ou le responsable** supprime. Droits par colonne : `insert (group_id, profile_id, label, quantity, note)`, `update (label, quantity, note)`. Le trigger `order_items_lock_soiree` (`lock_soiree_ordering`, verrou partagé) refuse toute écriture hors de l'étape `commande` avec le hint `ordering_closed` : erreur claire, jamais un filtrage silencieux. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
 
-## Photo de profil (migration `profile_photo`, 2026-11-25)
+## Photo de profil (migration `profile_photo`, 2026-11-23)
 
 Bucket **privé** `avatars` : 1 Mo au plus, `image/jpeg` seulement (contrôlé par Supabase). Un dossier par compte (`<id>/`), un nouveau fichier à chaque envoi (pas de cache périmé), l'ancien supprimé. Règles sur `storage.objects` : envoyer et supprimer dans son seul dossier (jamais un compte anonyme) ; lire, donc créer un lien temporaire, si c'est sa photo ou si `shares_group_with(dossier)` (un groupe ou une soirée en commun). Supabase interdit de supprimer un fichier en SQL (`protect_objects_delete`) : l'app efface ses photos (`removeAllMyPhotos`) **avant** `delete_account`. Réduction à 512 px sur le téléphone (métadonnées et position GPS effacées). Tests : `tests/integration/photos.test.ts`.
 
@@ -241,7 +241,7 @@ Une soirée est un groupe `kind = 'soiree'` : les invités en deviennent membres
 - Responsable qui part : la soirée passe au membre le plus ancien, comme un foyer, même s'il est invité anonyme (il peut alors passer la commande).
 - Tests : `tests/integration/soirees.test.ts` (23 cas, contre-épreuve faite sur le blocage des anonymes).
 - **Aperçu du lien** (migration `soirees_preview_and_guests`) : `soiree_preview(jeton)`, ouverte au rôle `anon` (le visiteur n'a pas encore de compte) : nom, prénom du responsable, étape, nombre de participants, les 5 premiers (prénom, avatar), « déjà membre ? ». Ni code d'invitation, ni commande, ni votes. Le jeton est le secret.
-- **Code d'une soirée** (migration `join_group_soirees`, 2026-11-24) : `join_group(code)` accepte aussi le code d'une soirée (quelqu'un qui a l'app, avec son compte), avec les mêmes refus que le lien : `soiree_closed`, `soiree_full`. Même signature (APK installés).
+- **Code d'une soirée** (migration `join_group_soirees`, 2026-11-23) : `join_group(code)` accepte aussi le code d'une soirée (quelqu'un qui a l'app, avec son compte), avec les mêmes refus que le lien : `soiree_closed`, `soiree_full`. Même signature (APK installés).
 - Temps réel : `group_members` et `groups` ajoutés à la publication (qui arrive, l'étape qui change). Tests de l'app : `tests/integration/soirees-app.test.ts`.
 
 ## Mesure du feu vert (schéma `private`)

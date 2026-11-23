@@ -1,6 +1,6 @@
 # Politique de confidentialité — On mange quoi ?
 
-Dernière mise à jour : 25 novembre 2026 (photo de profil).
+Dernière mise à jour : 23 novembre 2026 (photo de profil).
 
 On mange quoi ? aide un groupe (un foyer, des amis) à décider ensemble de ce qu'il mange. Cette page explique, simplement, quelles données l'app utilise, pourquoi, avec qui elles sont partagées et comment les effacer.
 

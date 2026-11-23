@@ -1,11 +1,46 @@
 # Journal de bord
 
-État du projet au **2026-11-23**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-23** (soir), pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
 
 ### Prochaine conversation : par où commencer
+
+#### ⏭️ Prochaine session : ce qui reste à faire
+
+Session close le 2026-11-23 au soir. Tout est mergé et en ligne sauf cette PR de journal (#80). Mes retours sur l'APK arrivent à la prochaine session.
+
+**1. D'abord : l'APK `63ec05ef` et mes retours**
+
+| # | Tâche | Détail |
+| --- | --- | --- |
+| 1 | Installer l'APK sur les deux téléphones | Lien ci-dessous (bloc « Build »), par-dessus l'ancien, comptes gardés |
+| 2 | Tester le lot | Lien de soirée qui ouvre l'app ; vibrations (cocher, roulette, refus) ; photo prise, vue sur l'autre téléphone, retirée ; version dans Mon compte |
+| 3 | Une vraie soirée | Créer, inviter (lien et code), voter le resto, commander à plusieurs, « Commande passée ». Noter ce qui bloque ou surprend |
+| 4 | Traiter mes retours | Une branche `fix/…` par retour, une PR chacune (points d'avis dans la conversation, pas dans la PR) |
+| 5 | Merger #80 | Ce journal |
+
+**2. Petits correctifs connus**
+
+| Tâche | Détail |
+| --- | --- |
+| « Gagné au vote · aucun vote » | Vote clos sans aucune voix : libellé contradictoire (foyers et soirées). Au backlog |
+| Seul dans une soirée | Deux cartes fortes se suivent (« Invite tes amis », « Où on mange ? ») : à revoir si ça paraît chargé à l'usage |
+| Captures du README | Montrent l'ancien design, sans soirées ni photo : la première chose que voit un recruteur |
+
+**3. V1 · Cuisiner : la suite (dans l'ordre de la roadmap)**
+
+| Fonctionnalité | Note |
+| --- | --- |
+| Catalogue des enseignes | Autocomplétion des articles (JSON maintenu à la main, texte libre en secours) : règle « Tacos » / « Tacos XL » |
+| Partage de la note | Chacun paie sa part (décidé : plus tard) |
+| Liste de courses, recettes | Reste de la V1 |
+| Tests de bout en bout dans le dépôt | Playwright dans la CI (le script du 2026-11-23 existe hors dépôt : 16 vérifications de la soirée complète) |
+
+**4. Avant les stores (backlog)** : signaler ou bloquer quelqu'un (règle 1.2 de l'App Store, photos de profil) ; purge des photos orphelines ; nom du responsable dans la politique de confidentialité ; service d'envoi des codes (le dossier « Envoyés » de Gmail garde adresses et codes) ; CAPTCHA sur la connexion anonyme ; réglage des notifications ; limiter les essais de `join_group`.
+
+**5. Indicateur** : feu vert (ne bloque plus rien), requête `private.feu_vert` le lundi 30/11.
 
 #### 📦 Build `63ec05ef` du 2026-11-23 : à installer sur les deux téléphones
 
@@ -26,14 +61,14 @@
 - **PR 4 (`feat/soirees-commande`)** : le vote d'une soirée parle de **restos** (`isSoiree` dans `fetchSession`, même texte avec « resto » à la place de « plat », deux mots masculins), et son résultat mène à « Écrire ma commande ». Commande (`src/components/soiree-order.tsx`) : ajouter une ligne (article, remarque), + / − / retirer, récap pour le comptoir (`summarizeOrder` : mêmes article et remarque additionnés, majuscules et espaces ignorés, remarque différente = ligne à part), « Pas encore commandé : … », « Partager le récap » (copie sur le web, partage sur téléphone : pas de presse-papiers natif sans APK), « Commande passée » (responsable, avec confirmation). Dossier `src/app/s/` renommé **`src/app/rejoindre/`** (URL `/rejoindre/<jeton>`) : un dossier d'une lettre ne disait rien à la lecture ; fait avant tout lien partagé. Parcours complet dans un navigateur, à deux en même temps : 16 vérifications vertes.
 - **Piège PostgREST** : on n'embarque une table liée (`groups → order_items`) que s'il existe une clé étrangère directe ; `order_items` pointe vers `group_members`. Deuxième requête en parallèle (`Promise.all`).
 - **Piège shell** : `pkill -f "motif"` tue aussi le shell dont la ligne de commande contient ce motif (code 144).
-- **Mise en ligne des PR 3 et 4 faite le 2026-11-24** : migration `soirees_preview_and_guests` poussée (vérifiée en lecture), mise à jour EAS `60909dca` (« Soirées : … », runtime `fc288ef…`), site en production (`/rejoindre/<jeton>` vérifié sur la vraie base).
-- **Premier retour d'usage des soirées (2026-11-24)** : (1) le partage ouvert d'office à la création n'est pas intuitif → « Créer la soirée » ouvre la soirée, carte « Invite tes amis » tant qu'on est seul ; (2) quelqu'un qui a déjà l'app → le code de la soirée (affiché, et dans le message partagé) dans « Rejoindre avec un code », qui mène à la soirée (migration `join_group_soirees`). Le lien qui ouvre l'app viendra avec l'APK (PR 5, App Links).
-- **Lot APK (2026-11-24), en PR empilées, toutes en brouillon jusqu'au jour du build** : A App Links (`feat/app-links`, depuis `main`), B haptique, C photo de profil, D #44. Chaque PR part de la précédente et met à jour `.runtime-fingerprint` (cumulatif, pas de conflit). Le jour du build : merger dans l'ordre (GitHub rebranche la suivante sur `main`), publier les mises à jour EAS en attente **avant**, puis build, installation sur les deux téléphones, test complet.
+- **Mise en ligne des PR 3 et 4 faite le 2026-11-23** : migration `soirees_preview_and_guests` poussée (vérifiée en lecture), mise à jour EAS `60909dca` (« Soirées : … », runtime `fc288ef…`), site en production (`/rejoindre/<jeton>` vérifié sur la vraie base).
+- **Premier retour d'usage des soirées (2026-11-23)** : (1) le partage ouvert d'office à la création n'est pas intuitif → « Créer la soirée » ouvre la soirée, carte « Invite tes amis » tant qu'on est seul ; (2) quelqu'un qui a déjà l'app → le code de la soirée (affiché, et dans le message partagé) dans « Rejoindre avec un code », qui mène à la soirée (migration `join_group_soirees`). Le lien qui ouvre l'app viendra avec l'APK (PR 5, App Links).
+- **Lot APK (2026-11-23), en PR empilées, toutes en brouillon jusqu'au jour du build** : A App Links (`feat/app-links`, depuis `main`), B haptique, C photo de profil, D #44. Chaque PR part de la précédente et met à jour `.runtime-fingerprint` (cumulatif, pas de conflit). Le jour du build : merger dans l'ordre (GitHub rebranche la suivante sur `main`), publier les mises à jour EAS en attente **avant**, puis build, installation sur les deux téléphones, test complet.
 - **App Links (PR A)** : `android.intentFilters` (https, `on-mange-quoi.expo.app`, `/rejoindre/`, `autoVerify`) et `public/.well-known/assetlinks.json` (paquet `com.bryanchn.onmangequoi`, empreinte SHA-256 du certificat EAS `BD:05:00:…:6A:B5`, lue dans l'APK `71c4ac98` : signature v2/v3 seulement, pas de `META-INF/*.RSA`, lue avec un petit script Python faute d'`apksigner`). Vérifié sur un aperçu : 200, `application/json`, sans redirection, et validé par l'API Digital Asset Links de Google. **Ne pas régénérer le keystore EAS** : l'empreinte changerait et les liens rouvriraient le navigateur. Le site de production doit servir ce fichier avant l'installation du nouvel APK (Android vérifie à l'installation).
 - **Haptique (PR B, `feat/haptique`, empilée sur A)** : `expo-haptics`, `src/lib/haptics.ts` (4 fonctions : `hapticToggle`, `hapticTick`, `hapticConfirm`, `hapticReject`). Android : `performAndroidHapticsAsync` (réglage du téléphone respecté, pas de permission). Branché sur : cocher / décocher (avec la case optimiste), chaque cran de la roulette puis son arrêt, une clôture vue en direct, « Commande passée », toute action refusée. Rien sur le web.
-- **Photo de profil (PR C, `feat/photo-profil`, empilée sur B)** : « Prendre une photo » et « Choisir dans la galerie » dans Mon compte (galerie seule sur le web), recadrage carré, réduction à 512 px en JPEG (`expo-image-picker`, `expo-image-manipulator`), stockage privé (voir `docs/schema.md`), `Avatar` affiche la photo par lien temporaire mis en cache (vidé à la déconnexion : téléphone partagé). Choisir un avatar dessiné retire la photo. Contre-épreuve faite sur la règle de lecture. Pour reporter `main` dans la pile : merger `main` dans A, puis A dans B, puis B dans C (pas de rebase, pas de force push) ; conflit du journal résolu à la main le 2026-11-25.
+- **Photo de profil (PR C, `feat/photo-profil`, empilée sur B)** : « Prendre une photo » et « Choisir dans la galerie » dans Mon compte (galerie seule sur le web), recadrage carré, réduction à 512 px en JPEG (`expo-image-picker`, `expo-image-manipulator`), stockage privé (voir `docs/schema.md`), `Avatar` affiche la photo par lien temporaire mis en cache (vidé à la déconnexion : téléphone partagé). Choisir un avatar dessiné retire la photo. Contre-épreuve faite sur la règle de lecture. Pour reporter `main` dans la pile : merger `main` dans A, puis A dans B, puis B dans C (pas de rebase, pas de force push) ; conflit du journal résolu à la main le 2026-11-23.
 - **Dépendances (PR D, `chore/dependances`, empilée sur C, remplace #44)** : `npx expo install --fix` (correctifs du SDK 58 : Expo 58.0.26, React Native 0.88.1, Expo Router 58.0.32…) et `npm audit fix` sans `--force`. Restent 3 failles modérées dans l'outillage (`@expo/fingerprint`), acceptées comme dans #44. `expo-doctor` : 20/20. #44 refaite au sommet de la pile plutôt que rebasée (conflit sur un `package-lock.json` généré).
-- **Navigation des invités** (`_layout.tsx`) : `isGuest = session.user.is_anonymous`. Membres seulement : accueil, groupes, compte, créer une soirée. Membres et invités : soirée et vote. Invité sans lien → `/guest`, qui le renvoie à sa soirée. `/rejoindre/[token]` sans garde, et **jamais démontée** pendant l'arrivée (`isJoinRoute`, dossier `src/app/rejoindre/`, renommé le 2026-11-24 : un dossier `s` ne disait rien à la lecture) : sinon la connexion anonyme remplace la navigation par l'écran de chargement et le pseudo tapé est perdu.
+- **Navigation des invités** (`_layout.tsx`) : `isGuest = session.user.is_anonymous`. Membres seulement : accueil, groupes, compte, créer une soirée. Membres et invités : soirée et vote. Invité sans lien → `/guest`, qui le renvoie à sa soirée. `/rejoindre/[token]` sans garde, et **jamais démontée** pendant l'arrivée (`isJoinRoute`, dossier `src/app/rejoindre/`, renommé le 2026-11-23 : un dossier `s` ne disait rien à la lecture) : sinon la connexion anonyme remplace la navigation par l'écran de chargement et le pseudo tapé est perdu.
 - **Pièges de la PR 3** : (1) `reload()` du profil lit la session courante, pas la closure (appelée juste après la connexion anonyme, elle aurait lu `userId = null`) ; (2) un module testé avec node ne doit pas importer `react-native` (`SyntaxError: Unexpected token 'typeof'`) : le partage est dans `share-soiree.ts` ; (3) routes typées locales : `.expo/types/router.d.ts` n'est régénéré que par `expo start` (la CI n'en a pas) ; (4) un test qui compte « les soirées de Bea » dépend des tests précédents : un compte neuf par test d'état global.
 - **Test de bout en bout dans un navigateur** (hors dépôt, dossier temporaire) : export web pointé sur Supabase local (`EXPO_PUBLIC_SUPABASE_URL=…` devant `expo export`), petit serveur avec repli sur `index.html`, `playwright-core` + Chromium de `~/.cache/ms-playwright`. 11 vérifications du parcours invité, toutes vertes. À intégrer au dépôt un jour (backlog).
 - **Piège pour la PR 3** : `fetchGroups` (`src/lib/groups.ts`) lit tous les groupes ; une soirée y apparaîtrait comme un foyer. Filtrer `kind = 'foyer'` dans la liste des groupes.

@@ -87,7 +87,7 @@ Le tirage s'affiche comme une **roulette animée** sur tous les téléphones. Le
 
 Étude : https://claude.ai/artifact/7GqZQEu78cCoVNV2refUQ7. Une soirée remplace les commandes notées sur papier ou envoyées par WhatsApp.
 
-1. Tout compte réel crée une soirée, puis invite quand il veut (pas de partage imposé à la création, retour d'usage du 2026-11-24) : un lien (WhatsApp, SMS), qu'on ouvre dans un navigateur avec un pseudo, même sans l'app ; ou le code de la soirée, que quelqu'un qui a l'app tape dans « Rejoindre avec un code » (mêmes règles que le lien). Le lien ouvrira directement l'app avec le prochain APK (App Links).
+1. Tout compte réel crée une soirée, puis invite quand il veut (pas de partage imposé à la création, retour d'usage du 2026-11-23) : un lien (WhatsApp, SMS), qu'on ouvre dans un navigateur avec un pseudo, même sans l'app ; ou le code de la soirée, que quelqu'un qui a l'app tape dans « Rejoindre avec un code » (mêmes règles que le lien). Le lien ouvrira directement l'app avec le prochain APK (App Links).
 2. « Où on mange ? » : vote existant avec des restaurants, ou resto fixé directement par le responsable (vote facultatif).
 3. Puis la liste de commande : chacun ajoute ses lignes (texte libre, quantité, remarque) et voit celles des autres, en direct. Le responsable a le récapitulatif (regroupé pour le comptoir, et par personne).
 4. Le responsable marque « Commande passée » : tout se fige, historique de 24 h, puis la soirée et les comptes invités sont effacés (soirée abandonnée : 7 jours).
