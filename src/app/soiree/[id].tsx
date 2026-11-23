@@ -444,7 +444,7 @@ function MemberRow({
     .join(", ");
   const content = (
     <>
-      <Avatar name={member.name} avatar={member.avatar} size={40} />
+      <Avatar name={member.name} avatar={member.avatar} photoPath={member.photoPath} size={40} />
       <View style={styles.memberText}>
         <Text style={styles.memberName} numberOfLines={1}>
           {member.name}

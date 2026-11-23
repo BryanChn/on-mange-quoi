@@ -6,6 +6,7 @@
 // Mêmes exports que la version native, typés par elle : si l'une change, TypeScript signale
 // l'autre.
 import type * as Native from "./notifications";
+import { clearPhotoUrlCache } from "./photo-storage";
 import { supabase } from "./supabase";
 
 export type RedirectState = Native.RedirectState;
@@ -15,6 +16,7 @@ export const registerForPushNotifications: typeof Native.registerForPushNotifica
 
 // Aucun jeton à supprimer sur le web.
 export const signOut: typeof Native.signOut = async () => {
+  clearPhotoUrlCache();
   await supabase.auth.signOut();
 };
 

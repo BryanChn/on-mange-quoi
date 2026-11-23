@@ -1,6 +1,6 @@
 # Politique de confidentialité — On mange quoi ?
 
-Dernière mise à jour : 24 novembre 2026 (soirées et invités sans compte).
+Dernière mise à jour : 25 novembre 2026 (photo de profil).
 
 On mange quoi ? aide un groupe (un foyer, des amis) à décider ensemble de ce qu'il mange. Cette page explique, simplement, quelles données l'app utilise, pourquoi, avec qui elles sont partagées et comment les effacer.
 
@@ -24,6 +24,7 @@ Contact pour toute question sur tes données : **omq.app@gmail.com**.
 | Adresse email | Te connecter avec un code à 6 chiffres (pas de mot de passe) | Personne d'autre que toi |
 | Nom affiché | Montrer aux membres de tes groupes qui propose et qui vote | Les membres de tes groupes |
 | Avatar (un dessin choisi dans une liste, ou ton initiale) | T'identifier d'un coup d'œil | Les membres de tes groupes |
+| Photo de profil (facultative), prise avec l'appareil photo ou choisie dans ta galerie | T'identifier d'un coup d'œil. Réduite à 512 px sur ton téléphone avant l'envoi, ce qui efface ses métadonnées (dont la position GPS) | Les membres de tes groupes et de tes soirées seulement (stockage privé, liens temporaires) |
 | Groupes et appartenance (date d'arrivée, rôle de responsable) | Faire fonctionner les groupes et transmettre le rôle de responsable si celui-ci part | Les membres du groupe |
 | Votes : plats proposés, plats approuvés, plat décidé, avec leur date | Le cœur de l'app : décider ensemble. **Les votes ne sont pas anonymes** : chaque membre voit qui a approuvé quoi | Les membres du groupe |
 | Soirée : nom, resto choisi, lignes de commande (article, quantité, remarque) | Organiser un repas à plusieurs et passer une commande groupée | Les participants de la soirée |
@@ -33,7 +34,7 @@ Contact pour toute question sur tes données : **omq.app@gmail.com**.
 
 Sur ton téléphone (ou dans ton navigateur, pour un invité), l'app garde seulement ta session de connexion (pour ne pas te redemander un code à chaque ouverture) et le numéro de la dernière mise à jour qu'elle t'a annoncée.
 
-L'app ne demande **ni ta position, ni tes contacts, ni l'accès à tes photos**, et n'utilise aucun traceur publicitaire.
+L'app ne demande **ni ta position, ni tes contacts**. Elle n'accède à l'appareil photo ou à ta galerie que si tu choisis d'ajouter une photo de profil, et seulement à la photo que tu sélectionnes. Elle n'utilise aucun traceur publicitaire.
 
 ## Sur quelle base légale
 
@@ -58,7 +59,7 @@ Quand un prestataire traite des données hors de l'Union européenne, ce transfe
 
 | Donnée | Durée |
 | --- | --- |
-| Compte, nom, avatar | Tant que ton compte existe |
+| Compte, nom, avatar, photo de profil | Tant que ton compte existe. Une photo remplacée ou retirée est supprimée tout de suite |
 | Groupes et votes | Tant que le groupe existe : l'historique sert au groupe. Supprimé avec le groupe |
 | Soirée, sa commande et ses votes | 24 h après « Commande passée » ; 7 jours après sa création si la commande n'est jamais passée |
 | Compte invité (pseudo, avatar) | Effacé avec la soirée, ou dans les 2 heures s'il la quitte (tâche de nettoyage horaire) |
@@ -70,7 +71,7 @@ Quand un prestataire traite des données hors de l'Union européenne, ce transfe
 
 Dans l'app : **Mon compte → Supprimer mon compte**. Avant de confirmer, l'app te montre ce qui va se passer. Puis, immédiatement et définitivement :
 
-- ton compte, ton email, ton nom, ton avatar et tes jetons de notification sont effacés ;
+- ton compte, ton email, ton nom, ton avatar, ta photo de profil et tes jetons de notification sont effacés ;
 - tes votes sont effacés ;
 - les plats que tu as proposés et que personne n'a approuvés sont effacés ; ceux qui ont reçu des votes restent dans l'historique du groupe, **sans ton nom** ;
 - dans un groupe dont tu es responsable, le rôle passe au membre le plus ancien ; si tu y es seul, le groupe est supprimé avec ses votes.

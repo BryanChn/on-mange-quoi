@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -11,6 +11,7 @@ import {
   type AvatarId,
 } from "@/lib/avatar";
 import { colorTransition } from "@/lib/motion";
+import { getPhotoUrl } from "@/lib/photo-storage";
 import { useTheme, type Theme } from "@/theme";
 
 // require statiques : Metro doit voir chaque fichier pour l'embarquer dans la mise à jour.
@@ -31,13 +32,36 @@ type AvatarProps = {
   // En attente (n'a pas encore voté). Initiale : rond vide en pointillé. Avatar choisi :
   // le dessin estompé, en pointillé, pour qu'on reconnaisse quand même qui on attend.
   isPending?: boolean;
+  // Photo perso (chemin dans le stockage) : prioritaire sur l'avatar dessiné et l'initiale.
+  photoPath?: string | null;
 };
 
+// Lien temporaire vers la photo. Effet justifié : on se branche sur un système extérieur
+// (le stockage) ; le résultat est mis en cache dans photo-storage.ts.
+function usePhotoUrl(photoPath: string | null | undefined): string | null {
+  const [loaded, setLoaded] = useState<{ path: string; url: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!photoPath) return;
+    let isStale = false;
+    getPhotoUrl(photoPath).then((url) => {
+      if (!isStale) setLoaded({ path: photoPath, url });
+    });
+    return () => {
+      isStale = true;
+    };
+  }, [photoPath]);
+
+  // Une réponse pour une ancienne photo ne vaut rien pour la nouvelle.
+  return photoPath && loaded?.path === photoPath ? loaded.url : null;
+}
+
 // Décoratif : le nom est toujours écrit à côté, un lecteur d'écran n'a rien à lire ici.
-export function Avatar({ name, avatar, size = 32, isPending = false }: AvatarProps) {
+export function Avatar({ name, avatar, size = 32, isPending = false, photoPath }: AvatarProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const avatarId = toAvatarId(avatar);
+  const photoUrl = usePhotoUrl(photoPath);
   const shape = { width: size, height: size, borderRadius: size / 2 };
   const fill = avatarId ? AVATAR_BACKGROUNDS[avatarId] : pickAvatarColor(name, theme.avatarColors);
 
@@ -55,7 +79,15 @@ export function Avatar({ name, avatar, size = 32, isPending = false }: AvatarPro
       importantForAccessibility="no-hide-descendants"
       style={[styles.avatar, shape, colorTransition, stateStyle]}
     >
-      {avatarId ? (
+      {photoUrl ? (
+        // cacheKey : le chemin, stable, et non le lien temporaire, qui change toutes les heures.
+        <Image
+          source={{ uri: photoUrl, cacheKey: photoPath ?? undefined }}
+          style={[styles.picture, isPending && styles.pendingPicture]}
+          contentFit="cover"
+          transition={150}
+        />
+      ) : avatarId ? (
         <Image source={AVATAR_IMAGES[avatarId]} style={styles.picture} contentFit="contain" />
       ) : (
         <Text

@@ -54,6 +54,14 @@
           "icon": "./assets/images/omq-notification.png",
           "color": "#C93421"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "On mange quoi ? accède à tes photos pour ta photo de profil.",
+          "cameraPermission": "On mange quoi ? utilise l’appareil photo pour ta photo de profil.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

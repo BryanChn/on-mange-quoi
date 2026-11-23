@@ -46,7 +46,7 @@ export type SoireePreview = {
 };
 
 const SOIREE_COLUMNS =
-  "id, name, invite_code, owner_id, kind, soiree_step, restaurant, join_token, group_members(profile_id, joined_at, profiles(display_name, avatar, is_guest))";
+  "id, name, invite_code, owner_id, kind, soiree_step, restaurant, join_token, group_members(profile_id, joined_at, profiles(display_name, avatar, photo_path, is_guest))";
 
 // create_soiree : soirée, lien et inscription du créateur dans la même transaction.
 export async function createSoiree(name: string): Promise<{ id: string; joinToken: string }> {
@@ -88,6 +88,7 @@ export async function fetchSoiree(soireeId: string): Promise<SoireeDetail> {
         name: row.profiles?.display_name ?? "Quelqu’un",
         joinedAt: row.joined_at,
         avatar: row.profiles?.avatar ?? null,
+        photoPath: row.profiles?.photo_path ?? null,
         isGuest: row.profiles?.is_guest ?? false,
       }))
       .sort(compareByJoinDate),
