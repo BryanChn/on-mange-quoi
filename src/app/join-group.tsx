@@ -5,7 +5,8 @@ import { KeyboardAvoidingView, StyleSheet, Text } from "react-native";
 
 import { PrimaryButton } from "@/components/primary-button";
 import { TextField } from "@/components/text-field";
-import { joinGroup } from "@/lib/groups";
+import { isSoireeGroup, joinGroup } from "@/lib/groups";
+import { JOIN_FAILURE_MESSAGES, toJoinFailure } from "@/lib/soiree-rules";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne groups.invite_code.
@@ -22,7 +23,7 @@ export default function JoinGroup() {
   async function handleJoin() {
     const cleanCode = code.trim();
     if (cleanCode === "") {
-      setError("Entre le code reçu d’un membre du groupe.");
+      setError("Entre le code reçu d’un membre du groupe ou de la soirée.");
       return;
     }
     setError(null);
@@ -31,13 +32,23 @@ export default function JoinGroup() {
     try {
       const groupId = await joinGroup(cleanCode);
       if (groupId === null) {
-        setError("Ce code ne correspond à aucun groupe.");
+        setError("Ce code ne correspond à aucun groupe ni à aucune soirée.");
         return;
       }
       // replace : le bouton retour ramène à la liste, pas à ce formulaire déjà envoyé.
-      router.replace({ pathname: "/group/[id]", params: { id: groupId } });
-    } catch {
-      setError("Impossible de rejoindre le groupe. Vérifie ton réseau et réessaie.");
+      if (await isSoireeGroup(groupId)) {
+        router.replace({ pathname: "/soiree/[id]", params: { id: groupId } });
+      } else {
+        router.replace({ pathname: "/group/[id]", params: { id: groupId } });
+      }
+    } catch (joinError) {
+      // Soirée : commande déjà passée, ou complète (mêmes règles que le lien).
+      const failure = toJoinFailure(joinError);
+      setError(
+        failure
+          ? JOIN_FAILURE_MESSAGES[failure].title
+          : "Impossible de rejoindre. Vérifie ton réseau et réessaie.",
+      );
     } finally {
       setIsJoining(false);
     }
@@ -50,8 +61,8 @@ export default function JoinGroup() {
       keyboardVerticalOffset={headerHeight}
     >
       <Text style={styles.subtitle}>
-        Demande le code d’invitation à un membre du groupe. Majuscules et espaces n’ont pas
-        d’importance.
+        Le code d’un groupe ou d’une soirée, reçu d’un de ses membres. Majuscules et espaces n’ont
+        pas d’importance.
       </Text>
       <TextField
         label="Code d’invitation"

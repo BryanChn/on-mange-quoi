@@ -117,7 +117,7 @@ export default function SoireeScreen() {
     setError(null);
     setNotice(null);
     try {
-      const outcome = await shareSoiree(detail.name, detail.joinToken);
+      const outcome = await shareSoiree(detail.name, detail.joinToken, detail.inviteCode);
       if (outcome === "copied") setNotice("Lien copié : colle-le dans ta conversation.");
     } catch {
       setError("Impossible de partager le lien. Réessaie.");
@@ -221,6 +221,18 @@ export default function SoireeScreen() {
         </Text>
         <Steps current={soiree.step} styles={styles} />
       </View>
+
+      {/* Seul dans sa soirée : inviter est la prochaine chose à faire. */}
+      {soiree.members.length === 1 && soiree.step !== "passee" && !isGuest ? (
+        <Card>
+          <Text style={styles.cardTitle}>Invite tes amis</Text>
+          <Text style={styles.muted}>
+            Envoie le lien : on rejoint depuis un navigateur, même sans l’app. Ceux qui ont l’app
+            peuvent aussi taper le code {soiree.inviteCode} dans « Rejoindre avec un code ».
+          </Text>
+          <PrimaryButton label="Inviter" onPress={() => handleShare(soiree)} />
+        </Card>
+      ) : null}
 
       {soiree.step === "choix" ? (
         openVoteId ? (
@@ -332,7 +344,7 @@ export default function SoireeScreen() {
             <ListRow
               icon="user-plus"
               label="Inviter quelqu’un"
-              subtitle="Lien à partager"
+              subtitle={`Lien à partager, ou code ${soiree.inviteCode}`}
               onPress={() => handleShare(soiree)}
             />
           ) : null}

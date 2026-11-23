@@ -67,6 +67,14 @@ export async function joinGroup(code: string): Promise<string | null> {
   return data;
 }
 
+// Après « Rejoindre avec un code » : le même code mène à un foyer ou à une soirée, chacun
+// a son écran.
+export async function isSoireeGroup(groupId: string): Promise<boolean> {
+  const { data, error } = await supabase.from("groups").select("kind").eq("id", groupId).single();
+  if (error) throw error;
+  return data.kind === "soiree";
+}
+
 // Indicatif, pour prévenir avant de quitter : leave_group refait le calcul côté serveur.
 export async function fetchLeaveImpact(groupId: string): Promise<LeaveImpact> {
   const userId = await getUserId();
