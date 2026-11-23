@@ -26,6 +26,9 @@ type ProfileState = {
   isLoading: boolean;
   hasFailed: boolean;
   retry: () => void;
+  // Relit le profil sans repasser par l'état « chargement » : après join_soiree, qui crée
+  // le profil d'un invité sur le serveur.
+  reload: () => Promise<void>;
   // Crée le profil à la première connexion, ou change le nom ensuite.
   saveDisplayName: (displayName: string) => Promise<void>;
   // Avatar prédéfini, ou null pour revenir à l'initiale.
@@ -79,6 +82,16 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     setAttempt((count) => count + 1);
   }
 
+  // Lit le compte dans la session plutôt que userId : appelée juste après une connexion
+  // anonyme, depuis une fonction créée avant elle, userId y vaudrait encore null.
+  async function reload() {
+    const { data } = await supabase.auth.getSession();
+    const currentUserId = data.session?.user.id;
+    if (!currentUserId) throw new Error("Aucun compte connecté.");
+    const profile = await fetchProfile(currentUserId);
+    setLoaded({ userId: currentUserId, profile, hasFailed: false });
+  }
+
   async function saveDisplayName(displayName: string) {
     if (!userId) throw new Error("Aucun compte connecté.");
 
@@ -106,6 +119,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     isLoading: userId !== null && current === null,
     hasFailed: current?.hasFailed ?? false,
     retry,
+    reload,
     saveDisplayName,
     saveAvatar,
   };

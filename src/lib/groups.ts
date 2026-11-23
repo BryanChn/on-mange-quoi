@@ -18,11 +18,13 @@ export type LeaveImpact =
 // Code renvoyé par join_group quand aucun groupe ne correspond.
 const INVALID_INVITE_CODE = "P0002";
 
-// Pas de filtre sur l'utilisateur : la RLS ne renvoie déjà que ses groupes.
+// Pas de filtre sur l'utilisateur : la RLS ne renvoie déjà que ses groupes. Les soirées
+// (groupes éphémères) ont leur propre liste.
 export async function fetchGroups(): Promise<Group[]> {
   const { data, error } = await supabase
     .from("groups")
     .select("id, name")
+    .eq("kind", "foyer")
     .order("created_at", { ascending: true });
 
   if (error) throw error;

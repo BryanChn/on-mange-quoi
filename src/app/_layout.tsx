@@ -3,7 +3,7 @@ import {
   BricolageGrotesque_800ExtraBold,
   useFonts,
 } from "@expo-google-fonts/bricolage-grotesque";
-import { Stack } from "expo-router";
+import { Stack, useSegments } from "expo-router";
 
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { useNotificationRedirect, usePushRegistration } from "@/lib/notifications";
@@ -33,9 +33,17 @@ function RootNavigator() {
   const { profile, isLoading: isProfileLoading, hasFailed, retry } = useProfile();
   const [fontsLoaded] = useFonts({ BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold });
   const { colors, fonts } = useTheme();
+  const segments = useSegments();
+  // Invité d'une soirée : connexion anonyme, sans email. Il n'a accès qu'à sa soirée.
+  const isGuest = session?.user.is_anonymous === true;
+  // Page du lien d'une soirée (/s/<jeton>) : ouverte à tous, et elle gère elle-même son
+  // chargement. Elle ne doit pas être démontée quand un invité se connecte (la session
+  // change, le profil se recharge) : il perdrait son pseudo en pleine arrivée.
+  const isJoinRoute = segments[0] === "s";
   // Avant les retours anticipés (règle des hooks). Seulement avec un profil : on ne
-  // demande pas la permission sur l'écran de connexion ou de choix du nom.
-  usePushRegistration(profile ? session?.user.id : undefined);
+  // demande pas la permission sur l'écran de connexion ou de choix du nom. Jamais pour un
+  // invité (pas de notification pour les invités, V1).
+  usePushRegistration(profile && !isGuest ? session?.user.id : undefined);
   // Mises à jour EAS sans intervention : vérifiées au retour dans l'app, appliquées d'elles-
   // mêmes après une longue absence (voir src/lib/updates.ts).
   useAutomaticUpdates();
@@ -56,10 +64,10 @@ function RootNavigator() {
   }
 
   // Tant que le profil n'est pas chargé, on ne sait pas s'il faut demander le nom.
-  if (isProfileLoading) {
+  if (isProfileLoading && !isJoinRoute) {
     return <LoadingScreen />;
   }
-  if (hasFailed) {
+  if (hasFailed && !isJoinRoute) {
     // Sans ce profil, impossible de savoir s'il faut demander le nom : on ne devine pas.
     return (
       <ErrorScreen
@@ -73,9 +81,16 @@ function RootNavigator() {
 
   const isSignedIn = session !== null;
   const hasProfile = profile !== null;
+  const isMember = hasProfile && !isGuest;
 
   // Toutes les gardes renvoient au même écran : celui qui correspond à l'état du compte.
-  const homeRoute = hasProfile ? "/" : isSignedIn ? "/choose-name" : "/sign-in";
+  const homeRoute = !isSignedIn
+    ? "/sign-in"
+    : isGuest
+      ? "/guest"
+      : hasProfile
+        ? "/"
+        : "/choose-name";
 
   return (
     <Stack
@@ -87,18 +102,30 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Protected guard={hasProfile} redirectTo={homeRoute}>
+      {/* Membres (compte avec email) seulement. */}
+      <Stack.Protected guard={isMember} redirectTo={homeRoute}>
         {/* L'accueil porte son propre titre ; « Accueil » sert au libellé du bouton retour. */}
         <Stack.Screen name="index" options={{ title: "Accueil", headerShown: false }} />
         <Stack.Screen name="create-group" options={{ title: "Nouveau groupe" }} />
         <Stack.Screen name="join-group" options={{ title: "Rejoindre un groupe" }} />
         {/* Le nom du groupe est le grand titre de l'écran : l'en-tête ne garde que le retour. */}
         <Stack.Screen name="group/[id]" options={{ title: "" }} />
-        <Stack.Screen name="session/[id]" options={{ title: "Le vote" }} />
+        <Stack.Screen name="soiree/new" options={{ title: "Nouvelle soirée" }} />
         <Stack.Screen name="account" options={{ title: "Profil" }} />
       </Stack.Protected>
 
-      <Stack.Protected guard={isSignedIn && !hasProfile} redirectTo={homeRoute}>
+      {/* Membres et invités : la soirée et son vote « Où on mange ? ». */}
+      <Stack.Protected guard={hasProfile} redirectTo={homeRoute}>
+        <Stack.Screen name="soiree/[id]" options={{ title: "" }} />
+        <Stack.Screen name="session/[id]" options={{ title: "Le vote" }} />
+      </Stack.Protected>
+
+      {/* Invité arrivé sans lien (page rechargée, onglet rouvert) : renvoyé à sa soirée. */}
+      <Stack.Protected guard={isGuest} redirectTo={homeRoute}>
+        <Stack.Screen name="guest" options={{ headerShown: false }} />
+      </Stack.Protected>
+
+      <Stack.Protected guard={isSignedIn && !hasProfile && !isGuest} redirectTo={homeRoute}>
         <Stack.Screen name="choose-name" options={{ headerShown: false }} />
       </Stack.Protected>
 
@@ -106,6 +133,9 @@ function RootNavigator() {
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="verify" options={{ title: "Ton code" }} />
       </Stack.Protected>
+
+      {/* Lien d'une soirée : sans garde, avec ou sans compte. */}
+      <Stack.Screen name="s/[token]" options={{ headerShown: false }} />
     </Stack>
   );
 }

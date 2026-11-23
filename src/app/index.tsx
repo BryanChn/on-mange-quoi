@@ -14,7 +14,7 @@ import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { UpdateBanner } from "@/components/update-banner";
 import { TextButton } from "@/components/text-button";
 import { getInitial } from "@/lib/avatar";
-import { fetchHome, subscribeToHome, type Home } from "@/lib/home";
+import { fetchHome, subscribeToHome, type Home, type HomeSoiree } from "@/lib/home";
 import { useProfile } from "@/lib/profile";
 import {
   groupSubtitle,
@@ -152,6 +152,12 @@ export default function Index() {
 
       <UpdateBanner />
 
+      {/* Une soirée en cours passe avant « Ce soir » : elle a une échéance. Carte blanche,
+          pour ne pas concurrencer la carte de couleur. */}
+      {home.soirees.map((soiree) => (
+        <SoireeCard key={soiree.id} soiree={soiree} styles={styles} />
+      ))}
+
       {hasGroups ? (
         <>
           <TonightCard
@@ -179,6 +185,12 @@ export default function Index() {
                   onPress={() => router.push({ pathname: "/group/[id]", params: { id: group.id } })}
                 />
               ))}
+              <ListRow
+                icon="star"
+                label="Organiser une soirée"
+                subtitle="Kebab, pizza… chacun écrit sa commande"
+                onPress={() => router.push("/soiree/new")}
+              />
               <ListRow
                 icon="plus"
                 label="Créer un groupe"
@@ -326,6 +338,42 @@ function TonightCard({
 }
 
 // Premier lancement : aucun groupe. Une assiette vide, et les deux façons d'en avoir un.
+const SOIREE_STEP_LABELS: Record<HomeSoiree["step"], string> = {
+  choix: "Où on mange ?",
+  commande: "Commande ouverte",
+  passee: "Commande passée",
+};
+
+// Une soirée en cours : son étape, qui vient. S'ouvre au toucher.
+function SoireeCard({ soiree, styles }: { soiree: HomeSoiree; styles: Styles }) {
+  const count = soiree.members.length;
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: "/soiree/[id]", params: { id: soiree.id } })}
+      accessibilityRole="button"
+      accessibilityLabel={`Soirée ${soiree.name}, ${SOIREE_STEP_LABELS[soiree.step]}, ${count} ${count > 1 ? "personnes" : "personne"}`}
+      style={({ pressed }) => pressed && styles.pressed}
+    >
+      <Card>
+        <View style={styles.soireeTop}>
+          <Chip label={SOIREE_STEP_LABELS[soiree.step]} hasDot={soiree.step !== "passee"} />
+          <Text style={styles.muted}>
+            {count} {count > 1 ? "personnes" : "personne"}
+          </Text>
+        </View>
+        <Text style={styles.cardTitle}>{soiree.name}</Text>
+        <View style={styles.avatars}>
+          {soiree.members.slice(0, MAX_AVATARS).map((member, index) => (
+            <View key={member.id} style={[styles.avatarRing, index > 0 && styles.avatarOverlap]}>
+              <Avatar name={member.name} avatar={member.avatar} size={28} />
+            </View>
+          ))}
+        </View>
+      </Card>
+    </Pressable>
+  );
+}
+
 function EmptyHome({ styles }: { styles: Styles }) {
   return (
     <View style={styles.empty}>
@@ -341,6 +389,7 @@ function EmptyHome({ styles }: { styles: Styles }) {
       <View style={styles.emptyActions}>
         <PrimaryButton label="Créer un groupe" onPress={() => router.push("/create-group")} />
         <TextButton label="J’ai un code d’invitation" onPress={() => router.push("/join-group")} />
+        <TextButton label="Organiser une soirée" onPress={() => router.push("/soiree/new")} />
       </View>
     </View>
   );
@@ -386,6 +435,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     avatarRing: { borderWidth: 2, borderColor: colors.surface, borderRadius: radius.pill },
     avatarOverlap: { marginLeft: -spacing.sm },
     error: { color: colors.danger, fontSize: fontSize.small },
+    soireeTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     section: { gap: spacing.md },
     sectionTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
     empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },

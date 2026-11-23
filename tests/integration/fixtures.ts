@@ -122,6 +122,23 @@ export async function signInAsNewGuest(): Promise<TestGuest> {
   return guest;
 }
 
+// Un invité créé par le code de l'app (joinSoiree se connecte lui-même) : à supprimer aussi.
+export async function trackCurrentGuest(): Promise<TestGuest> {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session || !data.session.user.is_anonymous) throw new Error("Pas d'invité connecté.");
+  const guest = {
+    id: data.session.user.id,
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+  };
+  createdGuests.push(guest);
+  return guest;
+}
+
+export async function signOutCompletely(): Promise<void> {
+  await supabase.auth.signOut({ scope: "local" });
+}
+
 export async function signInAsGuest(guest: TestGuest): Promise<void> {
   const { error } = await supabase.auth.setSession({
     access_token: guest.accessToken,
