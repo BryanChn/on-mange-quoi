@@ -91,14 +91,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar": string | null,"created_at": string,"display_name": string,"id": string
+                    "avatar": string | null,"created_at": string,"display_name": string,"id": string,"is_guest": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar"?: string | null,"created_at"?: string,"display_name": string,"id": string
+                    "avatar"?: string | null,"created_at"?: string,"display_name": string,"id": string,"is_guest"?: boolean
                   }
                   Update: {
-                    "avatar"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string
+                    "avatar"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"is_guest"?: boolean
                   }
                   Relationships: [
                     
@@ -379,6 +379,11 @@ isOneToOne: false
                            },
 "send_vote_reminders":
 { Args: { "reference_time"?: string }; Returns: number
+                           },
+"soiree_preview":
+{ Args: { "token": string }; Returns: {
+              "id": string,"is_member": boolean,"member_count": number,"members": Json,"name": string,"owner_name": string,"step": Database["public"]['Enums']["soiree_step"]
+            }[]
                            }
           }
           Enums: {
