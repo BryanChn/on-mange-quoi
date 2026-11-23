@@ -91,14 +91,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar": string | null,"created_at": string,"display_name": string,"id": string,"is_guest": boolean
+                    "avatar": string | null,"created_at": string,"display_name": string,"id": string,"is_guest": boolean,"photo_path": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar"?: string | null,"created_at"?: string,"display_name": string,"id": string,"is_guest"?: boolean
+                    "avatar"?: string | null,"created_at"?: string,"display_name": string,"id": string,"is_guest"?: boolean,"photo_path"?: string | null
                   }
                   Update: {
-                    "avatar"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"is_guest"?: boolean
+                    "avatar"?: string | null,"created_at"?: string,"display_name"?: string,"id"?: string,"is_guest"?: boolean,"photo_path"?: string | null
                   }
                   Relationships: [
                     
@@ -379,6 +379,9 @@ isOneToOne: false
                            },
 "send_vote_reminders":
 { Args: { "reference_time"?: string }; Returns: number
+                           },
+"shares_group_with":
+{ Args: { "folder": string }; Returns: boolean
                            },
 "soiree_preview":
 { Args: { "token": string }; Returns: {
