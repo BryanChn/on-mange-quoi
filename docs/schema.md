@@ -86,6 +86,7 @@ Infos publiques d'un compte. Email et connexion restent dans `auth.users` (pas d
 | `id` | `uuid` | PK · FK → `auth.users(id)` `on delete cascade` |
 | `display_name` | `varchar(30)` | not null · non vide après `trim` |
 | `avatar` | `text` | nullable (null = l'initiale) · `check` dans la liste `chat`, `spaghetti`, `pizza`, `burger`, `avocat`, `ramen` (migration `profile_avatar`) · modifiable par l'app (`grant update (avatar)`), sur son seul profil (RLS) |
+| `is_guest` | `boolean` | not null · default `false` · vrai pour un invité de soirée (profil créé par `join_soiree` depuis un compte anonyme) ; écrit par le serveur seulement (migration `soirees_preview_and_guests`) |
 | `created_at` | `timestamptz` | not null · default `now()` |
 
 ### groups
@@ -234,6 +235,8 @@ Une soirée est un groupe `kind = 'soiree'` : les invités en deviennent membres
 - Un vote ne se lance dans une soirée qu'à l'étape `choix` (politique d'insert de `vote_sessions`).
 - Responsable qui part : la soirée passe au membre le plus ancien, comme un foyer, même s'il est invité anonyme (il peut alors passer la commande).
 - Tests : `tests/integration/soirees.test.ts` (23 cas, contre-épreuve faite sur le blocage des anonymes).
+- **Aperçu du lien** (migration `soirees_preview_and_guests`) : `soiree_preview(jeton)`, ouverte au rôle `anon` (le visiteur n'a pas encore de compte) : nom, prénom du responsable, étape, nombre de participants, les 5 premiers (prénom, avatar), « déjà membre ? ». Ni code d'invitation, ni commande, ni votes. Le jeton est le secret.
+- Temps réel : `group_members` et `groups` ajoutés à la publication (qui arrive, l'étape qui change). Tests de l'app : `tests/integration/soirees-app.test.ts`.
 
 ## Mesure du feu vert (schéma `private`)
 

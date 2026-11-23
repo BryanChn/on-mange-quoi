@@ -1,12 +1,13 @@
 # Politique de confidentialité — On mange quoi ?
 
-Dernière mise à jour : 23 novembre 2026.
+Dernière mise à jour : 24 novembre 2026 (soirées et invités sans compte).
 
 On mange quoi ? aide un groupe (un foyer, des amis) à décider ensemble de ce qu'il mange. Cette page explique, simplement, quelles données l'app utilise, pourquoi, avec qui elles sont partagées et comment les effacer.
 
 **En bref**
 
 - On garde le minimum : ton email, ton nom, ton avatar, tes groupes et tes votes.
+- Invité d'une soirée, sans compte : seulement un pseudo, effacé 24 h après la commande.
 - Pas de publicité, pas de pistage, pas de revente de données, pas d'outil de mesure d'audience.
 - Tu peux supprimer ton compte à tout moment, dans l'app.
 
@@ -25,10 +26,12 @@ Contact pour toute question sur tes données : **omq.app@gmail.com**.
 | Avatar (un dessin choisi dans une liste, ou ton initiale) | T'identifier d'un coup d'œil | Les membres de tes groupes |
 | Groupes et appartenance (date d'arrivée, rôle de responsable) | Faire fonctionner les groupes et transmettre le rôle de responsable si celui-ci part | Les membres du groupe |
 | Votes : plats proposés, plats approuvés, plat décidé, avec leur date | Le cœur de l'app : décider ensemble. **Les votes ne sont pas anonymes** : chaque membre voit qui a approuvé quoi | Les membres du groupe |
+| Soirée : nom, resto choisi, lignes de commande (article, quantité, remarque) | Organiser un repas à plusieurs et passer une commande groupée | Les participants de la soirée |
+| Invité sans compte : pseudo, avatar facultatif, identifiant technique de connexion anonyme | Participer à une soirée sans créer de compte (aucun email demandé) | Les participants de la soirée (pseudo et avatar) |
 | Jeton de notification du téléphone | Te prévenir quand un vote est lancé, te le rappeler une fois si tu n'as pas encore participé, et t'annoncer le plat décidé | Personne (utilisé uniquement par le serveur) |
 | Journaux techniques (adresse IP, date des requêtes) | Sécurité et résolution de pannes | Notre hébergeur, conservés quelques jours au plus |
 
-Sur ton téléphone, l'app garde seulement ta session de connexion (pour ne pas te redemander un code à chaque ouverture) et le numéro de la dernière mise à jour qu'elle t'a annoncée.
+Sur ton téléphone (ou dans ton navigateur, pour un invité), l'app garde seulement ta session de connexion (pour ne pas te redemander un code à chaque ouverture) et le numéro de la dernière mise à jour qu'elle t'a annoncée.
 
 L'app ne demande **ni ta position, ni tes contacts, ni l'accès à tes photos**, et n'utilise aucun traceur publicitaire.
 
@@ -46,7 +49,7 @@ Tes données ne sont **jamais vendues**. Elles passent seulement par les prestat
 | --- | --- | --- |
 | Supabase | Hébergement de la base de données, de la connexion et du serveur | Union européenne (Irlande) |
 | Google (Gmail) | Envoi de l'email contenant ton code de connexion | Peut être hors de l'UE |
-| Expo (650 Industries) | Acheminement des notifications et des mises à jour de l'app | États-Unis |
+| Expo (650 Industries) | Acheminement des notifications et des mises à jour de l'app, hébergement de la page web des soirées (sur Cloudflare) | États-Unis |
 | Google (Firebase Cloud Messaging) | Livraison des notifications sur les téléphones Android | Peut être hors de l'UE |
 
 Quand un prestataire traite des données hors de l'Union européenne, ce transfert est encadré par les garanties prévues par le RGPD (clauses contractuelles types de la Commission européenne ou Data Privacy Framework, selon le prestataire). Le contenu d'une notification se limite au nom du groupe, au nom de la personne qui a lancé le vote et au plat décidé.
@@ -57,6 +60,8 @@ Quand un prestataire traite des données hors de l'Union européenne, ce transfe
 | --- | --- |
 | Compte, nom, avatar | Tant que ton compte existe |
 | Groupes et votes | Tant que le groupe existe : l'historique sert au groupe. Supprimé avec le groupe |
+| Soirée, sa commande et ses votes | 24 h après « Commande passée » ; 7 jours après sa création si la commande n'est jamais passée |
+| Compte invité (pseudo, avatar) | Effacé avec la soirée, ou dans les 2 heures s'il la quitte (tâche de nettoyage horaire) |
 | Jeton de notification | Effacé à la déconnexion ou à la suppression du compte |
 | Suivi d'envoi d'une notification | Effacé dans l'heure qui suit l'envoi |
 | Journaux techniques | Quelques jours au plus |
