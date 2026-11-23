@@ -109,6 +109,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"push_tickets": {
+                  Row: {
+                    "created_at": string,"id": string,"token": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id": string,"token": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"token"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "push_tickets_token_fkey"
+      columns: ["token"]
+isOneToOne: false
+      referencedRelation: "push_tokens"
+      referencedColumns: ["token"]
+    }
+                  ]
                 },"push_tokens": {
                   Row: {
                     "created_at": string,"profile_id": string,"token": string
@@ -193,7 +213,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "close_session":
+            "call_edge_function":
+{ Args: { "function_name": string,"payload": Json }; Returns: undefined
+                           },
+"close_session":
 { Args: { "chosen_proposal_id"?: string,"method"?: Database["public"]['Enums']["decision_method"],"target_session_id": string }; Returns: {
               "closed_at": string | null,
 "created_at": string,
@@ -256,7 +279,7 @@ isOneToOne: false
                            },
 "register_push_token":
 { Args: { "new_token": string }; Returns: undefined
-                           }
+                           },
 "send_vote_reminders":
 { Args: { "reference_time"?: string }; Returns: number
                            }
