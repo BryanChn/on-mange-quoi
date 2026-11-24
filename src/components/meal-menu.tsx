@@ -14,7 +14,7 @@ type MealMenuProps = {
 };
 
 // Le menu d'un repas « chez quelqu'un » : un vote par sujet, tous ouverts en même temps.
-// Le bouton coloré dit la prochaine chose à faire (« Voter ») ; une fois voté, « Voir ».
+// Le bouton coloré dit la prochaine chose à faire (« Proposer », « Voter ») ; une fois voté, « Voir ».
 // Quand le dernier vote se termine : « C'est décidé ! Au menu » avec les gagnants.
 export function MealMenu({ soiree, userId, onOpenVote }: MealMenuProps) {
   const theme = useTheme();
@@ -24,15 +24,13 @@ export function MealMenu({ soiree, userId, onOpenVote }: MealMenuProps) {
 
   function status(vote: MealVote): string {
     if (!vote.isOpen) return vote.winnerName ? "" : "Pas de proposition";
-    const words = topicWords(vote.topic);
-    const proposals =
-      vote.proposalCount === 0
-        ? `Pas encore ${words.of}`
-        : `${vote.proposalCount} proposition${vote.proposalCount > 1 ? "s" : ""}`;
+    // Sans proposition, il n'y a rien à voter : pas de compte de votants.
+    if (vote.proposalCount === 0) return `Pas encore ${topicWords(vote.topic).of}`;
+    const proposals = `${vote.proposalCount} proposition${vote.proposalCount > 1 ? "s" : ""}`;
     const voted = userId !== undefined && vote.voterIds.includes(userId);
     return voted
       ? `${proposals} · tu as voté`
-      : `${proposals} · ${vote.voterIds.length} sur ${memberCount} ${vote.voterIds.length > 1 ? "ont" : "a"} voté`;
+      : `${proposals} · ${vote.voterIds.length}/${memberCount} ont voté`;
   }
 
   return (
@@ -53,7 +51,8 @@ export function MealMenu({ soiree, userId, onOpenVote }: MealMenuProps) {
       {soiree.menu.map((vote) => {
         const label = topicWords(vote.topic).label;
         const hasVoted = userId !== undefined && vote.voterIds.includes(userId);
-        const isNext = vote.isOpen && !hasVoted;
+        // Le bouton coloré : la prochaine chose à faire (proposer le premier, ou voter).
+        const isNext = vote.isOpen && (!hasVoted || vote.proposalCount === 0);
         const line = status(vote);
         return (
           <Pressable
@@ -74,7 +73,7 @@ export function MealMenu({ soiree, userId, onOpenVote }: MealMenuProps) {
             {vote.isOpen ? (
               <View style={[styles.action, isNext && styles.actionNext]}>
                 <Text style={[styles.actionText, isNext && styles.actionTextNext]}>
-                  {isNext ? "Voter" : "Voir"}
+                  {vote.proposalCount === 0 ? "Proposer" : isNext ? "Voter" : "Voir"}
                 </Text>
               </View>
             ) : vote.winnerName ? (
