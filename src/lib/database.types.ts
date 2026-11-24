@@ -169,6 +169,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"shopping_items": {
+                  Row: {
+                    "added_by": string | null,"checked_at": string | null,"checked_by": string | null,"created_at": string,"group_id": string,"id": string,"label": string,"quantity": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"group_id": string,"id"?: string,"label": string,"quantity"?: string | null
+                  }
+                  Update: {
+                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"group_id"?: string,"id"?: string,"label"?: string,"quantity"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shopping_items_added_by_fkey"
+      columns: ["added_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shopping_items_checked_by_fkey"
+      columns: ["checked_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shopping_items_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "groups"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"vote_sessions": {
                   Row: {
                     "closed_at": string | null,"created_at": string,"decided_by": Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id": string,"organizer_id": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["session_status"],"winner_proposal_id": string | null
@@ -327,6 +359,9 @@ isOneToOne: false
                            },
 "is_anonymous_user":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"is_foyer_member":
+{ Args: { "target_group_id": string }; Returns: boolean
                            },
 "is_group_member":
 { Args: { "target_group_id": string }; Returns: boolean
