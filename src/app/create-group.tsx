@@ -33,7 +33,7 @@ export default function CreateGroup() {
       // replace : le bouton retour ramène à la liste, pas à ce formulaire déjà envoyé.
       router.replace({ pathname: "/group/[id]", params: { id: groupId } });
     } catch {
-      setError("Impossible de créer le groupe. Vérifie ton réseau et réessaie.");
+      setError("Le groupe n’est pas créé : vérifie ta connexion et réessaie.");
     } finally {
       setIsSaving(false);
     }

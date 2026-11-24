@@ -13,7 +13,7 @@ const RESEND_DELAY_MS = 60_000;
 
 function getCodeError(cleanCode: string): string | null {
   if (cleanCode === "") return "Entre le code à 6 chiffres reçu par email.";
-  if (!/^\d{6}$/.test(cleanCode)) return "Ce code n'est pas valide !";
+  if (!/^\d{6}$/.test(cleanCode)) return "Il faut les 6 chiffres du code.";
   return null;
 }
 
@@ -53,7 +53,7 @@ export default function Verify() {
     try {
       const { error: sendError } = await supabase.auth.signInWithOtp({ email });
       if (sendError) {
-        setError("Impossible de renvoyer un code tout de suite.");
+        setError("Pas de nouveau code tout de suite : réessaie dans un instant.");
         return;
       }
       const sentAt = Date.now();
@@ -62,7 +62,7 @@ export default function Verify() {
       setCode("");
     } catch {
       // Échec imprévu : l'appel a planté (réseau coupé, serveur injoignable).
-      setError("Pas de connexion ? Vérifie ton réseau et réessaie.");
+      setError("Pas de connexion ? Vérifie-la et réessaie.");
     } finally {
       // Succès, échec ou plantage : le bouton redevient utilisable.
       setIsResending(false);
@@ -87,12 +87,12 @@ export default function Verify() {
       });
       if (verifyError) {
         setError(
-          "Code incorrect ou expiré. Vérifie-le ou utilise « Renvoyer le code » ci-dessous.",
+          "Ce code ne marche pas (faux ou trop vieux). Vérifie-le, ou demandes-en un nouveau juste en dessous.",
         );
         return;
       }
     } catch {
-      setError("La connexion n’a pas fonctionné. Vérifie ton réseau et réessaie.");
+      setError("La connexion n’a pas marché : vérifie ta connexion et réessaie.");
     } finally {
       setIsVerifying(false);
     }

@@ -40,7 +40,7 @@ const UPDATE_CHECK_LABELS: Record<UpdateCheck, string> = {
   checking: "Recherche d’une mise à jour…",
   upToDate: "Tu as la dernière version",
   restarting: "Redémarrage sur la nouvelle version…",
-  failed: "Vérification impossible : réessaie",
+  failed: "La vérification n’a pas marché : réessaie",
 };
 
 export default function AccountScreen() {
@@ -72,7 +72,7 @@ export default function AccountScreen() {
     try {
       await saveAvatar(avatar);
     } catch {
-      setAvatarError("Impossible d’enregistrer ton avatar. Vérifie ton réseau et réessaie.");
+      setAvatarError("Ton avatar n’est pas enregistré : vérifie ta connexion et réessaie.");
     } finally {
       setIsSavingAvatar(false);
     }
@@ -91,7 +91,7 @@ export default function AccountScreen() {
         await savePhoto(picked.bytes);
       }
     } catch {
-      setAvatarError("Impossible d’enregistrer ta photo. Vérifie ton réseau et réessaie.");
+      setAvatarError("Ta photo n’est pas enregistrée : vérifie ta connexion et réessaie.");
     } finally {
       setIsSavingAvatar(false);
     }
@@ -103,7 +103,7 @@ export default function AccountScreen() {
     try {
       await savePhoto(null);
     } catch {
-      setAvatarError("Impossible de retirer ta photo. Vérifie ton réseau et réessaie.");
+      setAvatarError("Ta photo n’a pas été retirée : vérifie ta connexion et réessaie.");
     } finally {
       setIsSavingAvatar(false);
     }
@@ -118,7 +118,7 @@ export default function AccountScreen() {
   async function handleSaveName() {
     const cleanName = nameDraft.trim();
     if (cleanName === "") {
-      setNameError("Entre le nom que verra ton groupe.");
+      setNameError("Écris le prénom que les autres verront.");
       return;
     }
     // Rien à enregistrer : on referme sans appeler le serveur.
@@ -133,7 +133,7 @@ export default function AccountScreen() {
       await saveDisplayName(cleanName);
       setIsRenaming(false);
     } catch {
-      setNameError("Impossible d’enregistrer ton nom. Vérifie ton réseau et réessaie.");
+      setNameError("Ton prénom n’est pas enregistré : vérifie ta connexion et réessaie.");
     } finally {
       setIsSavingName(false);
     }
@@ -148,7 +148,7 @@ export default function AccountScreen() {
       setStep("confirm");
     } catch {
       setStep("idle");
-      setError("Impossible de préparer la suppression. Vérifie ton réseau et réessaie.");
+      setError("On n’arrive pas à préparer la suppression : vérifie ta connexion et réessaie.");
     }
   }
 
@@ -161,7 +161,7 @@ export default function AccountScreen() {
     } catch {
       // Rien n'a été supprimé : delete_account est une seule transaction.
       setStep("confirm");
-      setError("La suppression a échoué, ton compte est intact. Vérifie ton réseau et réessaie.");
+      setError("Ton compte n’a pas été supprimé : vérifie ta connexion et réessaie.");
     }
   }
 
@@ -295,7 +295,7 @@ export default function AccountScreen() {
               ) : (
                 <Text style={styles.hint}>
                   {profile?.photo_path
-                    ? "Ta photo est affichée. Choisir un avatar la retire."
+                    ? "Ta photo s’affiche partout. Choisir un avatar la remplace."
                     : "Le même partout, en clair comme en sombre."}
                 </Text>
               )}
@@ -346,16 +346,16 @@ export default function AccountScreen() {
                 <Text key={group.groupId} style={styles.text}>
                   •{" "}
                   {group.successorName
-                    ? `« ${group.groupName} » : ${group.successorName} en devient responsable.`
-                    : `« ${group.groupName} » est supprimé, avec ses votes (tu y es seul).`}
+                    ? `« ${group.groupName} » : ${group.successorName} prend le relais pour organiser.`
+                    : `« ${group.groupName} » disparaît avec ses votes (tu en es la seule personne).`}
                 </Text>
               ))}
               {impact.openSessionCount > 0 ? (
                 <Text style={styles.text}>
                   •{" "}
                   {impact.openSessionCount === 1
-                    ? "Le vote que tu as lancé reste ouvert : le responsable du groupe pourra le clôturer."
-                    : `Les ${impact.openSessionCount} votes que tu as lancés restent ouverts : les responsables des groupes pourront les clôturer.`}
+                    ? "Le vote que tu as lancé reste ouvert : la personne qui organise le groupe pourra le terminer."
+                    : `Les ${impact.openSessionCount} votes que tu as lancés restent ouverts : les personnes qui organisent les groupes pourront les terminer.`}
                 </Text>
               ) : null}
               <Text style={styles.text}>
@@ -363,9 +363,9 @@ export default function AccountScreen() {
               </Text>
               <Text style={styles.text}>• Les plats que tu as proposés restent, sans ton nom.</Text>
             </View>
-            <Text style={styles.warning}>C’est définitif : impossible de revenir en arrière.</Text>
+            <Text style={styles.warning}>Pas de retour en arrière possible.</Text>
             <PrimaryButton
-              label="Supprimer définitivement"
+              label="Supprimer mon compte"
               onPress={handleDelete}
               isLoading={step === "deleting"}
               variant="danger"
