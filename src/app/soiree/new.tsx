@@ -15,19 +15,16 @@ export default function NewSoiree() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
   const { profile } = useProfile();
-  // Pré-rempli (« Samedi chez Bryan ») : on crée en un toucher, modifiable avant.
-  const [name, setName] = useState(() =>
-    defaultSoireeName(new Date(), profile?.display_name ?? ""),
-  );
+  // Nom proposé (« Samedi chez Bryan ») en exemple grisé, comme les autres champs : on tape
+  // directement le sien, sans effacer d'abord. Champ laissé vide : la soirée prend ce nom,
+  // on crée toujours en un toucher.
+  const suggestedName = defaultSoireeName(new Date(), profile?.display_name ?? "");
+  const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleCreate() {
-    const cleanName = name.trim();
-    if (cleanName === "") {
-      setError("Donne un nom à ta soirée.");
-      return;
-    }
+    const cleanName = name.trim() || suggestedName;
     setError(null);
     setIsSaving(true);
 
@@ -54,14 +51,14 @@ export default function NewSoiree() {
       </Text>
       <Text style={styles.subtitle}>
         Crée la soirée, puis invite qui tu veux : avec un lien (même sans l’app) ou un code. On
-        choisit où manger, puis chacun écrit sa commande.
+        choisit où manger, puis chacun note ce qu’il veut.
       </Text>
       <TextField
         label="Nom de la soirée"
         value={name}
         onChangeText={setName}
         error={error}
-        placeholder="Samedi chez moi"
+        placeholder={suggestedName}
         autoCapitalize="sentences"
         maxLength={SOIREE_NAME_MAX_LENGTH}
         editable={!isSaving}
