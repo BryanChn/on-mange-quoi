@@ -50,7 +50,8 @@ after(cleanUp);
 
 async function aliceCreates(name = "Samedi chez Alice") {
   await signInAs(alice);
-  return createSoiree(name);
+  // Un repas « commande » pour aujourd'hui, comme le crée l'écran avec « On se commande un truc ».
+  return createSoiree({ name, mode: "commande", topics: [], date: null });
 }
 
 describe("aperçu du lien, avant de rejoindre", () => {

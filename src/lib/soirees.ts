@@ -2,12 +2,15 @@ import type { Enums } from "./database.types";
 import { compareByJoinDate, type Member } from "./members";
 import type { OrderLine } from "./soiree-rules";
 import { supabase } from "./supabase";
+import { sortByMenuOrder, type VoteTopic } from "./vote-topic";
 
 // Soirées (V1) : un groupe éphémère pour organiser un repas à plusieurs. Règles côté serveur
 // (migrations soirees et soirees_preview_and_guests) ; ici, seulement les appels.
 // Sans React Native (testé avec node) : le partage est dans share-soiree.ts.
 
 export type SoireeStep = Enums<"soiree_step">;
+// On se commande un truc, on va au resto, on mange chez quelqu'un (migration meal_modes).
+export type SoireeMode = Enums<"soiree_mode">;
 
 // Adresse publique de la version web (EAS Hosting) : le lien partagé y mène.
 const WEB_URL = "https://on-mange-quoi.expo.app";
@@ -20,11 +23,29 @@ export type SoireeMember = Member & { isGuest: boolean };
 
 export type OrderItem = OrderLine & { id: string };
 
+// Un vote du menu d'un repas « maison » (le dernier de chaque sujet).
+export type MealVote = {
+  id: string;
+  topic: VoteTopic;
+  isOpen: boolean;
+  // Le gagnant d'un vote terminé ; null tant qu'il est ouvert (ou terminé sans proposition).
+  winnerName: string | null;
+  proposalCount: number;
+  // Qui a déjà voté : « tu as voté », « 3 sur 5 ont voté ».
+  voterIds: string[];
+};
+
+// « Qui apporte quoi » d'un repas « maison ».
+export type Contribution = { id: string; profileId: string; label: string };
+
 export type SoireeDetail = {
   id: string;
   name: string;
   ownerId: string;
   step: SoireeStep;
+  mode: SoireeMode;
+  // Jour du repas (AAAA-MM-JJ), null pour un repas créé avant les dates.
+  mealDate: string | null;
   restaurant: string | null;
   joinToken: string;
   // À taper dans « Rejoindre avec un code » par quelqu'un qui a déjà l'app.
@@ -33,6 +54,10 @@ export type SoireeDetail = {
   members: SoireeMember[];
   // Dans l'ordre d'ajout.
   items: OrderItem[];
+  // Repas « maison » : le menu, dans l'ordre d'un repas (apéro, entrée, plat, dessert).
+  menu: MealVote[];
+  // Repas « maison » : qui apporte quoi, dans l'ordre d'ajout.
+  contributions: Contribution[];
 };
 
 export type SoireePreview = {
@@ -45,12 +70,31 @@ export type SoireePreview = {
   isMember: boolean;
 };
 
-const SOIREE_COLUMNS =
-  "id, name, invite_code, owner_id, kind, soiree_step, restaurant, join_token, group_members(profile_id, joined_at, profiles(display_name, avatar, photo_path, is_guest))";
+const SOIREE_COLUMNS = `id, name, invite_code, owner_id, kind, soiree_step, soiree_mode, meal_date,
+  restaurant, join_token,
+  group_members(profile_id, joined_at, profiles(display_name, avatar, photo_path, is_guest)),
+  vote_sessions(id, topic, status, created_at,
+    winner:proposals!vote_sessions_winner_fk(name),
+    proposals!proposals_session_id_fkey(id, votes(profile_id)))`;
 
-// create_soiree : soirée, lien et inscription du créateur dans la même transaction.
-export async function createSoiree(name: string): Promise<{ id: string; joinToken: string }> {
-  const { data, error } = await supabase.rpc("create_soiree", { soiree_name: name });
+export type NewSoiree = {
+  name: string;
+  mode: SoireeMode;
+  // Repas « maison » : un vote par sujet, ouverts tout de suite.
+  topics: VoteTopic[];
+  // Jour du repas (AAAA-MM-JJ) ; null : aujourd'hui.
+  date: string | null;
+};
+
+// create_soiree : repas, lien, inscription du créateur et votes de départ (resto, ou le menu
+// d'un repas « maison ») dans la même transaction.
+export async function createSoiree(meal: NewSoiree): Promise<{ id: string; joinToken: string }> {
+  const { data, error } = await supabase.rpc("create_soiree", {
+    soiree_name: meal.name,
+    meal_mode: meal.mode,
+    vote_topics: meal.topics,
+    ...(meal.date ? { on_date: meal.date } : {}),
+  });
   if (error) throw error;
   if (!data.join_token) throw new Error("Soirée créée sans lien.");
   return { id: data.id, joinToken: data.join_token };
@@ -60,11 +104,17 @@ export async function createSoiree(name: string): Promise<{ id: string; joinToke
 export async function fetchSoiree(soireeId: string): Promise<SoireeDetail> {
   // Deux requêtes en parallèle : order_items pointe vers group_members (FK composée), pas
   // vers groups, donc PostgREST ne peut pas l'embarquer dans la requête de la soirée.
-  const [soireeResult, itemsResult] = await Promise.all([
+  const [soireeResult, itemsResult, contributionsResult] = await Promise.all([
     supabase.from("groups").select(SOIREE_COLUMNS).eq("id", soireeId).eq("kind", "soiree").single(),
     supabase
       .from("order_items")
       .select("id, profile_id, label, quantity, note")
+      .eq("group_id", soireeId)
+      .order("created_at", { ascending: true }),
+    // Même raison : soiree_contributions pointe vers group_members.
+    supabase
+      .from("soiree_contributions")
+      .select("id, profile_id, label")
       .eq("group_id", soireeId)
       .order("created_at", { ascending: true }),
   ]);
@@ -72,13 +122,24 @@ export async function fetchSoiree(soireeId: string): Promise<SoireeDetail> {
   const { data, error } = soireeResult;
   if (error) throw error;
   if (itemsResult.error) throw itemsResult.error;
+  if (contributionsResult.error) throw contributionsResult.error;
   if (!data.soiree_step || !data.join_token) throw new Error("Ce groupe n'est pas une soirée.");
+
+  // Le dernier vote de chaque sujet (un sujet relancé garde son vote le plus récent).
+  const latestByTopic = new Map<VoteTopic, (typeof data.vote_sessions)[number]>();
+  for (const session of [...data.vote_sessions].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at),
+  )) {
+    if (!latestByTopic.has(session.topic)) latestByTopic.set(session.topic, session);
+  }
 
   return {
     id: data.id,
     name: data.name,
     ownerId: data.owner_id,
     step: data.soiree_step,
+    mode: data.soiree_mode ?? "commande",
+    mealDate: data.meal_date,
     restaurant: data.restaurant,
     joinToken: data.join_token,
     inviteCode: data.invite_code,
@@ -99,7 +160,53 @@ export async function fetchSoiree(soireeId: string): Promise<SoireeDetail> {
       quantity: item.quantity,
       note: item.note,
     })),
+    menu:
+      data.soiree_mode === "maison"
+        ? sortByMenuOrder(
+            [...latestByTopic.values()].map((session) => ({
+              id: session.id,
+              topic: session.topic,
+              isOpen: session.status === "open",
+              winnerName: session.winner?.name ?? null,
+              proposalCount: session.proposals.length,
+              voterIds: [
+                ...new Set(
+                  session.proposals.flatMap((proposal) =>
+                    proposal.votes.map((vote) => vote.profile_id),
+                  ),
+                ),
+              ],
+            })),
+          )
+        : [],
+    contributions: contributionsResult.data.map((line) => ({
+      id: line.id,
+      profileId: line.profile_id,
+      label: line.label,
+    })),
   };
+}
+
+// ─── qui apporte quoi (repas « maison ») ─────────────────
+// Même limite que la colonne soiree_contributions.label.
+export const CONTRIBUTION_MAX_LENGTH = 80;
+
+export async function addContribution(soireeId: string, label: string): Promise<void> {
+  const { error } = await supabase
+    .from("soiree_contributions")
+    .insert({ group_id: soireeId, label: label.trim().replace(/\s+/g, " ") });
+  if (error) throw error;
+}
+
+// L'auteur, ou le responsable du repas. La RLS refuse sans erreur (0 ligne) : on le vérifie.
+export async function removeContribution(contributionId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("soiree_contributions")
+    .delete()
+    .eq("id", contributionId)
+    .select("id");
+  if (error) throw error;
+  if (data.length === 0) throw new Error("Ligne non retirée.");
 }
 
 // La soirée d'un invité : il n'en a qu'une (il n'entre que par un lien). null : elle a été
@@ -264,6 +371,12 @@ export function subscribeToSoiree(soireeId: string, onChange: () => void): () =>
     )
     // Les lignes de commande des autres, en direct (sans filtre : même raison que plus haut).
     .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, scheduleReload)
+    // Qui apporte quoi (repas « maison »), sans filtre pour la même raison.
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "soiree_contributions" },
+      scheduleReload,
+    )
     // (Re)connexion confirmée : rattrape ce qui a changé avant l'abonnement ou pendant une
     // coupure (téléphone verrouillé, passage par WhatsApp pour partager le lien…).
     .subscribe((status) => {

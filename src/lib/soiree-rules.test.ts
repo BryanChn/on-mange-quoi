@@ -3,6 +3,8 @@ import { test } from "node:test";
 
 import {
   defaultSoireeName,
+  goingTo,
+  inviteMessage,
   namesWithoutOrder,
   orderText,
   recapPeople,
@@ -156,4 +158,24 @@ test("qui n'a encore rien commandé", () => {
     namesWithoutOrder(members, [{ profileId: "t", label: "Tacos", quantity: 1, note: null }]),
     ["Alice", "Inès"],
   );
+});
+
+test("le message d'invitation dit ce qu'on attend de l'invité, selon le repas", () => {
+  const url = "https://exemple.test/rejoindre/abc";
+  assert.equal(
+    inviteMessage("maison", "Noël à Soultz", url, "HPE6QPJA"),
+    `On prépare « Noël à Soultz » ! Vote le menu et dis ce que tu apportes, pas besoin de l’app : ${url}\nTu as l’app ? Code : HPE6QPJA`,
+  );
+  assert.match(inviteMessage("commande", "Kebab", url, "X"), /^On commande pour « Kebab » !/);
+  assert.match(
+    inviteMessage("resto", "Samedi", url, "X"),
+    /^On choisit le resto pour « Samedi » !/,
+  );
+});
+
+test("le resto choisi : pas de « chez Chez Momo »", () => {
+  assert.equal(goingTo("Pizza Roma"), "On va chez Pizza Roma");
+  assert.equal(goingTo("Chez Momo"), "On va Chez Momo");
+  assert.equal(goingTo(" chez momo "), "On va chez momo");
+  assert.equal(goingTo("Chezmoi Burger"), "On va chez Chezmoi Burger");
 });

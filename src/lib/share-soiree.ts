@@ -1,18 +1,20 @@
 import { Platform, Share } from "react-native";
 
-import { soireeLink } from "./soirees";
+import { inviteMessage } from "./soiree-rules";
+import { soireeLink, type SoireeMode } from "./soirees";
 
 // Partage du lien : la feuille de partage du téléphone (WhatsApp, SMS…). Sur le web, Share
 // passe par navigator.share s'il existe ; sinon on copie le lien. Renvoie ce qui s'est passé,
 // pour que l'écran le dise (« Lien copié »).
 // Le message donne le lien (navigateur, sans compte) et le code (dans l'app, avec son compte).
 export async function shareSoiree(
+  mode: SoireeMode,
   name: string,
   joinToken: string,
   inviteCode: string,
 ): Promise<"shared" | "copied"> {
   const url = soireeLink(joinToken);
-  const message = `On commande pour « ${name} » ! Ajoute ce que tu veux, pas besoin de l’app : ${url}\nTu as l’app ? Code : ${inviteCode}`;
+  const message = inviteMessage(mode, name, url, inviteCode);
 
   if (Platform.OS === "web" && typeof navigator !== "undefined" && !navigator.share) {
     await navigator.clipboard.writeText(url);

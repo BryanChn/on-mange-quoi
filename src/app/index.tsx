@@ -369,13 +369,13 @@ function TonightCard({
 }
 
 // Premier lancement : aucun groupe. Une assiette vide, et les deux façons d'en avoir un.
-const SOIREE_STEP_LABELS: Record<HomeSoiree["step"], string> = {
-  choix: "Où on mange ?",
-  commande: "Commande ouverte",
-  passee: "Commande passée",
-  // Repas « resto » ou « chez quelqu'un » dont tout est décidé.
-  decide: "C’est décidé",
-};
+// L'étiquette de la carte d'un repas : où il en est, selon sa façon de faire.
+function soireeLabel(soiree: Pick<HomeSoiree, "step" | "mode">): string {
+  if (soiree.step === "commande") return "Commande ouverte";
+  if (soiree.step === "passee") return "Commande passée";
+  if (soiree.mode === "maison") return soiree.step === "decide" ? "Menu décidé" : "Le menu se vote";
+  return soiree.step === "decide" ? "C’est décidé" : "Où on mange ?";
+}
 
 // Une soirée en cours : son étape, qui vient. S'ouvre au toucher.
 function SoireeCard({ soiree, styles }: { soiree: HomeSoiree; styles: Styles }) {
@@ -384,12 +384,15 @@ function SoireeCard({ soiree, styles }: { soiree: HomeSoiree; styles: Styles }) 
     <Pressable
       onPress={() => router.push({ pathname: "/soiree/[id]", params: { id: soiree.id } })}
       accessibilityRole="button"
-      accessibilityLabel={`Repas ${soiree.name}, ${SOIREE_STEP_LABELS[soiree.step]}, ${count} ${count > 1 ? "personnes" : "personne"}`}
+      accessibilityLabel={`Repas ${soiree.name}, ${soireeLabel(soiree)}, ${count} ${count > 1 ? "personnes" : "personne"}`}
       style={({ pressed }) => pressed && styles.pressed}
     >
       <Card>
         <View style={styles.soireeTop}>
-          <Chip label={SOIREE_STEP_LABELS[soiree.step]} hasDot={soiree.step !== "passee"} />
+          <Chip
+            label={soireeLabel(soiree)}
+            hasDot={soiree.step === "choix" || soiree.step === "commande"}
+          />
           <Text style={styles.muted}>
             {count} {count > 1 ? "personnes" : "personne"}
           </Text>

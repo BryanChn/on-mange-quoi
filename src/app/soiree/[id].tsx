@@ -15,6 +15,8 @@ import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
 import { ListCard, ListRow } from "@/components/list";
+import { MealContributions } from "@/components/meal-contributions";
+import { MealMenu } from "@/components/meal-menu";
 import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
@@ -26,6 +28,7 @@ import { TextField } from "@/components/text-field";
 import { deleteGroup, leaveGroup } from "@/lib/groups";
 import { signOut } from "@/lib/notifications";
 import { shareSoiree } from "@/lib/share-soiree";
+import { goingTo } from "@/lib/soiree-rules";
 import { useSession } from "@/lib/session";
 import {
   chooseRestaurant,
@@ -34,6 +37,7 @@ import {
   subscribeToSoiree,
   type SoireeDetail,
   type SoireeMember,
+  type SoireeMode,
   type SoireeStep,
 } from "@/lib/soirees";
 import {
@@ -56,11 +60,33 @@ type Confirm =
 // Même limite que la colonne proposals.name / groups.restaurant.
 const RESTAURANT_MAX_LENGTH = 60;
 
-const STEPS: { step: SoireeStep; label: string }[] = [
-  { step: "choix", label: "Où on mange" },
-  { step: "commande", label: "Commande" },
-  { step: "passee", label: "Passée" },
-];
+// Les étapes affichées sous le titre, selon la façon de faire le repas.
+function stepsFor(mode: SoireeMode): { step: SoireeStep; label: string }[] {
+  if (mode === "resto") {
+    return [
+      { step: "choix", label: "Où on mange" },
+      { step: "decide", label: "C’est décidé" },
+    ];
+  }
+  if (mode === "maison") {
+    return [
+      { step: "choix", label: "Le menu" },
+      { step: "decide", label: "C’est décidé" },
+    ];
+  }
+  return [
+    { step: "choix", label: "Où on mange" },
+    { step: "commande", label: "Commande" },
+    { step: "passee", label: "Passée" },
+  ];
+}
+
+// Ce qu'un invité fait sans l'app, pour la carte « Invite tes amis ».
+const INVITE_PURPOSE: Record<SoireeMode, string> = {
+  commande: "pour commander",
+  resto: "pour voter",
+  maison: "pour voter le menu et dire ce qu’il apporte",
+};
 
 export default function SoireeScreen() {
   const theme = useTheme();
@@ -126,7 +152,12 @@ export default function SoireeScreen() {
     setError(null);
     setNotice(null);
     try {
-      const outcome = await shareSoiree(detail.name, detail.joinToken, detail.inviteCode);
+      const outcome = await shareSoiree(
+        detail.mode,
+        detail.name,
+        detail.joinToken,
+        detail.inviteCode,
+      );
       if (outcome === "copied") setNotice("Lien copié : colle-le dans ta conversation.");
     } catch {
       setError("Le lien n’est pas parti. Réessaie.");
@@ -236,22 +267,58 @@ export default function SoireeScreen() {
           <Text style={styles.title} accessibilityRole="header">
             {soiree.name}
           </Text>
-          <Steps current={soiree.step} styles={styles} />
+          <Steps current={soiree.step} steps={stepsFor(soiree.mode)} styles={styles} />
         </View>
 
-        {/* Seul dans sa soirée : inviter est la prochaine chose à faire. */}
-        {soiree.members.length === 1 && soiree.step !== "passee" && !isGuest ? (
+        {/* Seul dans sa soirée : inviter est la prochaine chose à faire. Resto décidé : le résultat
+            passe avant, « Inviter quelqu'un » reste dans « Qui vient ». */}
+        {soiree.members.length === 1 &&
+        soiree.step !== "passee" &&
+        !(soiree.mode === "resto" && soiree.step === "decide") &&
+        !isGuest ? (
           <Card>
             <Text style={styles.cardTitle}>Invite tes amis</Text>
             <Text style={styles.muted}>
-              Envoie le lien sur WhatsApp : pas besoin de l’app pour commander. Ceux qui l’ont
-              peuvent aussi taper le code {soiree.inviteCode}.
+              Envoie le lien sur WhatsApp : pas besoin de l’app {INVITE_PURPOSE[soiree.mode]}. Ceux
+              qui l’ont peuvent aussi taper le code {soiree.inviteCode}.
             </Text>
             <PrimaryButton label="Envoyer le lien" onPress={() => handleShare(soiree)} />
           </Card>
         ) : null}
 
-        {soiree.step === "choix" ? (
+        {soiree.mode === "maison" ? (
+          <>
+            {soiree.menu.length > 0 ? (
+              <MealMenu soiree={soiree} userId={userId} onOpenVote={openSession} />
+            ) : null}
+            <MealContributions
+              soiree={soiree}
+              userId={userId}
+              isOwner={isOwner}
+              onChanged={loadSoiree}
+            />
+          </>
+        ) : soiree.mode === "resto" && soiree.step === "decide" ? (
+          <SignatureCard>
+            <View style={styles.decided}>
+              <SignatureCat size={72} />
+              <Text style={styles.decidedKicker}>C’est décidé !</Text>
+              <Text style={styles.decidedTitle} accessibilityRole="header">
+                {goingTo(soiree.restaurant ?? "")}
+              </Text>
+              <Text style={styles.signatureMuted}>Bon appétit !</Text>
+            </View>
+            {latestSession && !latestSession.isOpen ? (
+              <Pressable
+                onPress={() => openSession(latestSession.id)}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.signatureLink, pressed && styles.pressed]}
+              >
+                <Text style={styles.signatureLinkText}>Voir le vote</Text>
+              </Pressable>
+            ) : null}
+          </SignatureCard>
+        ) : soiree.step === "choix" ? (
           openVoteId ? (
             <Card>
               <Chip label="Vote en cours" hasDot />
@@ -265,8 +332,10 @@ export default function SoireeScreen() {
                 {owner ? `${owner.name} choisit où on mange` : "On choisit où manger"}
               </Text>
               <Text style={styles.muted}>
-                Tu pourras voter s’il lance un vote, puis écrire ta commande. Garde cette page
-                ouverte : elle se met à jour toute seule.
+                {soiree.mode === "commande"
+                  ? "Tu pourras voter s’il lance un vote, puis écrire ta commande."
+                  : "Tu pourras voter s’il lance un vote."}{" "}
+                Garde cette page ouverte : elle se met à jour toute seule.
               </Text>
             </View>
           ) : (
@@ -385,14 +454,14 @@ export default function SoireeScreen() {
             </Text>
             <Text style={styles.muted}>
               {confirm.kind === "remove"
-                ? `Sa commande est retirée aussi. ${confirm.member.name} pourra revenir avec le lien.`
+                ? `${REMOVED_WITH[soiree.mode]}${confirm.member.name} pourra revenir avec le lien.`
                 : confirm.kind === "leave"
                   ? isOwner
                     ? successorName
                       ? `${successorName} prendra le relais pour organiser.`
                       : "Tu es la seule personne du repas : il disparaîtra."
-                    : "Ta commande est retirée. Tu pourras revenir avec le lien."
-                  : "Il disparaît pour tout le monde, commandes comprises. Pas de retour en arrière."}
+                    : `${MY_REMOVED_WITH[soiree.mode]}Tu pourras revenir avec le lien.`
+                  : "Il disparaît pour tout le monde. Pas de retour en arrière."}
             </Text>
             <PrimaryButton
               label={
@@ -431,14 +500,37 @@ export default function SoireeScreen() {
   );
 }
 
-function Steps({ current, styles }: { current: SoireeStep; styles: Styles }) {
-  const currentIndex = STEPS.findIndex((item) => item.step === current);
+// Ce qui part avec quelqu'un qu'on retire (ou qui part) : sa commande, ce qu'il apporte.
+const REMOVED_WITH: Record<SoireeMode, string> = {
+  commande: "Sa commande est retirée aussi. ",
+  resto: "",
+  maison: "Ce qu’il apporte est retiré aussi. ",
+};
+const MY_REMOVED_WITH: Record<SoireeMode, string> = {
+  commande: "Ta commande est retirée. ",
+  resto: "",
+  maison: "Ce que tu apportes est retiré. ",
+};
+
+function Steps({
+  current,
+  steps,
+  styles,
+}: {
+  current: SoireeStep;
+  steps: { step: SoireeStep; label: string }[];
+  styles: Styles;
+}) {
+  const currentIndex = Math.max(
+    0,
+    steps.findIndex((item) => item.step === current),
+  );
   return (
     <View
       style={styles.steps}
-      accessibilityLabel={`Étape ${currentIndex + 1} sur 3 : ${STEPS[currentIndex].label}`}
+      accessibilityLabel={`Étape ${currentIndex + 1} sur ${steps.length} : ${steps[currentIndex].label}`}
     >
-      {STEPS.map((item, index) => (
+      {steps.map((item, index) => (
         <View key={item.step} style={styles.stepItem}>
           {index > 0 ? (
             <View style={[styles.stepBar, index <= currentIndex && styles.stepBarDone]} />
@@ -554,6 +646,16 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
       color: colors.onSignature,
       fontSize: fontSize.body,
       textDecorationLine: "underline",
+    },
+    // Resto choisi (repas « resto ») : le moment fort, centré.
+    decided: { alignItems: "center", gap: spacing.sm },
+    decidedKicker: { color: colors.onSignatureMuted, fontSize: fontSize.small, fontWeight: "700" },
+    decidedTitle: {
+      color: colors.onSignature,
+      fontFamily: fonts.display,
+      fontSize: fontSize.heading,
+      lineHeight: 30,
+      textAlign: "center",
     },
     // Carte d'attente en pointillés, comme « On attend Camille » sur le vote.
     waiting: {
