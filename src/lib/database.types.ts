@@ -451,6 +451,9 @@ isOneToOne: false
 { Args: { "token": string }; Returns: {
               "id": string,"is_member": boolean,"member_count": number,"members": Json,"name": string,"owner_name": string,"step": Database["public"]['Enums']["soiree_step"]
             }[]
+                           },
+"tidy_text":
+{ Args: { "value": string }; Returns: string
                            }
           }
           Enums: {
