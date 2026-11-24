@@ -264,7 +264,11 @@ export function subscribeToSoiree(soireeId: string, onChange: () => void): () =>
     )
     // Les lignes de commande des autres, en direct (sans filtre : même raison que plus haut).
     .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, scheduleReload)
-    .subscribe();
+    // (Re)connexion confirmée : rattrape ce qui a changé avant l'abonnement ou pendant une
+    // coupure (téléphone verrouillé, passage par WhatsApp pour partager le lien…).
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") scheduleReload();
+    });
 
   return () => {
     clearTimeout(timer);
