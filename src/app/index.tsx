@@ -10,6 +10,7 @@ import { InitialTile, ListCard, ListRow } from "@/components/list";
 import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
+import { StatusBarBackdrop } from "@/components/status-bar-backdrop";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { UpdateBanner } from "@/components/update-banner";
 import { TextButton } from "@/components/text-button";
@@ -121,98 +122,103 @@ export default function Index() {
   const hasGroups = home.groups.length > 0;
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.content,
-        {
-          paddingTop: insets.top + theme.spacing.xl,
-          paddingBottom: insets.bottom + theme.spacing.xl,
-        },
-        !hasGroups && styles.contentEmpty,
-      ]}
-    >
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.title} accessibilityRole="header">
-            <Text style={styles.titleName}>Salut {displayName}</Text>
-            {hasGroups ? ",\non mange quoi ce soir ?" : null}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => router.push("/account")}
-          accessibilityRole="button"
-          accessibilityLabel="Mon compte"
-          hitSlop={8}
-          style={({ pressed }) => pressed && styles.pressed}
-        >
-          <Avatar
-            name={displayName}
-            avatar={profile?.avatar}
-            photoPath={profile?.photo_path}
-            size={44}
-          />
-        </Pressable>
-      </View>
-
-      <UpdateBanner />
-
-      {/* Une soirée en cours passe avant « Ce soir » : elle a une échéance. Carte blanche,
-          pour ne pas concurrencer la carte de couleur. */}
-      {home.soirees.map((soiree) => (
-        <SoireeCard key={soiree.id} soiree={soiree} styles={styles} />
-      ))}
-
-      {hasGroups ? (
-        <>
-          <TonightCard
-            tonight={pickTonight(home.groups, home.userId, home.loadedAt)}
-            userId={home.userId}
-            now={home.loadedAt}
-            isStarting={isStarting}
-            error={startError}
-            onStart={handleStart}
-            styles={styles}
-          />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle} accessibilityRole="header">
-              Tes groupes
+    <>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + theme.spacing.xl,
+            paddingBottom: insets.bottom + theme.spacing.xl,
+          },
+          !hasGroups && styles.contentEmpty,
+        ]}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title} accessibilityRole="header">
+              <Text style={styles.titleName}>Salut {displayName}</Text>
+              {hasGroups ? ",\non mange quoi ce soir ?" : null}
             </Text>
-            <ListCard>
-              {home.groups.map((group) => (
-                <ListRow
-                  key={group.id}
-                  label={group.name}
-                  subtitle={groupSubtitle(group, home.loadedAt)}
-                  leading={<InitialTile initial={getInitial(group.name)} />}
-                  hasChevron
-                  onPress={() => router.push({ pathname: "/group/[id]", params: { id: group.id } })}
-                />
-              ))}
-              <ListRow
-                icon="star"
-                label="Organiser une soirée"
-                subtitle="Kebab, pizza… chacun note ce qu’il veut"
-                onPress={() => router.push("/soiree/new")}
-              />
-              <ListRow
-                icon="plus"
-                label="Créer un groupe"
-                onPress={() => router.push("/create-group")}
-              />
-              <ListRow
-                icon="hash"
-                label="Rejoindre avec un code"
-                onPress={() => router.push("/join-group")}
-              />
-            </ListCard>
           </View>
-        </>
-      ) : (
-        <EmptyHome styles={styles} />
-      )}
-    </ScrollView>
+          <Pressable
+            onPress={() => router.push("/account")}
+            accessibilityRole="button"
+            accessibilityLabel="Mon compte"
+            hitSlop={8}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
+            <Avatar
+              name={displayName}
+              avatar={profile?.avatar}
+              photoPath={profile?.photo_path}
+              size={44}
+            />
+          </Pressable>
+        </View>
+
+        <UpdateBanner />
+
+        {/* Une soirée en cours passe avant « Ce soir » : elle a une échéance. Carte blanche,
+          pour ne pas concurrencer la carte de couleur. */}
+        {home.soirees.map((soiree) => (
+          <SoireeCard key={soiree.id} soiree={soiree} styles={styles} />
+        ))}
+
+        {hasGroups ? (
+          <>
+            <TonightCard
+              tonight={pickTonight(home.groups, home.userId, home.loadedAt)}
+              userId={home.userId}
+              now={home.loadedAt}
+              isStarting={isStarting}
+              error={startError}
+              onStart={handleStart}
+              styles={styles}
+            />
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle} accessibilityRole="header">
+                Tes groupes
+              </Text>
+              <ListCard>
+                {home.groups.map((group) => (
+                  <ListRow
+                    key={group.id}
+                    label={group.name}
+                    subtitle={groupSubtitle(group, home.loadedAt)}
+                    leading={<InitialTile initial={getInitial(group.name)} />}
+                    hasChevron
+                    onPress={() =>
+                      router.push({ pathname: "/group/[id]", params: { id: group.id } })
+                    }
+                  />
+                ))}
+                <ListRow
+                  icon="star"
+                  label="Organiser une soirée"
+                  subtitle="Kebab, pizza… chacun note ce qu’il veut"
+                  onPress={() => router.push("/soiree/new")}
+                />
+                <ListRow
+                  icon="plus"
+                  label="Créer un groupe"
+                  onPress={() => router.push("/create-group")}
+                />
+                <ListRow
+                  icon="hash"
+                  label="Rejoindre avec un code"
+                  onPress={() => router.push("/join-group")}
+                />
+              </ListCard>
+            </View>
+          </>
+        ) : (
+          <EmptyHome styles={styles} />
+        )}
+      </ScrollView>
+      <StatusBarBackdrop />
+    </>
   );
 }
 

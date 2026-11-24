@@ -9,6 +9,7 @@ import { Card } from "@/components/card";
 import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
+import { StatusBarBackdrop } from "@/components/status-bar-backdrop";
 import { LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
@@ -230,6 +231,7 @@ export default function JoinSoireeScreen() {
           </View>
         )}
       </ScrollView>
+      <StatusBarBackdrop />
     </KeyboardAvoidingView>
   );
 }
