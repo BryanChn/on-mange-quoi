@@ -1,6 +1,6 @@
 # Journal de bord
 
-État du projet au **2026-11-23** (soir), pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-24** (midi), pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
@@ -9,38 +9,69 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Session close le 2026-11-23 au soir. Tout est mergé et en ligne sauf cette PR de journal (#80). Mes retours sur l'APK arrivent à la prochaine session.
+Tout est mergé et en ligne (mise à jour EAS `c0bc1e0`, site en production) sauf #94 (barre d'état) et cette PR de journal. Je ne code plus moi-même (j'ai un emploi hors du dev) : Claude écrit tout, je relis les PR ; je dirai si je veux coder une partie le week-end.
 
-**1. D'abord : l'APK `63ec05ef` et mes retours**
+**1. Tout de suite**
 
 | # | Tâche | Détail |
 | --- | --- | --- |
-| 1 | Installer l'APK sur les deux téléphones | Lien ci-dessous (bloc « Build »), par-dessus l'ancien, comptes gardés |
-| 2 | Tester le lot | Lien de soirée qui ouvre l'app ; vibrations (cocher, roulette, refus) ; photo prise, vue sur l'autre téléphone, retirée ; version dans Mon compte |
-| 3 | Une vraie soirée | Créer, inviter (lien et code), voter le resto, commander à plusieurs, « Commande passée ». Noter ce qui bloque ou surprend |
-| 4 | Traiter mes retours | Une branche `fix/…` par retour, une PR chacune (points d'avis dans la conversation, pas dans la PR) |
-| 5 | Merger #80 | Ce journal |
+| 1 | Merger #94 et ce journal | Barre d'état : le titre ne passe plus sous l'heure (accueil, Rejoindre, soirée d'un invité) |
+| 2 | Relire les nouveaux textes sur l'app | Voix « pote qui organise » (#88 à #91). Doc : https://claude.ai/artifact/KRx1uPAeZokpj6ZFqxbEVh . Une phrase qui sonne faux = un message ou un commentaire dans le doc |
+| 3 | Tester sur téléphone | « Ajouter » du premier coup (clavier ouvert), confirmation de suppression qui arrive à l'écran, nom de soirée en exemple grisé, récap WhatsApp (gras, prénoms, lien), notification « Bryan lance le vote : on mange quoi ? » |
+| 4 | Le temps réel en vraie soirée | Passer 1 min dans WhatsApp pendant qu'un autre ajoute une ligne : elle doit être là au retour. Si elle manque encore : autre cause, à chercher avec Supabase local |
 
-**2. Petits correctifs connus**
+**2. À voir à la fin de la V1** (avant de la déclarer livrée)
 
 | Tâche | Détail |
 | --- | --- |
-| « Gagné au vote · aucun vote » | Vote clos sans aucune voix : libellé contradictoire (foyers et soirées). Au backlog |
+| Captures du README | Il manque la page web d'un invité (pseudo + avatar, ouverte depuis le lien) et le récap dans WhatsApp. Réponse attendue : peut-on montrer le pseudo « SuperNono » (capture du 24/11) ou en refaire une avec des pseudos inventés ? Jamais la photo de ma compagne sans son accord : floutée en disque dans les captures actuelles |
+| Vérification complète d'un invité | Un vrai proche, sur son téléphone, sans l'app : lien WhatsApp → page web → pseudo → commande → voir les autres en direct → fin de soirée (« Merci pour la soirée ! »). Puis la même chose avec l'app installée (le lien doit l'ouvrir), et avec le code dans « Rejoindre avec un code ». Noter tout ce qui bloque |
+| « Ce soir, c'est … ! » le matin | Un vote ou une soirée tranchés à 9 h 58 affichent « ce soir ». Juste pour une soirée, faux pour un vote du midi : décider s'il faut « ce midi » selon l'heure |
 | Seul dans une soirée | Deux cartes fortes se suivent (« Invite tes amis », « Où on mange ? ») : à revoir si ça paraît chargé à l'usage |
-| Captures du README | Montrent l'ancien design, sans soirées ni photo : la première chose que voit un recruteur |
 
-**3. V1 · Cuisiner : la suite (dans l'ordre de la roadmap)**
+**3. V1 · Cuisiner : la suite**
 
 | Fonctionnalité | Note |
 | --- | --- |
-| Catalogue des enseignes | Autocomplétion des articles (JSON maintenu à la main, texte libre en secours) : règle « Tacos » / « Tacos XL » |
+| Liste de courses | Cœur de la V1 « Cuisiner » : commencer par une étude (parcours, schéma SQL, questions produit) à valider avant le code |
+| Recettes | Reste de la V1 |
+| Catalogue des enseignes | Marqué « plus tard » dans `CLAUDE.md` (section V1) : à valider explicitement avant de le faire |
 | Partage de la note | Chacun paie sa part (décidé : plus tard) |
-| Liste de courses, recettes | Reste de la V1 |
-| Tests de bout en bout dans le dépôt | Playwright dans la CI (le script du 2026-11-23 existe hors dépôt : 16 vérifications de la soirée complète) |
 
 **4. Avant les stores (backlog)** : signaler ou bloquer quelqu'un (règle 1.2 de l'App Store, photos de profil) ; purge des photos orphelines ; nom du responsable dans la politique de confidentialité ; service d'envoi des codes (le dossier « Envoyés » de Gmail garde adresses et codes) ; CAPTCHA sur la connexion anonyme ; réglage des notifications ; limiter les essais de `join_group`.
 
 **5. Indicateur** : feu vert (ne bloque plus rien), requête `private.feu_vert` le lundi 30/11.
+
+#### 🗓️ Session du 2026-11-24 : ce qui a été fait
+
+| PR | Contenu |
+| --- | --- |
+| #81 | Récap partagé en texte WhatsApp : « Pour le comptoir » sans noms, « Qui prend quoi », état, vrais prénoms (jamais « toi »), lien pour commander tant que c'est ouvert. Bouton visible, remarques en pastille |
+| #82 | Temps réel : rechargement à chaque (re)connexion confirmée (`SUBSCRIBED`) sur la soirée, l'accueil et les votes du groupe. Cause des lignes de commande qui n'arrivaient pas après un passage par WhatsApp |
+| #83 | Accessibilité : vert de confirmation à 6,5:1, « Je choisis le resto » à 48 dp, `accessibilityLiveRegion` sur les erreurs, ligne du récap lue d'un bloc |
+| #84 | Tests de bout en bout Playwright en CI (`e2e/`, paquet séparé) : deux invités, commande en direct, coupure du WebSocket puis retour, récap copié. Contre-épreuve faite |
+| #86 | « Ajouter » du premier toucher (`keyboardShouldPersistTaps="handled"`) |
+| #87 | La carte de confirmation défile à l'écran (soirée, groupe) |
+| #88 à #91 | Nouveaux textes, voix « pote qui organise » : plus de genre supposé, « Terminer le vote », erreurs « ce qui n'a pas marché + quoi faire », notifications (`notify-vote` redéployée) |
+| #92 | README à jour (soirées, invités, choix techniques) avec captures actuelles, photo floutée |
+| #93 | Nom de soirée en `placeholder`, plus à effacer |
+| #80 | Journal du build `63ec05ef` |
+
+**Décisions du jour**
+- **Pas d'image pour le récap** (ni carte story) : une image perd le lien cliquable, or le récap sert à faire venir les retardataires (feu vert V1). Texte gardé. Spec : https://claude.ai/artifact/Q84DB4DTzw8NTHwoUEQKa7
+- **Voix de l'app : « pote qui organise »** (tutoiement, phrases courtes, complicité sur les moments forts seulement, aucune exclamation sur une erreur, pas d'emoji dans l'app).
+- Badge « invité » et bouton « C'est décidé » gardés tels quels.
+
+**Pièges trouvés le 2026-11-24**
+- **Le `.gitignore` racine compte dans l'empreinte runtime** : le modifier coupe les APK des mises à jour EAS. Les sorties de `e2e/` sont ignorées depuis `e2e/.gitignore`. Le `package.json` racine aussi : Playwright vit dans `e2e/package.json`.
+- **PR empilée** : rebasculer la PR du dessus sur `main` *avant* de merger celle du dessous avec `--delete-branch`, sinon GitHub la ferme (#83 rouverte en recréant la branche de base). `gh pr edit --base` plante (Projects classic) : passer par `gh api -X PATCH …/pulls/N -f base=main`.
+- **CI rouge « port 54322 already in use »** : incident de la machine GitHub, pas le code. `gh run rerun <id> --failed`.
+- **Le dépôt exige des branches à jour** : après chaque merge, `gh api -X PUT …/pulls/N/update-branch`, attendre la CI, puis merger.
+- **Contre-épreuve incomplète** : l'écran de la soirée a deux abonnements qui rechargent (soirée et votes du groupe) ; retirer un seul rattrapage ne casse pas le test.
+- **Un test peut se tromper** : `"comptoir"` contient `"toi"` ; chercher le mot entier (`/\btoi\b/`).
+- **Espaces insécables** autour des « » dans le code : un remplacement exact les rate ; vérifier « exactement une occurrence » avant de remplacer.
+- **`ScrollView` en React Native 0.88** : composant fonction, la référence se type `ScrollViewInstance`.
+- `routeWebSocket` de Playwright coupe le seul WebSocket Realtime (reste du réseau intact) ; l'option `trace` ne vaut que pour le contexte par défaut.
 
 #### 📦 Build `63ec05ef` du 2026-11-23 : à installer sur les deux téléphones
 
