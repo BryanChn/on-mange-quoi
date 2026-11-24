@@ -99,10 +99,10 @@ Plus tard, volontairement : paiement et partage de la note (chacun paie sa part)
 
 ### Repas à plusieurs : trois façons (tranché le 2026-11-24)
 
-Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette : https://claude.ai/artifact/Y3YUASnGDVfdk6pqzDvk4p. Règle d'or : rapide et sans réfléchir pour chaque cas, une question par écran, un toucher fait avancer, tout pré-choisi au plus probable, ton de pote.
+Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette : https://claude.ai/artifact/Y3YUASnGDVfdk6pqzDvk4p. Règle d'or : rapide et sans réfléchir pour chaque cas, une question par écran, un toucher fait avancer, une valeur par défaut seulement quand un choix est obligatoire (la date : aujourd'hui), ton de pote.
 
 1. « C'est quoi le plan ? » : **On se commande un truc** (vote ou choix du resto, puis la commande groupée, comme avant), **On va au resto** (le vote du resto s'ouvre, puis c'est décidé), **On mange chez quelqu'un**.
-2. Chez quelqu'un : « On décide quoi ? » (apéro, entrée, plat, dessert ; plat et dessert pré-cochés), un vote par sujet, **ouverts en même temps** ; le menu est décidé quand le dernier vote se termine. **Qui apporte quoi** dès le début : chacun écrit ce qu'il apporte, visible en direct.
+2. Chez quelqu'un : « On décide quoi ? » (apéro, entrée, plat, dessert ; rien de coché d'office, le bouton annonce « Lancer 2 votes » ou « C'est parti, sans vote » ; 2026-11-24, retour d'usage : décocher le plat pour un dessert était un piège), un vote par sujet, **ouverts en même temps** ; le menu est décidé quand le dernier vote se termine. **Qui apporte quoi** dès le début : chacun écrit ce qu'il apporte, visible en direct.
 3. « Quand ? » (ce soir par défaut, demain, une date jusqu'à 6 mois) : le repas est effacé 24 h après son jour (avant : 7 jours après sa création).
 
 ### Liste de courses (tranché le 2026-11-24)

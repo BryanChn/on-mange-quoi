@@ -62,7 +62,7 @@ export default function NewSoiree() {
   const [step, setStep] = useState<"plan" | "menu">("plan");
   const [name, setName] = useState("");
   // Chez quelqu'un : plat et dessert, le cas le plus courant.
-  const [topics, setTopics] = useState<VoteTopic[]>(["plat", "dessert"]);
+  const [topics, setTopics] = useState<VoteTopic[]>([]);
   const [when, setWhen] = useState<When>("today");
   const [pickedDay, setPickedDay] = useState<string | null>(null);
   const [shownMonth, setShownMonth] = useState(() => {
@@ -154,9 +154,8 @@ export default function NewSoiree() {
           />
 
           <View style={styles.plans}>
-            {PLANS.map((plan, index) => {
-              // Le cas le plus courant est mis en avant (carte signature).
-              const isFeatured = index === 0;
+            {/* Trois cartes identiques : aucune n'a l'air déjà choisie, un toucher suffit. */}
+            {PLANS.map((plan) => {
               const isThisOne = creating === plan.mode;
               return (
                 <Pressable
@@ -168,30 +167,23 @@ export default function NewSoiree() {
                   accessibilityState={{ busy: isThisOne, disabled: isBusy }}
                   style={({ pressed }) => [
                     styles.plan,
-                    isFeatured && styles.planFeatured,
                     (pressed || (isBusy && !isThisOne)) && styles.pressed,
                   ]}
                 >
-                  <View style={[styles.planIcon, isFeatured && styles.planIconFeatured]}>
+                  <View style={styles.planIcon}>
                     {isThisOne ? (
-                      <ActivityIndicator
-                        color={isFeatured ? theme.colors.onPrimary : theme.colors.primary}
-                      />
+                      <ActivityIndicator color={theme.colors.primary} />
                     ) : (
                       <MaterialCommunityIcons
                         name={plan.icon}
                         size={28}
-                        color={isFeatured ? theme.colors.onPrimary : theme.colors.primary}
+                        color={theme.colors.primary}
                       />
                     )}
                   </View>
                   <View style={styles.planText}>
-                    <Text style={[styles.planTitle, isFeatured && styles.planTitleFeatured]}>
-                      {plan.title}
-                    </Text>
-                    <Text style={[styles.planSubtitle, isFeatured && styles.planSubtitleFeatured]}>
-                      {plan.subtitle}
-                    </Text>
+                    <Text style={styles.planTitle}>{plan.title}</Text>
+                    <Text style={styles.planSubtitle}>{plan.subtitle}</Text>
                   </View>
                 </Pressable>
               );
@@ -219,9 +211,7 @@ export default function NewSoiree() {
               On décide quoi ?
             </Text>
             <Text style={styles.subtitle}>
-              {topics.length === 0
-                ? "Rien à voter : il restera « qui apporte quoi »."
-                : "Un vote par case cochée, tous en même temps."}
+              Coche ce que vous votez. Le reste, chacun dit ce qu’il apporte.
             </Text>
           </View>
 
@@ -358,7 +348,12 @@ export default function NewSoiree() {
           </View>
 
           <PrimaryButton
-            label="C’est parti !"
+            label={
+              // Le bouton annonce ce qui va se passer : rien n'est coché d'office.
+              topics.length === 0
+                ? "C’est parti, sans vote"
+                : `Lancer ${topics.length} vote${topics.length > 1 ? "s" : ""}`
+            }
             onPress={() => create("maison")}
             isLoading={creating === "maison"}
           />
@@ -406,7 +401,6 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       borderRadius: radius.xl,
       backgroundColor: colors.surface,
     },
-    planFeatured: { backgroundColor: colors.signature },
     planIcon: {
       width: 56,
       height: 56,
@@ -415,12 +409,9 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       justifyContent: "center",
       backgroundColor: colors.surface2,
     },
-    planIconFeatured: { backgroundColor: colors.signatureButton },
     planText: { flex: 1, gap: spacing.xs },
     planTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 19 },
-    planTitleFeatured: { color: colors.onSignature },
     planSubtitle: { color: colors.textMuted, fontSize: fontSize.small },
-    planSubtitleFeatured: { color: colors.onSignatureMuted },
 
     backLink: {
       alignSelf: "flex-start",
