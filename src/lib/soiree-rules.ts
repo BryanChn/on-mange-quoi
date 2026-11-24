@@ -117,14 +117,100 @@ export function summarizeOrder(
     .sort((a, b) => b.quantity - a.quantity || a.label.localeCompare(b.label, "fr"));
 }
 
-// Le récapitulatif en texte, à coller dans une conversation ou à lire au comptoir.
-export function orderText(restaurant: string | null, lines: OrderSummaryLine[]): string {
+// « Qui prend quoi » : ce que chacun a pris, pour que chacun vérifie sa commande d'un coup d'œil.
+export type RecapPerson = {
+  name: string;
+  // « Kebab sauce blanche, 2× Frites (sans sel) »
+  items: string;
+};
+
+// Une ligne par personne, dans l'ordre de sa première ligne de commande. Ses lignes identiques
+// (même article, même remarque) s'additionnent, comme au comptoir.
+export function recapPeople(
+  items: OrderLine[],
+  nameOf: (profileId: string) => string,
+): RecapPerson[] {
+  const byPerson = new Map<
+    string,
+    Map<string, { label: string; note: string | null; quantity: number }>
+  >();
+
+  for (const item of items) {
+    const lines = byPerson.get(item.profileId) ?? new Map();
+    const key = `${normalize(item.label)}\u0000${normalize(item.note)}`;
+    const line = lines.get(key) ?? {
+      label: tidy(item.label),
+      note: item.note && item.note.trim() !== "" ? tidy(item.note) : null,
+      quantity: 0,
+    };
+    line.quantity += item.quantity;
+    lines.set(key, line);
+    byPerson.set(item.profileId, lines);
+  }
+
+  return [...byPerson].map(([profileId, lines]) => ({
+    name: nameOf(profileId),
+    items: [...lines.values()]
+      .map(
+        (line) =>
+          `${line.quantity > 1 ? `${line.quantity}× ` : ""}${line.label}${line.note ? ` (${line.note})` : ""}`,
+      )
+      .join(", "),
+  }));
+}
+
+function plural(count: number, word: string): string {
+  return `${count} ${word}${count > 1 ? "s" : ""}`;
+}
+
+export type OrderTextInput = {
+  restaurant: string | null;
+  isOrdered: boolean;
+  // Avec les vrais prénoms, jamais « toi » : le texte est lu par les autres.
+  lines: OrderSummaryLine[];
+  people: RecapPerson[];
+  waiting: string[];
+  // Lien de la soirée : ajouté seulement si la commande est ouverte et que des gens attendent.
+  joinUrl: string | null;
+};
+
+// Le récapitulatif en texte, pour WhatsApp (*gras*, _italique_) ou à lire au comptoir.
+// « Pour le comptoir » sans les noms (on le lit au caissier), puis « Qui prend quoi ».
+export function orderText({
+  restaurant,
+  isOrdered,
+  lines,
+  people,
+  waiting,
+  joinUrl,
+}: OrderTextInput): string {
   const total = lines.reduce((sum, line) => sum + line.quantity, 0);
-  const header = `${restaurant ?? "Commande"} · ${total} article${total > 1 ? "s" : ""}`;
-  const body = lines.map(
-    (line) => `${line.quantity}× ${line.label}${line.note ? ` (${line.note})` : ""}`,
-  );
-  return [header, ...body].join("\n");
+  const state = isOrdered ? "commande passée ✅" : "commande ouverte";
+  const headcount =
+    !isOrdered && waiting.length > 0
+      ? `${plural(people.length, "personne")} sur ${people.length + waiting.length}`
+      : plural(people.length, "personne");
+
+  const blocks = [
+    [`*${restaurant ?? "Commande"}* · ${state}`, `${plural(total, "article")} · ${headcount}`],
+    [
+      "*Pour le comptoir*",
+      ...lines.map(
+        (line) => `${line.quantity}× ${line.label}${line.note ? ` _(${line.note})_` : ""}`,
+      ),
+    ],
+    ["*Qui prend quoi*", ...people.map((person) => `${person.name} : ${person.items}`)],
+  ];
+
+  if (!isOrdered && waiting.length > 0) {
+    blocks.push([
+      `Pas encore commandé : ${waiting.join(", ")}`,
+      ...(joinUrl ? [`Pour commander : ${joinUrl}`] : []),
+    ]);
+  }
+  blocks.push(["Organisé avec On mange quoi ?"]);
+
+  return blocks.map((block) => block.join("\n")).join("\n\n");
 }
 
 // Qui n'a encore rien commandé (dans l'ordre d'arrivée dans la soirée).
