@@ -50,6 +50,9 @@ const lightColors = {
   onSignatureMuted: brand.creme,
   signatureButton: brand.creme,
   onSignatureButton: brand.tomateFonce,
+  // Rail d'une barre de progression posée sur la carte (la liste de courses) ; le remplissage
+  // prend signatureButton.
+  signatureTrack: "#A82A1B",
 };
 
 // Charbon plutôt que brun : le brun très sombre et la tomate vive faisaient « Halloween ».
@@ -80,6 +83,7 @@ const darkColors: typeof lightColors = {
   onSignatureMuted: "#F7A396",
   signatureButton: "#F2796A",
   onSignatureButton: "#1A100E",
+  signatureTrack: "#2B2928",
 };
 
 const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
