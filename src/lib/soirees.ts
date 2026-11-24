@@ -266,9 +266,7 @@ export function subscribeToSoiree(soireeId: string, onChange: () => void): () =>
     .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, scheduleReload)
     // (Re)connexion confirmée : rattrape ce qui a changé avant l'abonnement ou pendant une
     // coupure (téléphone verrouillé, passage par WhatsApp pour partager le lien…).
-    .subscribe((status) => {
-      if (status === "SUBSCRIBED") scheduleReload();
-    });
+    .subscribe();
 
   return () => {
     clearTimeout(timer);
