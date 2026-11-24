@@ -171,3 +171,31 @@ export function subscribeToShoppingList(groupId: string, onChange: () => void): 
     supabase.removeChannel(channel);
   };
 }
+
+export type ShoppingListSummary = { groupId: string; name: string; toBuy: number };
+
+// Les listes de courses de tous les foyers du membre, avec ce qui reste à acheter : l'écran
+// de choix quand plusieurs listes attendent. Deux requêtes, pas une par foyer.
+export async function fetchShoppingLists(): Promise<ShoppingListSummary[]> {
+  const [groups, items] = await Promise.all([
+    supabase
+      .from("groups")
+      .select("id, name")
+      .eq("kind", "foyer")
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("shopping_items")
+      .select("group_id")
+      .is("checked_at", null)
+      .is("cleared_at", null),
+  ]);
+  if (groups.error) throw groups.error;
+  if (items.error) throw items.error;
+  const toBuy = new Map<string, number>();
+  for (const item of items.data) toBuy.set(item.group_id, (toBuy.get(item.group_id) ?? 0) + 1);
+  return groups.data.map((group) => ({
+    groupId: group.id,
+    name: group.name,
+    toBuy: toBuy.get(group.id) ?? 0,
+  }));
+}
