@@ -38,3 +38,27 @@ export function cleanShoppingInput(
   const cleanQuantity = tidy(quantity);
   return { label: tidy(label), quantity: cleanQuantity === "" ? null : cleanQuantity };
 }
+
+// « Lait », « lait » et « LAIT  » sont le même article ; « Œufs » et « oeufs » aussi.
+export function normalizeLabel(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/œ/gi, "oe")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLocaleLowerCase("fr");
+}
+
+// L'article déjà dans la liste (à acheter ou déjà pris) qui porte ce nom, s'il y en a un.
+// exceptId : l'article qu'on est en train de renommer, qui ne compte pas comme doublon.
+export function findDuplicate(
+  items: ShoppingItem[],
+  label: string,
+  exceptId: string | null = null,
+): ShoppingItem | null {
+  const wanted = normalizeLabel(label);
+  return (
+    items.find((item) => item.id !== exceptId && normalizeLabel(item.label) === wanted) ?? null
+  );
+}

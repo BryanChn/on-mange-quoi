@@ -10,7 +10,7 @@ import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { fetchGroup } from "@/lib/groups";
-import { hapticReject, hapticToggle } from "@/lib/haptics";
+import { hapticReject, hapticTick, hapticToggle } from "@/lib/haptics";
 import { useSession } from "@/lib/session";
 import {
   addShoppingItem,
@@ -19,8 +19,10 @@ import {
   removeShoppingItem,
   setShoppingItemChecked,
   subscribeToShoppingList,
+  updateShoppingItem,
 } from "@/lib/shopping";
 import {
+  findDuplicate,
   SHOPPING_LABEL_MAX_LENGTH,
   SHOPPING_QUANTITY_MAX_LENGTH,
   sortShoppingList,
@@ -46,7 +48,15 @@ export default function ShoppingListScreen() {
   const [quantity, setQuantity] = useState("");
   const [labelError, setLabelError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Ce qui s'est passé sans erreur (« Lait était déjà pris : remis dans À acheter »).
+  const [notice, setNotice] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  // Article en cours de modification (appui long), et ses champs.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [editQuantity, setEditQuantity] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   // Coches affichées dès le toucher, avant la réponse du serveur (on coche vite en magasin).
   const [pendingChecks, setPendingChecks] = useState<Map<string, boolean>>(new Map());
@@ -119,9 +129,24 @@ export default function ShoppingListScreen() {
     }
     setLabelError(null);
     setError(null);
+    setNotice(null);
+
+    // Déjà dans la liste : pas de doublon. Déjà pris : on le remet dans « À acheter ».
+    const duplicate = findDuplicate(items, label);
+    if (duplicate && duplicate.checkedAt === null) {
+      hapticReject();
+      setLabelError(`« ${duplicate.label} » est déjà dans la liste.`);
+      return;
+    }
+
     setIsAdding(true);
     try {
-      await addShoppingItem(groupId, { label, quantity });
+      if (duplicate) {
+        await setShoppingItemChecked(duplicate.id, false);
+        setNotice(`« ${duplicate.label} » était déjà pris : remis dans « À acheter ».`);
+      } else {
+        await addShoppingItem(groupId, { label, quantity });
+      }
       setLabel("");
       setQuantity("");
       loadList();
@@ -154,6 +179,37 @@ export default function ShoppingListScreen() {
     }
   }
 
+  function startEdit(item: ShoppingItem) {
+    hapticTick();
+    setEditingId(item.id);
+    setEditLabel(item.label);
+    setEditQuantity(item.quantity ?? "");
+    setEditError(null);
+  }
+
+  async function handleSaveEdit(item: ShoppingItem) {
+    if (editLabel.trim() === "") {
+      setEditError("Écris le nom de l’article.");
+      return;
+    }
+    const duplicate = findDuplicate(items, editLabel, item.id);
+    if (duplicate) {
+      setEditError(`« ${duplicate.label} » est déjà dans la liste.`);
+      return;
+    }
+    setIsSavingEdit(true);
+    try {
+      await updateShoppingItem(item.id, { label: editLabel, quantity: editQuantity });
+      setEditingId(null);
+      loadList();
+    } catch {
+      hapticReject();
+      setEditError("L’article n’a pas été modifié : vérifie ta connexion et réessaie.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
   async function handleRemove(item: ShoppingItem) {
     setError(null);
     try {
@@ -180,12 +236,61 @@ export default function ShoppingListScreen() {
   }
 
   function renderItem(item: ShoppingItem) {
+    if (item.id === editingId) {
+      return (
+        <View key={item.id} style={styles.editRow}>
+          <View style={styles.form}>
+            <View style={styles.labelField}>
+              <TextField
+                label="Article"
+                value={editLabel}
+                onChangeText={setEditLabel}
+                error={editError}
+                autoCapitalize="sentences"
+                autoFocus
+                maxLength={SHOPPING_LABEL_MAX_LENGTH}
+                editable={!isSavingEdit}
+                onSubmitEditing={() => handleSaveEdit(item)}
+              />
+            </View>
+            <View style={styles.quantityField}>
+              <TextField
+                label="Combien"
+                value={editQuantity}
+                onChangeText={setEditQuantity}
+                maxLength={SHOPPING_QUANTITY_MAX_LENGTH}
+                editable={!isSavingEdit}
+                onSubmitEditing={() => handleSaveEdit(item)}
+              />
+            </View>
+          </View>
+          <PrimaryButton
+            label="Enregistrer"
+            variant="secondary"
+            onPress={() => handleSaveEdit(item)}
+            isLoading={isSavingEdit}
+          />
+          <TextButton
+            label="Annuler"
+            onPress={() => setEditingId(null)}
+            isDisabled={isSavingEdit}
+          />
+        </View>
+      );
+    }
+
     const isTaken = item.checkedAt !== null;
     const description = item.quantity ? `${item.label}, ${item.quantity}` : item.label;
     return (
       <View key={item.id} style={styles.row}>
         <Pressable
           onPress={() => handleToggle(item)}
+          // Toucher coche (le geste du magasin) ; appui long modifie, plus rare.
+          onLongPress={() => startEdit(item)}
+          accessibilityActions={[{ name: "edit", label: "Modifier" }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === "edit") startEdit(item);
+          }}
           accessibilityRole="checkbox"
           accessibilityLabel={description}
           accessibilityState={{ checked: isTaken }}
@@ -258,7 +363,14 @@ export default function ShoppingListScreen() {
           </View>
         </View>
         <PrimaryButton label="Ajouter" onPress={handleAdd} isLoading={isAdding} />
+        <Text style={styles.hint}>Appui long sur un article pour le modifier.</Text>
       </Card>
+
+      {notice ? (
+        <Text style={styles.notice} accessibilityLiveRegion="polite">
+          {notice}
+        </Text>
+      ) : null}
 
       {error ? (
         <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
@@ -343,5 +455,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     },
     pressed: { opacity: 0.6 },
     error: { color: colors.danger, fontSize: fontSize.small },
+    notice: { color: colors.success, fontSize: fontSize.small },
+    hint: { color: colors.textMuted, fontSize: fontSize.caption, textAlign: "center" },
+    editRow: { gap: spacing.sm, paddingVertical: spacing.sm },
   });
 }

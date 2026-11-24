@@ -12,6 +12,7 @@ import {
   fetchShoppingList,
   removeShoppingItem,
   setShoppingItemChecked,
+  updateShoppingItem,
 } from "../../src/lib/shopping.ts";
 import { cleanUp, createGroup, createUser, signInAs, type TestUser } from "./fixtures.ts";
 import { supabase } from "./supabase-test-client.ts";
@@ -160,6 +161,22 @@ describe("liste de courses", () => {
     if (error) throw error;
     await assert.rejects(addShoppingItem(soiree.id, { label: "Chips", quantity: "" }));
     assert.deepEqual(await fetchShoppingList(soiree.id), []);
+  });
+
+  test("modifier un article : un membre corrige nom et quantité, un intrus ne peut pas", async () => {
+    await emptyList();
+    await signInAs(alice);
+    const lait = await addShoppingItem(foyerId, { label: "Lait", quantity: "2" });
+
+    await signInAs(bea);
+    await updateShoppingItem(lait.id, { label: " Lait  entier ", quantity: "3" });
+    const [item] = await fetchShoppingList(foyerId);
+    assert.equal(item.label, "Lait entier");
+    assert.equal(item.quantity, "3");
+    assert.equal(item.addedBy, alice.id);
+
+    await signInAs(dan);
+    await assert.rejects(updateShoppingItem(lait.id, { label: "Piraté", quantity: "" }));
   });
 
   test("un article vide est refusé par la base", async () => {

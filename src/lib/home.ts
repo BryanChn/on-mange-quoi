@@ -12,13 +12,21 @@ export type HomeSoiree = {
 };
 
 // groups : les foyers seulement (« Ce soir », « Tes groupes ») ; soirees : à part.
-export type Home = { userId: string; groups: HomeGroup[]; soirees: HomeSoiree[] };
+// toBuyByGroup : nombre d'articles à acheter dans la liste de courses de chaque foyer.
+export type Home = {
+  userId: string;
+  groups: HomeGroup[];
+  soirees: HomeSoiree[];
+  toBuyByGroup: Map<string, number>;
+};
 
 // Tout l'accueil en une requête : les groupes du membre (la RLS filtre), leurs membres,
 // et pour chacun sa session la plus récente avec ses plats et ses votes. Une requête par
 // groupe (problème « N+1 ») ralentirait l'écran à chaque groupe ajouté.
 export async function fetchHome(): Promise<Home> {
   const userId = await getUserId();
+  // Les articles à acheter, en parallèle : une requête de plus, mais pas une par groupe.
+  const toBuyRequest = supabase.from("shopping_items").select("group_id").is("checked_at", null);
   const { data, error } = await supabase
     .from("groups")
     .select(
@@ -34,6 +42,13 @@ export async function fetchHome(): Promise<Home> {
     .limit(1, { referencedTable: "vote_sessions" });
 
   if (error) throw error;
+
+  const { data: toBuy, error: toBuyError } = await toBuyRequest;
+  if (toBuyError) throw toBuyError;
+  const toBuyByGroup = new Map<string, number>();
+  for (const item of toBuy) {
+    toBuyByGroup.set(item.group_id, (toBuyByGroup.get(item.group_id) ?? 0) + 1);
+  }
 
   const soirees = data.flatMap((group): HomeSoiree[] =>
     group.kind === "soiree" && group.soiree_step
@@ -91,7 +106,7 @@ export async function fetchHome(): Promise<Home> {
       };
     });
 
-  return { userId, groups, soirees };
+  return { userId, groups, soirees, toBuyByGroup };
 }
 
 // Plusieurs membres qui cochent en même temps déclenchent une rafale d'événements : on
@@ -126,6 +141,12 @@ export function subscribeToHome(onChange: () => void): () => void {
       scheduleReload,
     )
     .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, scheduleReload)
+    // Liste de courses : le compteur « 4 à acheter » de l'accueil.
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "shopping_items" },
+      scheduleReload,
+    )
     // (Re)connexion confirmée : rattrape ce qui a changé pendant une coupure.
     .subscribe((status) => {
       if (status === "SUBSCRIBED") scheduleReload();
