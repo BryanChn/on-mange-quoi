@@ -52,6 +52,21 @@ export async function addShoppingItem(
   return toItem(data);
 }
 
+// Corriger un article (« Lait · 2 » → « Lait · 3 ») sans le retirer puis le rajouter.
+export async function updateShoppingItem(
+  itemId: string,
+  input: { label: string; quantity: string },
+): Promise<void> {
+  const { label, quantity } = cleanShoppingInput(input.label, input.quantity);
+  const { data, error } = await supabase
+    .from("shopping_items")
+    .update({ label, quantity })
+    .eq("id", itemId)
+    .select("id");
+  if (error) throw error;
+  if (data.length === 0) throw new Error("Article non modifié.");
+}
+
 // L'app dit seulement « coché » ou non : l'heure et l'auteur sont posés par le serveur
 // (trigger stamp_shopping_item_check), quelle que soit la date envoyée.
 export async function setShoppingItemChecked(itemId: string, checked: boolean): Promise<void> {

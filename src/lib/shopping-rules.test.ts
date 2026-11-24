@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { cleanShoppingInput, sortShoppingList, type ShoppingItem } from "./shopping-rules.ts";
+import {
+  cleanShoppingInput,
+  findDuplicate,
+  normalizeLabel,
+  sortShoppingList,
+  type ShoppingItem,
+} from "./shopping-rules.ts";
 
 function item(id: string, createdAt: string, checkedAt: string | null = null): ShoppingItem {
   return {
@@ -38,4 +44,19 @@ test("saisie : espaces superflus retirés, quantité vide = null", () => {
     quantity: "2",
   });
   assert.deepEqual(cleanShoppingInput("Pain", "   "), { label: "Pain", quantity: null });
+});
+
+test("doublons : majuscules, accents, espaces et « œ » ignorés", () => {
+  assert.equal(normalizeLabel("  LAIT   demi-écrémé "), "lait demi-ecreme");
+  assert.equal(normalizeLabel("Œufs"), normalizeLabel("oeufs"));
+});
+
+test("doublons : trouve l'article déjà là, à acheter ou déjà pris, sauf celui qu'on renomme", () => {
+  const lait = item("lait", "2026-11-24T10:00:00Z");
+  const pain = { ...item("pain", "2026-11-24T10:01:00Z", "2026-11-24T18:00:00Z"), label: "Pain" };
+  const items = [{ ...lait, label: "Lait" }, pain];
+  assert.equal(findDuplicate(items, " lait ")?.id, "lait");
+  assert.equal(findDuplicate(items, "PAIN")?.id, "pain");
+  assert.equal(findDuplicate(items, "Beurre"), null);
+  assert.equal(findDuplicate(items, "Lait", "lait"), null);
 });

@@ -194,6 +194,25 @@ export default function Index() {
                     }
                   />
                 ))}
+                {/* Une ligne par foyer qui a des courses à faire : la liste en un toucher. */}
+                {home.groups.map((group) => {
+                  const toBuy = home.toBuyByGroup.get(group.id) ?? 0;
+                  return toBuy > 0 ? (
+                    <ListRow
+                      key={`courses-${group.id}`}
+                      icon="shopping-cart"
+                      label="Liste de courses"
+                      subtitle={`${group.name} · ${toBuy} à acheter`}
+                      hasChevron
+                      onPress={() =>
+                        router.push({
+                          pathname: "/courses/[groupId]",
+                          params: { groupId: group.id },
+                        })
+                      }
+                    />
+                  ) : null;
+                })}
                 <ListRow
                   icon="star"
                   label="Organiser un repas"
