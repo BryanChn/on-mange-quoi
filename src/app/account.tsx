@@ -285,7 +285,11 @@ export default function AccountScreen() {
                 isDisabled={isSavingAvatar}
               />
               {avatarError ? (
-                <Text style={styles.error} accessibilityRole="alert">
+                <Text
+                  style={styles.error}
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="assertive"
+                >
                   {avatarError}
                 </Text>
               ) : (
@@ -371,7 +375,7 @@ export default function AccountScreen() {
         ) : null}
 
         {error ? (
-          <Text style={styles.error} accessibilityRole="alert">
+          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
             {error}
           </Text>
         ) : null}

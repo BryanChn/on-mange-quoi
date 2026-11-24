@@ -221,7 +221,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       ) : null}
 
       {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {error}
         </Text>
       ) : null}
@@ -263,7 +263,11 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
             isLoading={isSharing}
           />
         ) : null}
-        {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+        {notice ? (
+          <Text style={styles.notice} accessibilityLiveRegion="polite">
+            {notice}
+          </Text>
+        ) : null}
       </View>
 
       {isOpen && isOwner ? (

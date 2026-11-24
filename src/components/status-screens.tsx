@@ -33,7 +33,7 @@ export function ErrorScreen({ title, message, onRetry, canSignOut = false }: Err
 
   return (
     <View style={styles.container}>
-      <View style={styles.warning} accessibilityRole="alert">
+      <View style={styles.warning} accessibilityRole="alert" accessibilityLiveRegion="assertive">
         <View style={styles.badge}>
           <Text style={styles.badgeText}>!</Text>
         </View>

@@ -313,11 +313,15 @@ export default function SoireeScreen() {
       )}
 
       {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {error}
         </Text>
       ) : null}
-      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+      {notice ? (
+        <Text style={styles.notice} accessibilityLiveRegion="polite">
+          {notice}
+        </Text>
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle} accessibilityRole="header">

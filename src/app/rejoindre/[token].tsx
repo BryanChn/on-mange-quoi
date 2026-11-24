@@ -215,7 +215,7 @@ export default function JoinSoireeScreen() {
         )}
 
         {error ? (
-          <Text style={styles.error} accessibilityRole="alert">
+          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
             {error}
           </Text>
         ) : null}
