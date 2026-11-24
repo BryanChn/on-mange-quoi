@@ -128,7 +128,7 @@ export default function SoireeScreen() {
       const outcome = await shareSoiree(detail.name, detail.joinToken, detail.inviteCode);
       if (outcome === "copied") setNotice("Lien copié : colle-le dans ta conversation.");
     } catch {
-      setError("Impossible de partager le lien. Réessaie.");
+      setError("Le lien n’est pas parti. Réessaie.");
     }
   }
 
@@ -138,7 +138,7 @@ export default function SoireeScreen() {
     try {
       openSession(await startSession(id));
     } catch {
-      setError("Impossible de lancer le vote. Vérifie ton réseau et réessaie.");
+      setError("Le vote n’a pas démarré : vérifie ta connexion et réessaie.");
     } finally {
       setIsStarting(false);
     }
@@ -157,7 +157,7 @@ export default function SoireeScreen() {
       setIsChoosing(false);
       loadSoiree();
     } catch {
-      setError("Impossible d’enregistrer le resto. Vérifie ton réseau et réessaie.");
+      setError("Le resto n’est pas enregistré : vérifie ta connexion et réessaie.");
     } finally {
       setIsSavingRestaurant(false);
     }
@@ -185,7 +185,7 @@ export default function SoireeScreen() {
         router.dismissTo("/");
       }
     } catch {
-      setError("L’action a échoué, rien n’a changé. Vérifie ton réseau et réessaie.");
+      setError("Ça n’a pas marché, rien n’a changé. Vérifie ta connexion et réessaie.");
     } finally {
       setIsConfirming(false);
     }
@@ -194,8 +194,8 @@ export default function SoireeScreen() {
   if (hasFailed) {
     return (
       <ErrorScreen
-        title="Impossible de charger la soirée"
-        message="Elle a peut-être été supprimée. Sinon, vérifie ton réseau et réessaie."
+        title="On n’arrive pas à ouvrir la soirée"
+        message="Elle a peut-être été supprimée. Sinon, vérifie ta connexion."
         onRetry={() => {
           setHasFailed(false);
           loadSoiree();
@@ -209,6 +209,9 @@ export default function SoireeScreen() {
 
   // Affichage seulement : le serveur refuse ces actions à tout autre compte.
   const isOwner = soiree.ownerId === userId;
+  // Qui reprend l'organisation si le responsable part : la première personne arrivée après
+  // lui (même règle que leave_group). Personne : la soirée est supprimée.
+  const successorName = soiree.members.find((member) => member.id !== userId)?.name ?? null;
   const owner = soiree.members.find((member) => member.id === soiree.ownerId);
   const openVoteId = latestSession?.isOpen ? latestSession.id : null;
 
@@ -239,10 +242,10 @@ export default function SoireeScreen() {
         <Card>
           <Text style={styles.cardTitle}>Invite tes amis</Text>
           <Text style={styles.muted}>
-            Envoie le lien : on rejoint depuis un navigateur, même sans l’app. Ceux qui ont l’app
-            peuvent aussi taper le code {soiree.inviteCode} dans « Rejoindre avec un code ».
+            Envoie le lien sur WhatsApp : pas besoin de l’app pour commander. Ceux qui l’ont peuvent
+            aussi taper le code {soiree.inviteCode}.
           </Text>
-          <PrimaryButton label="Inviter" onPress={() => handleShare(soiree)} />
+          <PrimaryButton label="Envoyer le lien" onPress={() => handleShare(soiree)} />
         </Card>
       ) : null}
 
@@ -292,7 +295,7 @@ export default function SoireeScreen() {
                   onSubmitEditing={handleChooseRestaurant}
                 />
                 <PrimaryButton
-                  label="Valider"
+                  label="Choisir ce resto"
                   variant="signature"
                   onPress={handleChooseRestaurant}
                   isLoading={isSavingRestaurant}
@@ -380,12 +383,14 @@ export default function SoireeScreen() {
           </Text>
           <Text style={styles.muted}>
             {confirm.kind === "remove"
-              ? "Sa commande est retirée avec lui. Il pourra revenir avec le lien."
+              ? `Sa commande est retirée aussi. ${confirm.member.name} pourra revenir avec le lien.`
               : confirm.kind === "leave"
                 ? isOwner
-                  ? "La soirée passera à la personne arrivée juste après toi."
+                  ? successorName
+                    ? `${successorName} prendra le relais pour organiser.`
+                    : "Tu es la seule personne de la soirée : elle disparaîtra."
                   : "Ta commande est retirée. Tu pourras revenir avec le lien."
-                : "La soirée est supprimée pour tout le monde, avec sa commande. C’est définitif."}
+                : "Elle disparaît pour tout le monde, commandes comprises. Pas de retour en arrière."}
           </Text>
           <PrimaryButton
             label={
@@ -393,7 +398,7 @@ export default function SoireeScreen() {
                 ? "Retirer"
                 : confirm.kind === "leave"
                   ? "Quitter"
-                  : "Supprimer pour tous"
+                  : "Supprimer pour tout le monde"
             }
             variant="danger"
             onPress={handleConfirm}

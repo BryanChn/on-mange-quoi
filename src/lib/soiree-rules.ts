@@ -40,16 +40,16 @@ export const JOIN_FAILURE_MESSAGES: Record<JoinFailure, { title: string; message
     message: "Il a peut-être été mal copié, ou la soirée a été supprimée. Demande un nouveau lien.",
   },
   soiree_closed: {
-    title: "La commande est déjà passée",
-    message: "Cette soirée est terminée : on ne peut plus la rejoindre.",
+    title: "Trop tard, c’est commandé",
+    message: "La commande est partie : on ne peut plus rejoindre cette soirée.",
   },
   soiree_full: {
     title: "La soirée est complète",
-    message: `Elle compte déjà ${SOIREE_MAX_MEMBERS} personnes, le maximum.`,
+    message: `Déjà ${SOIREE_MAX_MEMBERS} personnes, c’est le maximum. Demande à la personne qui organise de faire de la place.`,
   },
   name_required: {
     title: "Choisis un pseudo",
-    message: "C'est le nom que les autres verront.",
+    message: "C’est le nom que les autres verront.",
   },
 };
 
@@ -67,7 +67,7 @@ export type OrderSummaryLine = {
   label: string;
   note: string | null;
   quantity: number;
-  // « Tom », ou « Tom ×2 » s'il en a pris plusieurs, dans l'ordre d'arrivée des lignes.
+  // « Tom », ou « Tom (2) » s'il en a pris plusieurs, dans l'ordre d'arrivée des lignes.
   people: string[];
 };
 
@@ -111,7 +111,7 @@ export function summarizeOrder(
       note: group.note,
       quantity: group.quantity,
       people: [...group.byPerson].map(([profileId, quantity]) =>
-        quantity > 1 ? `${nameOf(profileId)} ×${quantity}` : nameOf(profileId),
+        quantity > 1 ? `${nameOf(profileId)} (${quantity})` : nameOf(profileId),
       ),
     }))
     .sort((a, b) => b.quantity - a.quantity || a.label.localeCompare(b.label, "fr"));
