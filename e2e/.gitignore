@@ -1,0 +1,6 @@
+# Sorties générées des tests de bout en bout
+# (pas dans le .gitignore racine : il compte dans l'empreinte runtime des APK)
+node_modules/
+dist-web/
+test-results/
+playwright-report/

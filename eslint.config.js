@@ -12,6 +12,8 @@ module.exports = defineConfig([
     // de supabase/functions reste lintée et testée.
     ignores: [
       "dist/*",
+      // Paquet à part (e2e/package.json), vérifié par son propre tsconfig.
+      "e2e/*",
       "example/*",
       "supabase/functions/*/index.ts",
       "supabase/functions/_shared/server.ts",

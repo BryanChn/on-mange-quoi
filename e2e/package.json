@@ -1,0 +1,12 @@
+{
+  "name": "on-mange-quoi-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Tests de bout en bout dans un navigateur. Paquet séparé : ajouté au package.json de l'app, Playwright changerait l'empreinte runtime des APK.",
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@supabase/supabase-js": "2.118.0",
+    "@types/node": "^24.0.0",
+    "typescript": "~6.0.3"
+  }
+}

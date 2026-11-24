@@ -74,3 +74,50 @@ jobs:
       - name: Arrêter Supabase
         if: always()
         run: npx supabase stop --no-backup
+
+  e2e:
+    name: Tests de bout en bout (navigateur)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            e2e/package-lock.json
+
+      # Les deux paquets : l'app (pour l'export web) et les tests (Playwright).
+      - name: Installer les dépendances (exactement les locks)
+        run: |
+          npm ci
+          npm ci --prefix e2e
+
+      - name: Installer Chromium
+        run: npx --prefix e2e playwright install --with-deps chromium
+
+      # Realtime gardé, contrairement au job d'intégration : c'est ce qu'on teste.
+      - name: Démarrer Supabase en local
+        run: npx supabase start -x imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Tests de bout en bout
+        run: bash e2e/run.sh
+
+      # En cas d'échec : la trace (captures, réseau, console) à ouvrir avec
+      # npx playwright show-trace, depuis l'onglet Summary du run.
+      - name: Garder le rapport Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+
+      - name: Arrêter Supabase
+        if: always()
+        run: npx supabase stop --no-backup
