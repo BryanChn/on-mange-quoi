@@ -300,6 +300,15 @@ export default function GroupScreen() {
       {/* Le code ne sert qu'à l'arrivée d'un membre : une ligne, pas une carte de tous les jours. */}
       <ListCard>
         <ListRow
+          icon="shopping-cart"
+          label="Liste de courses"
+          subtitle="Partagée avec le groupe, en direct"
+          hasChevron
+          onPress={() =>
+            router.push({ pathname: "/courses/[groupId]", params: { groupId: group.id } })
+          }
+        />
+        <ListRow
           icon="user-plus"
           label="Inviter quelqu’un"
           subtitle={`Code ${group.invite_code} · à envoyer ou à dicter`}
