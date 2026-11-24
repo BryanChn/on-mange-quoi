@@ -295,3 +295,7 @@ Tests : `tests/integration/meals.test.ts` (13 cas, contre-épreuve faite sur l'i
 Une table ne peut référencer qu'une table qui existe déjà :
 
 1. `profiles` → 2. `groups` → 3. `group_members` → 4. enums + `vote_sessions` (sans la FK gagnant) → 5. `proposals` → 6. `votes` → 7. ajout de la FK `vote_sessions.winner_proposal_id` (`alter table`), car les deux tables se référencent mutuellement.
+
+## Texte libre rangé à l'écriture (2026-11-24)
+
+Trigger `tidy_text` (fonction `tidy_text_columns`) sur `groups.name`, `groups.restaurant`, `proposals.name`, `order_items.label` / `note`, `soiree_contributions.label`, `shopping_items.label` / `quantity` et `profiles.display_name` : pas d'espace aux bords, un seul entre les mots (`public.tidy_text`). Côté serveur, pour que l'app, la page web des invités et tout futur client écrivent pareil. Effet utile : « Pizza  Roma » est le doublon de « Pizza Roma » pour l'index anti-doublon des propositions.
