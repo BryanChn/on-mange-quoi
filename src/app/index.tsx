@@ -373,6 +373,8 @@ const SOIREE_STEP_LABELS: Record<HomeSoiree["step"], string> = {
   choix: "Où on mange ?",
   commande: "Commande ouverte",
   passee: "Commande passée",
+  // Repas « resto » ou « chez quelqu'un » dont tout est décidé.
+  decide: "C’est décidé",
 };
 
 // Une soirée en cours : son étape, qui vient. S'ouvre au toucher.

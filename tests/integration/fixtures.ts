@@ -241,3 +241,17 @@ export async function reminderSentAt(sessionId: string): Promise<string | null> 
   if (error) throw error;
   return data.reminder_sent_at;
 }
+
+// ─── repas datés (meal_modes) ────────────────────────────
+// Clé admin : la date et la création d'un repas ne sont pas modifiables par l'app.
+// Simule un repas créé avant la migration (sans date) ou longtemps à l'avance.
+export async function setSoireeDates(
+  groupId: string,
+  dates: { createdAt?: Date; mealDate?: string | null },
+): Promise<void> {
+  const update: { created_at?: string; meal_date?: string | null } = {};
+  if (dates.createdAt) update.created_at = dates.createdAt.toISOString();
+  if (dates.mealDate !== undefined) update.meal_date = dates.mealDate;
+  const { error } = await admin.from("groups").update(update).eq("id", groupId);
+  if (error) throw error;
+}

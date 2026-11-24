@@ -51,14 +51,14 @@ isOneToOne: false
                   ]
                 },"groups": {
                   Row: {
-                    "created_at": string,"id": string,"invite_code": string,"join_token": string | null,"kind": Database["public"]['Enums']["group_kind"],"name": string,"ordered_at": string | null,"owner_id": string,"restaurant": string | null,"soiree_step": Database["public"]['Enums']["soiree_step"] | null
+                    "created_at": string,"id": string,"invite_code": string,"join_token": string | null,"kind": Database["public"]['Enums']["group_kind"],"meal_date": string | null,"name": string,"ordered_at": string | null,"owner_id": string,"restaurant": string | null,"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,"soiree_step": Database["public"]['Enums']["soiree_step"] | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"invite_code": string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"name": string,"ordered_at"?: string | null,"owner_id": string,"restaurant"?: string | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
+                    "created_at"?: string,"id"?: string,"invite_code": string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"name": string,"ordered_at"?: string | null,"owner_id": string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"invite_code"?: string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"name"?: string,"ordered_at"?: string | null,"owner_id"?: string,"restaurant"?: string | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
+                    "created_at"?: string,"id"?: string,"invite_code"?: string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"name"?: string,"ordered_at"?: string | null,"owner_id"?: string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
                   }
                   Relationships: [
                     {
@@ -201,16 +201,36 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"vote_sessions": {
+                },"soiree_contributions": {
                   Row: {
-                    "closed_at": string | null,"created_at": string,"decided_by": Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id": string,"organizer_id": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["session_status"],"winner_proposal_id": string | null
+                    "created_at": string,"group_id": string,"id": string,"label": string,"profile_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id"?: string,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"winner_proposal_id"?: string | null
+                    "created_at"?: string,"group_id": string,"id"?: string,"label": string,"profile_id"?: string
                   }
                   Update: {
-                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id"?: string,"id"?: string,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"winner_proposal_id"?: string | null
+                    "created_at"?: string,"group_id"?: string,"id"?: string,"label"?: string,"profile_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "soiree_contributions_group_id_profile_id_fkey"
+      columns: ["group_id","profile_id"]
+isOneToOne: false
+      referencedRelation: "group_members"
+      referencedColumns: ["group_id","profile_id"]
+    }
+                  ]
+                },"vote_sessions": {
+                  Row: {
+                    "closed_at": string | null,"created_at": string,"decided_by": Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id": string,"organizer_id": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["session_status"],"topic": Database["public"]['Enums']["vote_topic"],"winner_proposal_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id"?: string,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"topic"?: Database["public"]['Enums']["vote_topic"],"winner_proposal_id"?: string | null
+                  }
+                  Update: {
+                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id"?: string,"id"?: string,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"topic"?: Database["public"]['Enums']["vote_topic"],"winner_proposal_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -275,10 +295,12 @@ isOneToOne: false
 "invite_code": string,
 "join_token": string | null,
 "kind": Database["public"]['Enums']["group_kind"],
+"meal_date": string | null,
 "name": string,
 "ordered_at": string | null,
 "owner_id": string,
 "restaurant": string | null,
+"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,
 "soiree_step": Database["public"]['Enums']["soiree_step"] | null
             }
                           SetofOptions: {
@@ -297,6 +319,7 @@ isOneToOne: false
 "organizer_id": string | null,
 "reminder_sent_at": string | null,
 "status": Database["public"]['Enums']["session_status"],
+"topic": Database["public"]['Enums']["vote_topic"],
 "winner_proposal_id": string | null
             }
                           SetofOptions: {
@@ -312,10 +335,12 @@ isOneToOne: false
 "invite_code": string,
 "join_token": string | null,
 "kind": Database["public"]['Enums']["group_kind"],
+"meal_date": string | null,
 "name": string,
 "ordered_at": string | null,
 "owner_id": string,
 "restaurant": string | null,
+"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,
 "soiree_step": Database["public"]['Enums']["soiree_step"] | null
             }
                           SetofOptions: {
@@ -325,16 +350,18 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "create_soiree":
-{ Args: { "soiree_name": string }; Returns: {
+{ Args: { "meal_mode"?: Database["public"]['Enums']["soiree_mode"],"on_date"?: string,"soiree_name": string,"vote_topics"?: (Database["public"]['Enums']["vote_topic"])[] }; Returns: {
               "created_at": string,
 "id": string,
 "invite_code": string,
 "join_token": string | null,
 "kind": Database["public"]['Enums']["group_kind"],
+"meal_date": string | null,
 "name": string,
 "ordered_at": string | null,
 "owner_id": string,
 "restaurant": string | null,
+"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,
 "soiree_step": Database["public"]['Enums']["soiree_step"] | null
             }
                           SetofOptions: {
@@ -388,10 +415,12 @@ isOneToOne: false
 "invite_code": string,
 "join_token": string | null,
 "kind": Database["public"]['Enums']["group_kind"],
+"meal_date": string | null,
 "name": string,
 "ordered_at": string | null,
 "owner_id": string,
 "restaurant": string | null,
+"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,
 "soiree_step": Database["public"]['Enums']["soiree_step"] | null
             }
                           SetofOptions: {
@@ -425,7 +454,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","session_status": "open"|"closed","soiree_step": "choix"|"commande"|"passee"
+            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -545,7 +574,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"session_status": ["open", "closed"],"soiree_step": ["choix", "commande", "passee"]
+            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
           }
         }
 } as const
