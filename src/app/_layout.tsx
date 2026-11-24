@@ -71,8 +71,8 @@ function RootNavigator() {
     // Sans ce profil, impossible de savoir s'il faut demander le nom : on ne devine pas.
     return (
       <ErrorScreen
-        title="Impossible de charger ton profil"
-        message="Vérifie ton réseau et réessaie."
+        title="On n’arrive pas à charger ton profil"
+        message="Vérifie ta connexion et réessaie."
         onRetry={retry}
         canSignOut
       />

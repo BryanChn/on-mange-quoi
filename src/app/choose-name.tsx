@@ -10,7 +10,7 @@ import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
 import { useTheme, type Theme } from "@/theme";
 
 function getNameError(cleanName: string): string | null {
-  if (cleanName === "") return "Entre le nom que verra ton groupe.";
+  if (cleanName === "") return "Écris le prénom que les autres verront.";
   return null;
 }
 
@@ -36,7 +36,7 @@ export default function ChooseName() {
       // Une fois le profil créé, la garde du layout mène seule à l'accueil.
       await saveDisplayName(cleanName);
     } catch {
-      setError("Impossible d’enregistrer ton nom. Vérifie ton réseau et réessaie.");
+      setError("Ton prénom n’est pas enregistré : vérifie ta connexion et réessaie.");
     } finally {
       setIsSaving(false);
     }

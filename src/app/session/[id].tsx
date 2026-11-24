@@ -75,7 +75,7 @@ type Spin = { names: string[]; winnerIndex: number };
 
 const DECISION_LABELS: Record<DecisionMethod, string> = {
   vote: "Gagné au vote",
-  tirage: "Tiré au sort parmi les ex æquo",
+  tirage: "Départagé par la roulette",
   // N'existe plus depuis le 2026-11-19 : gardé pour afficher les sessions passées.
   organisateur: "Départagé à la main parmi les ex æquo",
 };
@@ -229,7 +229,7 @@ export default function SessionScreen() {
   function handlePropose() {
     const cleanName = dishName.trim();
     if (cleanName === "") {
-      setNameError(`Entre le nom d’un ${noun}.`);
+      setNameError(`Écris le nom d’un ${noun}.`);
       return;
     }
 
@@ -241,7 +241,7 @@ export default function SessionScreen() {
         hapticReject();
         setNameError(`Ce ${noun} est déjà proposé : coche-le dans la liste.`);
       }
-    }, `Impossible d’ajouter ce ${noun}. Vérifie ton réseau et réessaie.`);
+    }, `Ce ${noun} n’a pas été ajouté : vérifie ta connexion et réessaie.`);
   }
 
   // proposal est le plat affiché, vote provisoire compris : un second toucher décoche.
@@ -263,7 +263,7 @@ export default function SessionScreen() {
         if (isSessionClosedError(error)) {
           await loadSession();
         } else {
-          setActionError("Impossible d’enregistrer ton vote. Vérifie ton réseau et réessaie.");
+          setActionError("Ton vote n’est pas passé : vérifie ta connexion et réessaie.");
         }
       }
     });
@@ -274,9 +274,9 @@ export default function SessionScreen() {
       const isRemoved = await removeProposal(proposal.id);
       if (!isRemoved) {
         hapticReject();
-        setActionError(`Quelqu’un a déjà voté pour ce ${noun} : il reste dans la liste.`);
+        setActionError(`Ce ${noun} a déjà des votes : il reste dans la liste.`);
       }
-    }, `Impossible de retirer ce ${noun}. Vérifie ton réseau et réessaie.`);
+    }, `Ce ${noun} n’a pas été retiré : vérifie ta connexion et réessaie.`);
   }
 
   // La roulette se lance ensuite d'elle-même : le rechargement voit la session passer à
@@ -285,7 +285,7 @@ export default function SessionScreen() {
     runAction(async () => {
       await closeSession(id);
       setCloseStep("idle");
-    }, "Impossible de clôturer le vote. Vérifie ton réseau et réessaie.");
+    }, "Le vote n’est pas terminé : vérifie ta connexion et réessaie.");
   }
 
   if (isLoading) {
@@ -294,8 +294,8 @@ export default function SessionScreen() {
   if (hasFailed || !session || !loadedAt) {
     return (
       <ErrorScreen
-        title="Impossible de charger le vote"
-        message="Vérifie ton réseau et réessaie."
+        title="On n’arrive pas à ouvrir le vote"
+        message="Vérifie ta connexion et réessaie."
         onRetry={retry}
       />
     );
@@ -412,7 +412,7 @@ export default function SessionScreen() {
                         <Text style={styles.caption}>
                           {item.voterNames.length > 0
                             ? item.voterNames.join(", ")
-                            : "Aucun vote pour l’instant"}
+                            : "Personne n’a encore voté"}
                         </Text>
                       </View>
                       {/* Clé = le nombre : un nouveau compteur remplace l'ancien et arrive en
@@ -465,7 +465,9 @@ export default function SessionScreen() {
               </Text>
               {canClose || everyoneHasVoted(participation) ? null : (
                 <Text style={styles.status}>
-                  L’organisateur clôturera le vote quand tout le monde aura voté.
+                  {session.organizerName
+                    ? `${session.organizerName} terminera le vote quand tout le monde aura voté.`
+                    : "La personne qui organise le groupe terminera le vote quand tout le monde aura voté."}
                 </Text>
               )}
             </View>
@@ -512,7 +514,7 @@ export default function SessionScreen() {
           {closeStep === "idle" && !showField && isTimeToClose ? (
             <>
               <PrimaryButton
-                label="Clôturer le vote"
+                label="Terminer le vote"
                 onPress={() => setCloseStep("confirm")}
                 isDisabled={isBusy || isVoting}
               />
@@ -534,7 +536,7 @@ export default function SessionScreen() {
               />
               {canCloseNow ? (
                 <TextButton
-                  label="Clôturer quand même"
+                  label="Terminer quand même"
                   onPress={() => setCloseStep("confirm")}
                   isDisabled={isBusy || isVoting}
                 />
@@ -546,11 +548,11 @@ export default function SessionScreen() {
             <>
               <Text style={styles.panelText}>
                 {leading.length > 1 ? `Égalité entre ${tiedNames} : la roulette va trancher. ` : ""}
-                Clôturer maintenant ? Plus personne ne pourra voter ni proposer.
+                Terminer maintenant ? Plus personne ne pourra voter ni proposer.
               </Text>
               {/* Pas de clôture pendant l'envoi d'un vote : il serait refusé et perdu. */}
               <PrimaryButton
-                label="Clôturer"
+                label="Terminer"
                 onPress={() => handleClose()}
                 isLoading={isBusy}
                 isDisabled={isVoting}
@@ -588,7 +590,12 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
 
   let decision = session.decidedBy ? DECISION_LABELS[session.decidedBy] : null;
   if (session.decidedBy === "vote" && winner) {
-    decision = `${decision} · ${voteCountLabel(winner.voteCount)}`;
+    // Aucun vote ne peut gagner « au vote » qu'avec un seul plat (sinon c'est une égalité,
+    // donc la roulette) : « Gagné au vote · aucun vote » se contredisait.
+    decision =
+      winner.voteCount === 0
+        ? "Seule proposition"
+        : `${decision} · ${voteCountLabel(winner.voteCount)}`;
   }
 
   return (

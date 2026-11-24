@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 function getEmailError(cleanEmail: string): string | null {
   if (cleanEmail === "") return "Entre ton email pour recevoir le code de connexion";
-  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) return "Cet email ne me semble pas valide !";
+  if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) return "Cet email n’a pas l’air bon. Vérifie-le.";
   return null;
 }
 
@@ -21,7 +21,7 @@ function getEmailError(cleanEmail: string): string | null {
 function getSendErrorMessage(sendError: AuthError): string {
   if (sendError.status === 429) return "Trop de demandes. Attends une minute avant de réessayer.";
   // 500 ou autre : réessayer tout de suite ne changerait rien (ex. Resend refuse l'adresse).
-  return "Envoi impossible pour le moment.";
+  return "Le code n’est pas parti. Réessaie dans un instant.";
 }
 
 export default function SignIn() {
@@ -56,7 +56,7 @@ export default function SignIn() {
       router.push({ pathname: "/verify", params: { email: cleanEmail } });
     } catch {
       // Échec imprévu : l'appel a planté (réseau coupé, serveur injoignable).
-      setError("Pas de connexion ? Vérifie ton réseau et réessaie.");
+      setError("Pas de connexion ? Vérifie-la et réessaie.");
     } finally {
       // Succès, échec ou plantage : le bouton redevient utilisable.
       setIsSending(false);

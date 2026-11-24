@@ -96,7 +96,7 @@ export default function Index() {
     try {
       openSession(await startSession(group.id));
     } catch {
-      setStartError("Impossible de lancer le vote. Vérifie ton réseau et réessaie.");
+      setStartError("Le vote n’a pas démarré : vérifie ta connexion et réessaie.");
     } finally {
       setIsStarting(false);
     }
@@ -107,8 +107,8 @@ export default function Index() {
   if (!home) {
     return hasFailed ? (
       <ErrorScreen
-        title="Impossible de charger l’accueil"
-        message="Vérifie ton réseau et réessaie."
+        title="On n’arrive pas à charger l’accueil"
+        message="Vérifie ta connexion et réessaie."
         onRetry={retry}
         canSignOut
       />
@@ -193,7 +193,7 @@ export default function Index() {
               <ListRow
                 icon="star"
                 label="Organiser une soirée"
-                subtitle="Kebab, pizza… chacun écrit sa commande"
+                subtitle="Kebab, pizza… chacun note ce qu’il veut"
                 onPress={() => router.push("/soiree/new")}
               />
               <ListRow
@@ -399,7 +399,7 @@ function EmptyHome({ styles }: { styles: Styles }) {
       </Text>
       <View style={styles.emptyActions}>
         <PrimaryButton label="Créer un groupe" onPress={() => router.push("/create-group")} />
-        <TextButton label="J’ai un code d’invitation" onPress={() => router.push("/join-group")} />
+        <TextButton label="Rejoindre avec un code" onPress={() => router.push("/join-group")} />
         <TextButton label="Organiser une soirée" onPress={() => router.push("/soiree/new")} />
       </View>
     </View>

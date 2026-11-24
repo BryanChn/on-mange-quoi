@@ -23,7 +23,7 @@ export default function JoinGroup() {
   async function handleJoin() {
     const cleanCode = code.trim();
     if (cleanCode === "") {
-      setError("Entre le code reçu d’un membre du groupe ou de la soirée.");
+      setError("Tape le code qu’on t’a envoyé (groupe ou soirée).");
       return;
     }
     setError(null);
@@ -32,7 +32,7 @@ export default function JoinGroup() {
     try {
       const groupId = await joinGroup(cleanCode);
       if (groupId === null) {
-        setError("Ce code ne correspond à aucun groupe ni à aucune soirée.");
+        setError("Ce code ne mène nulle part. Vérifie-le avec la personne qui te l’a envoyé.");
         return;
       }
       // replace : le bouton retour ramène à la liste, pas à ce formulaire déjà envoyé.
@@ -47,7 +47,7 @@ export default function JoinGroup() {
       setError(
         failure
           ? JOIN_FAILURE_MESSAGES[failure].title
-          : "Impossible de rejoindre. Vérifie ton réseau et réessaie.",
+          : "Tu n’as pas pu rejoindre : vérifie ta connexion et réessaie.",
       );
     } finally {
       setIsJoining(false);
