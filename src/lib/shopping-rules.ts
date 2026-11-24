@@ -62,3 +62,45 @@ export function findDuplicate(
     items.find((item) => item.id !== exceptId && normalizeLabel(item.label) === wanted) ?? null
   );
 }
+
+// Un article rangé par « Retirer les achetés » : la matière des suggestions.
+export type ShoppingHistoryEntry = { label: string; quantity: string | null; clearedAt: string };
+
+export type ShoppingSuggestion = { label: string; quantity: string | null };
+
+// Ce qu'on achète souvent, à rajouter en un toucher : les articles rangés, regroupés par nom
+// (majuscules et accents ignorés), les plus fréquents d'abord puis les plus récents, avec la
+// dernière quantité utilisée. Ce qui est déjà dans la liste n'est pas proposé.
+export function buildSuggestions(
+  history: ShoppingHistoryEntry[],
+  currentItems: ShoppingItem[],
+  max = 8,
+): ShoppingSuggestion[] {
+  const inList = new Set(currentItems.map((item) => normalizeLabel(item.label)));
+  const byName = new Map<
+    string,
+    { label: string; quantity: string | null; lastAt: string; count: number }
+  >();
+
+  for (const entry of history) {
+    const key = normalizeLabel(entry.label);
+    if (inList.has(key)) continue;
+    const known = byName.get(key);
+    if (!known) {
+      byName.set(key, { ...entry, lastAt: entry.clearedAt, count: 1 });
+      continue;
+    }
+    known.count += 1;
+    // Le nom et la quantité de la dernière fois.
+    if (entry.clearedAt > known.lastAt) {
+      known.label = entry.label;
+      known.quantity = entry.quantity;
+      known.lastAt = entry.clearedAt;
+    }
+  }
+
+  return [...byName.values()]
+    .sort((a, b) => b.count - a.count || b.lastAt.localeCompare(a.lastAt))
+    .slice(0, max)
+    .map(({ label, quantity }) => ({ label, quantity }));
+}

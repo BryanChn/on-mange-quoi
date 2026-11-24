@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  buildSuggestions,
   cleanShoppingInput,
   findDuplicate,
   normalizeLabel,
@@ -59,4 +60,21 @@ test("doublons : trouve l'article déjà là, à acheter ou déjà pris, sauf ce
   assert.equal(findDuplicate(items, "PAIN")?.id, "pain");
   assert.equal(findDuplicate(items, "Beurre"), null);
   assert.equal(findDuplicate(items, "Lait", "lait"), null);
+});
+
+test("suggestions : les plus fréquents d'abord, avec la dernière quantité ; rien de ce qui est déjà là", () => {
+  const history = [
+    { label: "Pain", quantity: null, clearedAt: "2026-11-10T18:00:00Z" },
+    { label: "lait", quantity: "1", clearedAt: "2026-11-10T18:00:00Z" },
+    { label: "Lait", quantity: "2", clearedAt: "2026-11-17T18:00:00Z" },
+    { label: "Beurre", quantity: null, clearedAt: "2026-11-20T18:00:00Z" },
+    { label: "Œufs", quantity: "12", clearedAt: "2026-11-21T18:00:00Z" },
+  ];
+  const current = [{ ...item("x", "2026-11-24T10:00:00Z"), label: "oeufs" }];
+  assert.deepEqual(buildSuggestions(history, current), [
+    { label: "Lait", quantity: "2" },
+    { label: "Beurre", quantity: null },
+    { label: "Pain", quantity: null },
+  ]);
+  assert.equal(buildSuggestions(history, [], 2).length, 2);
 });

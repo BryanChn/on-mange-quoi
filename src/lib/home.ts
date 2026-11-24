@@ -26,7 +26,11 @@ export type Home = {
 export async function fetchHome(): Promise<Home> {
   const userId = await getUserId();
   // Les articles à acheter, en parallèle : une requête de plus, mais pas une par groupe.
-  const toBuyRequest = supabase.from("shopping_items").select("group_id").is("checked_at", null);
+  const toBuyRequest = supabase
+    .from("shopping_items")
+    .select("group_id")
+    .is("checked_at", null)
+    .is("cleared_at", null);
   const { data, error } = await supabase
     .from("groups")
     .select(

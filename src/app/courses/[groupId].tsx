@@ -15,6 +15,7 @@ import { useSession } from "@/lib/session";
 import {
   addShoppingItem,
   clearCheckedItems,
+  fetchShoppingHistory,
   fetchShoppingList,
   removeShoppingItem,
   setShoppingItemChecked,
@@ -22,15 +23,23 @@ import {
   updateShoppingItem,
 } from "@/lib/shopping";
 import {
+  buildSuggestions,
   findDuplicate,
   SHOPPING_LABEL_MAX_LENGTH,
   SHOPPING_QUANTITY_MAX_LENGTH,
   sortShoppingList,
+  type ShoppingHistoryEntry,
   type ShoppingItem,
+  type ShoppingSuggestion,
 } from "@/lib/shopping-rules";
 import { useTheme, type Theme } from "@/theme";
 
-type ListState = { groupName: string; items: ShoppingItem[]; names: Map<string, string> };
+type ListState = {
+  groupName: string;
+  items: ShoppingItem[];
+  history: ShoppingHistoryEntry[];
+  names: Map<string, string>;
+};
 
 // La liste de courses d'un foyer : ajouter, cocher en magasin (« je l'ai pris »), retirer
 // les achetés. Tout le monde la voit bouger en direct.
@@ -57,6 +66,8 @@ export default function ShoppingListScreen() {
   const [editQuantity, setEditQuantity] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  // Suggestion en cours d'ajout : pas de double ajout sur un double toucher.
+  const [addingSuggestion, setAddingSuggestion] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   // Coches affichées dès le toucher, avant la réponse du serveur (on coche vite en magasin).
   const [pendingChecks, setPendingChecks] = useState<Map<string, boolean>>(new Map());
@@ -68,12 +79,17 @@ export default function ShoppingListScreen() {
     latestRequestRef.current += 1;
     const requestId = latestRequestRef.current;
 
-    Promise.all([fetchGroup(groupId), fetchShoppingList(groupId)]).then(
-      ([group, items]) => {
+    Promise.all([
+      fetchGroup(groupId),
+      fetchShoppingList(groupId),
+      fetchShoppingHistory(groupId),
+    ]).then(
+      ([group, items, history]) => {
         if (latestRequestRef.current !== requestId) return;
         setList({
           groupName: group.name,
           items,
+          history,
           names: new Map(group.members.map((member) => [member.id, member.name])),
         });
         setHasFailed(false);
@@ -113,6 +129,7 @@ export default function ShoppingListScreen() {
         : { ...item, checkedAt: null, checkedBy: null };
     }),
   );
+  const suggestions = buildSuggestions(list.history, items);
   const toBuy = items.filter((item) => item.checkedAt === null);
   const taken = items.filter((item) => item.checkedAt !== null);
 
@@ -176,6 +193,26 @@ export default function ShoppingListScreen() {
         next.delete(item.id);
         return next;
       });
+    }
+  }
+
+  // « Souvent acheté » : un toucher remet l'article dans la liste, avec sa dernière quantité.
+  async function handleAddSuggestion(suggestion: ShoppingSuggestion) {
+    hapticTick();
+    setError(null);
+    setNotice(null);
+    setAddingSuggestion(suggestion.label);
+    try {
+      await addShoppingItem(groupId, {
+        label: suggestion.label,
+        quantity: suggestion.quantity ?? "",
+      });
+      loadList();
+    } catch {
+      hapticReject();
+      setError("L’article n’a pas été ajouté : vérifie ta connexion et réessaie.");
+    } finally {
+      setAddingSuggestion(null);
     }
   }
 
@@ -363,6 +400,32 @@ export default function ShoppingListScreen() {
           </View>
         </View>
         <PrimaryButton label="Ajouter" onPress={handleAdd} isLoading={isAdding} />
+        {suggestions.length > 0 ? (
+          <View style={styles.suggestions}>
+            <Text style={styles.suggestionsTitle}>Souvent acheté</Text>
+            <View style={styles.suggestionList}>
+              {suggestions.map((suggestion) => (
+                <Pressable
+                  key={suggestion.label}
+                  onPress={() => handleAddSuggestion(suggestion)}
+                  disabled={addingSuggestion !== null}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ajouter ${suggestion.label}${suggestion.quantity ? `, ${suggestion.quantity}` : ""}`}
+                  style={({ pressed }) => [
+                    styles.suggestion,
+                    (pressed || addingSuggestion === suggestion.label) && styles.pressed,
+                  ]}
+                >
+                  <Feather name="plus" size={16} color={theme.colors.chipText} />
+                  <Text style={styles.suggestionText}>
+                    {suggestion.label}
+                    {suggestion.quantity ? ` · ${suggestion.quantity}` : ""}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
         <Text style={styles.hint}>Appui long sur un article pour le modifier.</Text>
       </Card>
 
@@ -458,5 +521,19 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     notice: { color: colors.success, fontSize: fontSize.small },
     hint: { color: colors.textMuted, fontSize: fontSize.caption, textAlign: "center" },
     editRow: { gap: spacing.sm, paddingVertical: spacing.sm },
+    suggestions: { gap: spacing.sm },
+    suggestionsTitle: { color: colors.textMuted, fontSize: fontSize.small, fontWeight: "700" },
+    suggestionList: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+    // 44 de haut : une cible facile, même en marchant dans le magasin.
+    suggestion: {
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.pill,
+      backgroundColor: colors.chipBg,
+    },
+    suggestionText: { color: colors.chipText, fontSize: fontSize.small, fontWeight: "700" },
   });
 }

@@ -217,9 +217,10 @@ Un article de la liste de courses d'un foyer (migration `shopping_items`, 2026-1
 | `added_by` | `uuid` | default `auth.uid()` · FK → `profiles` `on delete set null` |
 | `checked_at` | `timestamptz` | nullable · coché = « je l'ai pris » |
 | `checked_by` | `uuid` | nullable · FK → `profiles` `on delete set null` · check : `checked_by` non nul seulement si `checked_at` l'est |
+| `cleared_at` | `timestamptz` | nullable · rangé par « Retirer les achetés » (migration `shopping_history`) · check : seulement si `checked_at` est rempli · index partiel `where cleared_at is null` |
 | `created_at` | `timestamptz` | not null · default `now()` |
 
-RLS : tout membre **d'un foyer** lit, ajoute, coche, modifie et retire (`is_foyer_member` : membre, groupe de `kind = 'foyer'`, compte non anonyme). Une soirée n'a pas de liste. Droits par colonne : `insert (group_id, label, quantity)`, `update (label, quantity, checked_at)` : l'auteur et celui qui coche ne viennent jamais de l'app. Le trigger `shopping_items_stamp_check` pose l'heure du serveur et `auth.uid()` quand on coche, les efface quand on décoche, et garde la première coche si on recoche. « Retirer les achetés » = `delete` des lignes cochées du groupe. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
+RLS : tout membre **d'un foyer** lit, ajoute, coche, modifie et retire (`is_foyer_member` : membre, groupe de `kind = 'foyer'`, compte non anonyme). Une soirée n'a pas de liste. Droits par colonne : `insert (group_id, label, quantity)`, `update (label, quantity, checked_at)` : l'auteur et celui qui coche ne viennent jamais de l'app. Le trigger `shopping_items_stamp_check` pose l'heure du serveur et `auth.uid()` quand on coche, les efface quand on décoche, et garde la première coche si on recoche. « Retirer les achetés » **range** les lignes cochées (`update cleared_at`, heure posée par le trigger) : elles quittent la liste et nourrissent les suggestions « Souvent acheté » ; la croix d'un article, elle, le supprime. Droit par colonne ajouté : `update (cleared_at)`. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
 
 ## Photo de profil (migration `profile_photo`, 2026-11-23)
 
