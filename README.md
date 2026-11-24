@@ -9,13 +9,9 @@ Application mobile pour décider ensemble de ce qu'on mange, puis passer la comm
 
 **État :** MVP livré et utilisé chaque jour par mon foyer sur deux téléphones Android (APK distribué avec EAS). V1 en cours : les soirées (commande groupée, invités sans compte) sont en ligne depuis le 23 novembre 2026.
 
-| Accueil | Vote en direct | La roulette tranche |
-| :---: | :---: | :---: |
-| <img src="docs/captures/accueil.jpg" width="240" alt="Accueil : la carte du soir, les groupes et la soirée en cours"> | <img src="docs/captures/vote.jpg" width="240" alt="Vote en direct : plats proposés, cases cochées, avatars de ceux qui ont voté"> | <img src="docs/captures/resultat.jpg" width="240" alt="Résultat : « Ce soir, c'est … ! » après la roulette"> |
-
-| Soirée : la commande en direct | Invité sans l'app (navigateur) | Récap partagé sur WhatsApp |
-| :---: | :---: | :---: |
-| <img src="docs/captures/soiree.jpg" width="240" alt="Soirée : chacun ajoute ses lignes, récap pour le comptoir"> | <img src="docs/captures/invite-web.jpg" width="240" alt="Page web d'une soirée : pseudo et avatar pour rejoindre sans compte"> | <img src="docs/captures/recap-whatsapp.jpg" width="240" alt="Récap dans WhatsApp : pour le comptoir, qui prend quoi, qui n'a pas commandé et le lien"> |
+| Accueil | Vote en direct | Résultat | Soirée : la commande |
+| :---: | :---: | :---: | :---: |
+| <img src="docs/captures/accueil.jpg" width="200" alt="Accueil : « Salut Bryan, on mange quoi ce soir ? », carte « Rien de prévu ce soir » avec le bouton Lancer le vote, et la liste des groupes"> | <img src="docs/captures/vote.jpg" width="200" alt="Vote en direct : un plat proposé, la case à cocher, et « 0 sur 2 a voté · SuperNono n'a pas encore voté »"> | <img src="docs/captures/resultat.jpg" width="200" alt="Résultat d'une soirée : « Ce soir, c'est Domino's ! », seule proposition, bouton Écrire ma commande"> | <img src="docs/captures/soiree.jpg" width="200" alt="Soirée : ma commande, le champ pour ajouter un article et une remarque, le récap pour le comptoir et les boutons Partager le récap et J'ai passé la commande"> |
 
 ## Fonctionnalités
 
