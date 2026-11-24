@@ -18,7 +18,7 @@ test("le nom proposé est le jour d'aujourd'hui chez le prénom", () => {
 });
 
 test("sans prénom, un nom neutre ; un prénom trop long est coupé à la limite de la colonne", () => {
-  assert.equal(defaultSoireeName(new Date(2026, 10, 28), " "), "Soirée de samedi");
+  assert.equal(defaultSoireeName(new Date(2026, 10, 28), " "), "Repas de samedi");
   const long = defaultSoireeName(new Date(2026, 10, 28), "A".repeat(60));
   assert.equal(long.length, SOIREE_NAME_MAX_LENGTH);
 });

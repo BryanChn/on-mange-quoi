@@ -5,11 +5,11 @@
 Application mobile pour décider ensemble de ce qu'on mange, puis passer la commande sans papier ni messages éparpillés.
 
 - **Au quotidien, dans le foyer** : un membre lance un vote, chacun propose des plats et coche tous ceux qui lui vont. Le plat qui a le plus de votes gagne. En cas d'égalité, une roulette tranche, et le même plat s'affiche sur tous les téléphones.
-- **En soirée, à plusieurs** : on crée une soirée, on envoie le lien sur WhatsApp, et chacun ajoute sa commande, même sans l'app (depuis un navigateur). Tout le monde voit les commandes en direct, et l'organisateur a le récap prêt pour le comptoir.
+- **À plusieurs** (un dîner, un midi entre collègues, un goûter) : on crée un repas, on envoie le lien sur WhatsApp, et chacun ajoute sa commande, même sans l'app (depuis un navigateur). Tout le monde voit les commandes en direct, et l'organisateur a le récap prêt pour le comptoir.
 
-**État :** MVP livré et utilisé chaque jour par mon foyer sur deux téléphones Android (APK distribué avec EAS). V1 en cours : les soirées (commande groupée, invités sans compte) sont en ligne depuis le 23 novembre 2026.
+**État :** MVP livré et utilisé chaque jour par mon foyer sur deux téléphones Android (APK distribué avec EAS). V1 en cours : les repas à plusieurs (commande groupée, invités sans compte) sont en ligne depuis le 23 novembre 2026, la liste de courses depuis le 24.
 
-| Accueil | Vote en direct | Résultat | Soirée : la commande |
+| Accueil | Vote en direct | Résultat | Repas à plusieurs : la commande |
 | :---: | :---: | :---: | :---: |
 | <img src="docs/captures/accueil.jpg" width="200" alt="Accueil : « Salut Bryan, on mange quoi ce soir ? », carte « Rien de prévu ce soir » avec le bouton Lancer le vote, et la liste des groupes"> | <img src="docs/captures/vote.jpg" width="200" alt="Vote en direct : un plat proposé, la case à cocher, et « 0 sur 2 a voté · SuperNono n'a pas encore voté »"> | <img src="docs/captures/resultat.jpg" width="200" alt="Résultat d'une soirée : « Ce soir, c'est Domino's ! », seule proposition, bouton Écrire ma commande"> | <img src="docs/captures/soiree.jpg" width="200" alt="Soirée : ma commande, le champ pour ajouter un article et une remarque, le récap pour le comptoir et les boutons Partager le récap et J'ai passé la commande"> |
 
@@ -22,7 +22,7 @@ Application mobile pour décider ensemble de ce qu'on mange, puis passer la comm
 | Vote | Proposer des plats, en cocher plusieurs (vote par approbation), changer d'avis jusqu'à la fin du vote |
 | Temps réel | Votes, plats, arrivées et commandes s'affichent en direct chez tous, y compris après une coupure réseau |
 | Résultat | Gagnant calculé par le serveur. Égalité : tirage au sort automatique, rejoué en roulette animée sur chaque téléphone |
-| Soirées | Créer une soirée, inviter par lien ou par code, choisir le resto (vote ou directement), chacun écrit sa commande, récap pour le comptoir et pour WhatsApp, « J'ai passé la commande » fige tout. Effacée 24 h après |
+| Repas à plusieurs | Créer un repas, inviter par lien ou par code, choisir le resto (vote ou directement), chacun écrit sa commande, récap pour le comptoir et pour WhatsApp, « J'ai passé la commande » fige tout. Effacée 24 h après |
 | Invités sans app | Le lien ouvre une page web : un pseudo, un avatar, et on commande. Si l'app est installée, le lien l'ouvre directement (Android App Links) |
 | Notifications push | Au lancement d'un vote, au résultat, et un rappel unique à ceux qui n'ont pas encore participé (entre 10 h et 21 h) |
 | Profil | Avatar dessiné ou photo de profil, nom, suppression du compte depuis l'app (exigée par Apple) |
@@ -49,7 +49,7 @@ flowchart LR
     DB -- "Realtime" --> Web
     DB -- "trigger + pg_net<br/>(après le commit)" --> Fn["Edge Function<br/>notify-vote"]
     Fn --> Expo["Expo Push"] --> Phone["Téléphones<br/>des membres"]
-    Cron["pg_cron"] -- "rappels, purge des soirées,<br/>reçus d'Expo" --> DB
+    Cron["pg_cron"] -- "rappels, purge des repas,<br/>reçus d'Expo" --> DB
 ```
 
 ### Choix techniques
@@ -58,7 +58,7 @@ flowchart LR
 
 **Sécurité dans la base.** La Row Level Security est activée sur toutes les tables : un membre ne lit et n'écrit que dans ses groupes. Les droits `insert` / `update` sont limités aux colonnes que l'app a besoin d'écrire, ce qui bloque l'assignation de masse (impossible de se déclarer gagnant ou owner en ajoutant un champ à la requête). La clé `service_role` n'existe que côté serveur, jamais dans l'app.
 
-**Des invités sans compte, enfermés dans leur soirée.** Un invité se connecte anonymement (Supabase Auth). Les fonctions des foyers refusent tout compte anonyme : avec le code d'un foyer, un invité ne peut pas y entrer. Le lien d'une soirée est un jeton aléatoire, distinct du code à taper dans l'app. Une soirée et ses invités sont effacés 24 h après la commande par une tâche planifiée.
+**Des invités sans compte, enfermés dans leur repas.** Un invité se connecte anonymement (Supabase Auth). Les fonctions des foyers refusent tout compte anonyme : avec le code d'un foyer, un invité ne peut pas y entrer. Le lien d'une soirée est un jeton aléatoire, distinct du code à taper dans l'app. Une soirée et ses invités sont effacés 24 h après la commande par une tâche planifiée.
 
 **Le temps réel rattrape ce qu'il a manqué.** Quand on revient de WhatsApp, la connexion Realtime a souvent été coupée. À chaque (re)connexion confirmée, l'écran recharge : une commande ajoutée pendant l'absence apparaît sans quitter l'écran. Un test de bout en bout coupe le WebSocket d'un navigateur pour le vérifier.
 
@@ -76,9 +76,9 @@ Le schéma de la base et ses règles sont détaillés dans [`docs/schema.md`](do
 
 | Niveau | Commande | Ce qui est couvert |
 | --- | --- | --- |
-| Logique pure | `npm test` | ~70 tests : carte « Ce soir », récap de commande et texte partagé, règles des soirées, file d'envoi des votes, liens et messages des notifications |
-| Intégration de l'app | `bash tests/integration/run.sh` | ~90 tests : le vrai code de `src/lib` contre une base locale (vote, égalité, groupes, soirées, invités, photos, rappels, suppression de compte), RLS comprise |
-| De bout en bout | `bash e2e/run.sh` | Playwright, deux navigateurs : deux invités rejoignent une soirée par le lien, commandent, voient la commande de l'autre en direct (y compris après une coupure du temps réel) et partagent le récap |
+| Logique pure | `npm test` | ~70 tests : carte « Ce soir », récap de commande et texte partagé, règles des repas à plusieurs, file d'envoi des votes, liens et messages des notifications |
+| Intégration de l'app | `bash tests/integration/run.sh` | ~90 tests : le vrai code de `src/lib` contre une base locale (vote, égalité, groupes, repas à plusieurs, invités, liste de courses, photos, rappels, suppression de compte), RLS comprise |
+| De bout en bout | `bash e2e/run.sh` | Playwright, deux navigateurs : deux invités rejoignent un repas par le lien, commandent, voient la commande de l'autre en direct (y compris après une coupure du temps réel) et partagent le récap |
 | Base de données | `npm run db:test` | Scénarios SQL : RLS, droits par colonne, vote et clôture, départ et suppression, notifications |
 | Concurrence | `npm run db:test:race` | Vote et clôture lancés en même temps |
 | Types et style | `npx tsc --noEmit`, `npm run lint`, `npm run format:check` | TypeScript strict, ESLint, Prettier |
@@ -136,7 +136,7 @@ Chaque version a un objectif et un indicateur mesurable. L'indicateur du MVP se 
 | Version | Objectif | Indicateur |
 | --- | --- | --- |
 | **MVP · Décider** (livré) | Proposer des plats, voter, l'app tranche | Le foyer décide via l'app 4 soirs sur 7, trois semaines de suite |
-| **V1 · Cuisiner** (en cours) | Soirées et commande groupée (livrées), invités sans compte (livrés), recettes, liste de courses | Une soirée à 8+ sans commande passée par WhatsApp |
+| **V1 · Cuisiner** (en cours) | Repas à plusieurs et commande groupée (livrés), invités sans compte (livrés), liste de courses (livrée), recettes | Un repas à 8+ sans commande passée par WhatsApp |
 | V2 · S'inspirer | Import de recettes depuis les réseaux sociaux | Le groupe cuisine régulièrement des recettes importées |
 | V3 · Le stock | Stock du foyer, scan code-barres | À définir |
 | V4 · Dépenses | Analyse des dépenses et des habitudes | À définir |

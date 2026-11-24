@@ -40,9 +40,9 @@ L'app commence dans le foyer, mais elle vise une publication sur les stores et u
 | Session de vote | Une décision à prendre dans un groupe, lancée par un membre (l'organisateur) |
 | Proposition | Un plat soumis au vote (ex. « Bolognaise », « Pizza ») |
 | Vote | Un membre approuve une proposition. Plusieurs approbations par personne possibles |
-| Soirée (V1) | Groupe éphémère pour organiser un repas à plusieurs (ex. « Kebab samedi »). Rejoint par un lien, effacé 24 h après la commande |
-| Invité (V1) | Participant d'une soirée sans compte : un pseudo, une connexion anonyme. N'a accès qu'à sa soirée |
-| Ligne de commande (V1) | Ce qu'une personne commande dans une soirée : article (texte libre), quantité, remarque |
+| Repas à plusieurs (V1) | Affiché « repas » dans l'app, « soirée » dans le code. Groupe éphémère pour organiser un repas à plusieurs (ex. « Kebab samedi »). Rejoint par un lien, effacé 24 h après la commande |
+| Invité (V1) | Participant d'un repas sans compte : un pseudo, une connexion anonyme. N'a accès qu'à son repas |
+| Ligne de commande (V1) | Ce qu'une personne commande dans un repas : article (texte libre), quantité, remarque |
 
 ## Roadmap
 
@@ -83,7 +83,9 @@ Hors MVP, volontairement : présence, heure limite, notifications autres que le 
 En cas d'égalité, `close_session` tire au sort parmi les ex æquo, sans rien demander à l'organisateur.
 Le tirage s'affiche comme une **roulette animée** sur tous les téléphones. Le résultat est tiré **une seule fois** et enregistré en base ; l'animation se contente de s'arrêter sur ce résultat, pour que tout le monde voie le même plat. La façon dont le gagnant a été désigné est enregistrée (`vote`, `tirage`, `organisateur`).
 
-## V1 · Cuisiner : soirées (en cours, tranché le 2026-11-23)
+## V1 · Cuisiner : repas à plusieurs (en cours, tranché le 2026-11-23)
+
+Nom affiché « repas » depuis le 2026-11-24 (« soirée » était trop étroit : un midi, un goûter). Le code, la base et les routes gardent « soirée » (`kind = 'soiree'`, `/soiree/…`) : invisible pour l'utilisateur, et un renommage demanderait une migration sans bénéfice.
 
 Étude : https://claude.ai/artifact/7GqZQEu78cCoVNV2refUQ7. Une soirée remplace les commandes notées sur papier ou envoyées par WhatsApp.
 

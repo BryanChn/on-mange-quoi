@@ -196,7 +196,7 @@ export default function Index() {
                 ))}
                 <ListRow
                   icon="star"
-                  label="Organiser une soirée"
+                  label="Organiser un repas"
                   subtitle="Kebab, pizza… chacun note ce qu’il veut"
                   onPress={() => router.push("/soiree/new")}
                 />
@@ -363,7 +363,7 @@ function SoireeCard({ soiree, styles }: { soiree: HomeSoiree; styles: Styles }) 
     <Pressable
       onPress={() => router.push({ pathname: "/soiree/[id]", params: { id: soiree.id } })}
       accessibilityRole="button"
-      accessibilityLabel={`Soirée ${soiree.name}, ${SOIREE_STEP_LABELS[soiree.step]}, ${count} ${count > 1 ? "personnes" : "personne"}`}
+      accessibilityLabel={`Repas ${soiree.name}, ${SOIREE_STEP_LABELS[soiree.step]}, ${count} ${count > 1 ? "personnes" : "personne"}`}
       style={({ pressed }) => pressed && styles.pressed}
     >
       <Card>
@@ -406,7 +406,7 @@ function EmptyHome({ styles }: { styles: Styles }) {
       <View style={styles.emptyActions}>
         <PrimaryButton label="Créer un groupe" onPress={() => router.push("/create-group")} />
         <TextButton label="Rejoindre avec un code" onPress={() => router.push("/join-group")} />
-        <TextButton label="Organiser une soirée" onPress={() => router.push("/soiree/new")} />
+        <TextButton label="Organiser un repas" onPress={() => router.push("/soiree/new")} />
       </View>
     </View>
   );

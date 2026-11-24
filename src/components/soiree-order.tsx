@@ -150,7 +150,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
         <Text style={styles.muted}>
           {isOpen
             ? "Chacun note ce qu’il veut, tout le monde le voit en direct."
-            : "C’est commandé ! Le récap reste là jusqu’à demain, puis la soirée s’efface toute seule."}
+            : "C’est commandé ! Le récap reste là jusqu’à demain, puis le repas s’efface tout seul."}
         </Text>
       </Card>
 
@@ -291,7 +291,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
               {waiting.length > 0
                 ? `${waiting.join(", ")} n’${waiting.length > 1 ? "ont" : "a"} encore rien choisi. `
                 : ""}
-              Ensuite, plus personne ne pourra modifier la commande ni rejoindre la soirée.
+              Ensuite, plus personne ne pourra modifier la commande ni rejoindre le repas.
             </Text>
             <PrimaryButton
               label="Oui, c’est commandé"

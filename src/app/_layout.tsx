@@ -112,7 +112,7 @@ function RootNavigator() {
         <Stack.Screen name="group/[id]" options={{ title: "" }} />
         {/* Titre : le nom du groupe, posé par l'écran une fois chargé. */}
         <Stack.Screen name="courses/[groupId]" options={{ title: "" }} />
-        <Stack.Screen name="soiree/new" options={{ title: "Nouvelle soirée" }} />
+        <Stack.Screen name="soiree/new" options={{ title: "Nouveau repas" }} />
         <Stack.Screen name="account" options={{ title: "Profil" }} />
       </Stack.Protected>
 

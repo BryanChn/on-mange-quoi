@@ -195,8 +195,8 @@ export default function SoireeScreen() {
   if (hasFailed) {
     return (
       <ErrorScreen
-        title="On n’arrive pas à ouvrir la soirée"
-        message="Elle a peut-être été supprimée. Sinon, vérifie ta connexion."
+        title="On n’arrive pas à ouvrir le repas"
+        message="Il a peut-être été supprimé. Sinon, vérifie ta connexion."
         onRetry={() => {
           setHasFailed(false);
           loadSoiree();
@@ -380,7 +380,7 @@ export default function SoireeScreen() {
               {confirm.kind === "remove"
                 ? `Retirer ${confirm.member.name} ?`
                 : confirm.kind === "leave"
-                  ? "Quitter la soirée ?"
+                  ? "Quitter le repas ?"
                   : `Supprimer « ${soiree.name} » ?`}
             </Text>
             <Text style={styles.muted}>
@@ -390,9 +390,9 @@ export default function SoireeScreen() {
                   ? isOwner
                     ? successorName
                       ? `${successorName} prendra le relais pour organiser.`
-                      : "Tu es la seule personne de la soirée : elle disparaîtra."
+                      : "Tu es la seule personne du repas : il disparaîtra."
                     : "Ta commande est retirée. Tu pourras revenir avec le lien."
-                  : "Elle disparaît pour tout le monde, commandes comprises. Pas de retour en arrière."}
+                  : "Il disparaît pour tout le monde, commandes comprises. Pas de retour en arrière."}
             </Text>
             <PrimaryButton
               label={
@@ -414,10 +414,10 @@ export default function SoireeScreen() {
           </Card>
         ) : (
           <View style={styles.dangerLinks}>
-            <TextButton label="Quitter la soirée" onPress={() => setConfirm({ kind: "leave" })} />
+            <TextButton label="Quitter le repas" onPress={() => setConfirm({ kind: "leave" })} />
             {isOwner ? (
               <TextButton
-                label="Supprimer la soirée"
+                label="Supprimer le repas"
                 variant="danger"
                 onPress={() => setConfirm({ kind: "delete" })}
               />
@@ -488,7 +488,7 @@ function MemberRow({
     <Pressable
       onPress={onRemove}
       accessibilityRole="button"
-      accessibilityLabel={`${member.name}${member.isGuest ? ", invité" : ""} : retirer de la soirée`}
+      accessibilityLabel={`${member.name}${member.isGuest ? ", invité" : ""} : retirer du repas`}
       style={({ pressed }) => [styles.memberRow, pressed && styles.pressed]}
     >
       {content}
