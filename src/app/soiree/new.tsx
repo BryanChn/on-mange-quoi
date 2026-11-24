@@ -34,7 +34,7 @@ export default function NewSoiree() {
     try {
       const soiree = await createSoiree(cleanName);
       // replace : le retour ramène à l'accueil, pas à ce formulaire déjà envoyé. On invite
-      // ensuite, quand on veut, depuis la soirée (retour d'usage du 2026-11-24 : le partage
+      // ensuite, quand on veut, depuis la soirée (retour d'usage du 2026-11-23 : le partage
       // ouvert d'office n'était pas intuitif).
       router.replace({ pathname: "/soiree/[id]", params: { id: soiree.id } });
     } catch {
