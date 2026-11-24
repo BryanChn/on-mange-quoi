@@ -3,6 +3,7 @@ import { MEMBER_COLUMNS, toMembers, type Member } from "./members";
 import { MY_VOTER_NAME } from "./optimistic-vote";
 import { getUserId, supabase } from "./supabase";
 import { summarizeParticipation, type Participation } from "./tonight";
+import type { VoteTopic } from "./vote-topic";
 
 // Code Postgres d'une contrainte d'unicité violée.
 const UNIQUE_VIOLATION = "23505";
@@ -26,8 +27,12 @@ export type VoteSession = {
   groupId: string;
   // Rappelé dans l'en-tête : un membre de plusieurs groupes sait pour lequel il vote.
   groupName: string;
-  // Vote « Où on mange ? » d'une soirée : on y propose des restos, pas des plats.
+  // Vote d'un repas à plusieurs (soirée) : retour à l'écran du repas, pas du groupe.
   isSoiree: boolean;
+  // Ce que décide le vote (resto, plat, dessert…) : les phrases de l'écran en dépendent.
+  topic: VoteTopic;
+  // Type du repas (commande, resto, maison), null pour un foyer : le bouton après le résultat.
+  soireeMode: Enums<"soiree_mode"> | null;
   members: Member[];
   // null : l'organisateur a quitté le groupe ou supprimé son compte.
   organizerName: string | null;
@@ -165,8 +170,8 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
   const { data, error } = await supabase
     .from("vote_sessions")
     .select(
-      `group_id, status, organizer_id, winner_proposal_id, decided_by, created_at, closed_at,
-      groups(owner_id, name, kind, ${MEMBER_COLUMNS}),
+      `group_id, status, organizer_id, winner_proposal_id, decided_by, created_at, closed_at, topic,
+      groups(owner_id, name, kind, soiree_mode, ${MEMBER_COLUMNS}),
       proposals!proposals_session_id_fkey(id, name, proposed_by, votes(profile_id))`,
     )
     .eq("id", sessionId)
@@ -186,6 +191,8 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     // Toujours présent : la RLS ne montre une session qu'aux membres de son groupe.
     groupName: data.groups?.name ?? "",
     isSoiree: data.groups?.kind === "soiree",
+    topic: data.topic,
+    soireeMode: data.groups?.soiree_mode ?? null,
     members,
     organizerName: data.organizer_id ? (nameById.get(data.organizer_id) ?? null) : null,
     createdAt: data.created_at,

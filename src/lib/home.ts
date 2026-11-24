@@ -8,6 +8,8 @@ export type HomeSoiree = {
   id: string;
   name: string;
   step: Enums<"soiree_step">;
+  // Commande, resto, chez quelqu'un : l'étiquette de la carte en dépend.
+  mode: Enums<"soiree_mode">;
   members: Member[];
 };
 
@@ -34,7 +36,7 @@ export async function fetchHome(): Promise<Home> {
   const { data, error } = await supabase
     .from("groups")
     .select(
-      `id, name, kind, soiree_step,
+      `id, name, kind, soiree_step, soiree_mode,
       ${MEMBER_COLUMNS},
       vote_sessions(id, status, created_at, closed_at,
         winner:proposals!vote_sessions_winner_fk(name),
@@ -61,6 +63,7 @@ export async function fetchHome(): Promise<Home> {
             id: group.id,
             name: group.name,
             step: group.soiree_step,
+            mode: group.soiree_mode ?? "commande",
             members: toMembers(group.group_members),
           },
         ]

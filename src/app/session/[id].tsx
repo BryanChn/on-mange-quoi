@@ -56,6 +56,7 @@ import {
   type VoteSession,
 } from "@/lib/votes";
 import { hapticConfirm, hapticReject, hapticToggle } from "@/lib/haptics";
+import { capitalize, topicWords, type TopicWords } from "@/lib/vote-topic";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
@@ -95,10 +96,15 @@ function backToGroup(session: Pick<VoteSession, "groupId" | "isSoiree">) {
   }
 }
 
-// Ce qu'on propose : un plat dans un foyer, un resto dans une soirée (« Où on mange ? »).
-// Deux noms masculins : toutes les phrases de l'écran restent justes.
-function itemNoun(session: Pick<VoteSession, "isSoiree"> | null): "plat" | "resto" {
-  return session?.isSoiree ? "resto" : "plat";
+// Ce qu'on propose : un plat dans un foyer, un resto, ou un sujet du menu d'un repas (apéro,
+// entrée, plat, dessert). topicWords garde les phrases justes (« cette entrée », « d'apéro »).
+function wordsFor(session: Pick<VoteSession, "topic"> | null): TopicWords {
+  return topicWords(session?.topic ?? "plat");
+}
+
+// Après le résultat d'un vote de repas : la commande (repas « commande »), sinon le repas.
+function soireeNextLabel(session: Pick<VoteSession, "soireeMode">): string {
+  return session.soireeMode === "commande" ? "Écrire ma commande" : "Retour au repas";
 }
 
 // Roulette à jouer pour une session qui vient d'être tirée au sort : les ex æquo
@@ -224,12 +230,13 @@ export default function SessionScreen() {
     }
   }
 
-  const noun = itemNoun(session);
+  const words = wordsFor(session);
+  const This = capitalize(words.this);
 
   function handlePropose() {
     const cleanName = dishName.trim();
     if (cleanName === "") {
-      setNameError(`Écris le nom d’un ${noun}.`);
+      setNameError(`Écris le nom d’${words.a}.`);
       return;
     }
 
@@ -239,9 +246,9 @@ export default function SessionScreen() {
         setDishName("");
       } else {
         hapticReject();
-        setNameError(`Ce ${noun} est déjà proposé : coche-le dans la liste.`);
+        setNameError(`${This} est déjà proposé${words.agree} : coche-le dans la liste.`);
       }
-    }, `Ce ${noun} n’a pas été ajouté : vérifie ta connexion et réessaie.`);
+    }, `${This} n’a pas été ajouté${words.agree} : vérifie ta connexion et réessaie.`);
   }
 
   // proposal est le plat affiché, vote provisoire compris : un second toucher décoche.
@@ -274,9 +281,9 @@ export default function SessionScreen() {
       const isRemoved = await removeProposal(proposal.id);
       if (!isRemoved) {
         hapticReject();
-        setActionError(`Ce ${noun} a déjà des votes : il reste dans la liste.`);
+        setActionError(`${This} a déjà des votes : ${words.it} reste dans la liste.`);
       }
-    }, `Ce ${noun} n’a pas été retiré : vérifie ta connexion et réessaie.`);
+    }, `${This} n’a pas été retiré${words.agree} : vérifie ta connexion et réessaie.`);
   }
 
   // La roulette se lance ensuite d'elle-même : le rechargement voit la session passer à
@@ -362,7 +369,7 @@ export default function SessionScreen() {
             </View>
             <Text style={styles.muted}>
               {proposals.length === 0
-                ? `Pas encore de ${noun}. Propose le premier !`
+                ? `Pas encore ${words.of}. Propose ${words.first} !`
                 : "Coche tout ce qui te tente."}
             </Text>
 
@@ -488,11 +495,11 @@ export default function SessionScreen() {
           {closeStep === "idle" && showField ? (
             <>
               <TextField
-                label={`Proposer un ${noun}`}
+                label={`Proposer ${words.a}`}
                 value={dishName}
                 onChangeText={setDishName}
                 error={nameError}
-                placeholder={session.isSoiree ? "Pizza Roma" : "Bolognaise"}
+                placeholder={words.example}
                 autoCapitalize="sentences"
                 autoFocus
                 maxLength={PROPOSAL_NAME_MAX_LENGTH}
@@ -501,7 +508,7 @@ export default function SessionScreen() {
                 submitBehavior="submit"
               />
               <PrimaryButton
-                label={`Ajouter ce ${noun}`}
+                label={`Ajouter ${words.this}`}
                 onPress={handlePropose}
                 isLoading={isBusy}
               />
@@ -519,7 +526,7 @@ export default function SessionScreen() {
                 isDisabled={isBusy || isVoting}
               />
               <PrimaryButton
-                label={`Proposer un ${noun}`}
+                label={`Proposer ${words.a}`}
                 variant="secondary"
                 onPress={() => setIsProposing(true)}
                 isDisabled={isBusy}
@@ -530,7 +537,7 @@ export default function SessionScreen() {
           {closeStep === "idle" && !showField && !isTimeToClose ? (
             <>
               <PrimaryButton
-                label={`Proposer un ${noun}`}
+                label={`Proposer ${words.a}`}
                 onPress={() => setIsProposing(true)}
                 isDisabled={isBusy}
               />
@@ -578,7 +585,7 @@ type SessionResultProps = {
 
 function SessionResult({ session, now, styles }: SessionResultProps) {
   const winner = session.proposals.find((proposal) => proposal.id === session.winnerProposalId);
-  const winnerName = winner?.name ?? (session.isSoiree ? "Resto introuvable" : "Plat introuvable");
+  const winnerName = winner?.name ?? `${wordsFor(session).label} introuvable`;
   const closedAt = session.closedAt ? new Date(session.closedAt) : null;
   const isTonight = closedAt !== null && isSameDay(closedAt, now);
   // Échelle des barres : le nombre de membres, ou plus si d'anciens membres avaient voté.
@@ -651,8 +658,9 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
       </ScrollView>
       <View style={styles.footer}>
         {session.isSoiree ? (
-          // Le resto est choisi : la suite, c'est la commande de chacun.
-          <PrimaryButton label="Écrire ma commande" onPress={() => backToGroup(session)} />
+          // Repas « commande » : la suite, c'est la commande de chacun. Sinon, retour au repas
+          // (le reste du menu, qui apporte quoi).
+          <PrimaryButton label={soireeNextLabel(session)} onPress={() => backToGroup(session)} />
         ) : (
           <>
             <PrimaryButton label="C’est décidé" onPress={() => router.dismissTo("/")} />

@@ -221,3 +221,25 @@ export function namesWithoutOrder(
   const ordered = new Set(items.map((item) => item.profileId));
   return members.filter((member) => !ordered.has(member.id)).map((member) => member.name);
 }
+
+// Le message d'invitation partagé sur WhatsApp : ce qu'on attend de l'invité, selon la façon de
+// faire le repas, puis le lien (sans compte) et le code (avec l'app).
+export function inviteMessage(
+  mode: "commande" | "resto" | "maison",
+  name: string,
+  url: string,
+  inviteCode: string,
+): string {
+  const invitation = {
+    commande: `On commande pour « ${name} » ! Ajoute ce que tu veux, pas besoin de l’app : ${url}`,
+    resto: `On choisit le resto pour « ${name} » ! Vote ici, pas besoin de l’app : ${url}`,
+    maison: `On prépare « ${name} » ! Vote le menu et dis ce que tu apportes, pas besoin de l’app : ${url}`,
+  }[mode];
+  return `${invitation}\nTu as l’app ? Code : ${inviteCode}`;
+}
+
+// « On va chez Momo », mais « On va Chez Momo » : beaucoup de restos s'appellent déjà « Chez … ».
+export function goingTo(restaurant: string): string {
+  const name = restaurant.trim();
+  return /^chez\s/i.test(name) ? `On va ${name}` : `On va chez ${name}`;
+}
