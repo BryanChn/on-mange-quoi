@@ -127,5 +127,6 @@ test("deux invités commandent ensemble, en direct, même après une coupure du 
   expect(recap).toContain("Léa : Kebab (sans oignon), Frites");
   expect(recap).toContain("Pas encore commandé : Sam, Tom");
   expect(recap).toContain(`Pour commander : `);
-  expect(recap).not.toContain("toi");
+  // Le mot entier : « comptoir » contient « toi ».
+  expect(recap).not.toMatch(/\btoi\b/);
 });
