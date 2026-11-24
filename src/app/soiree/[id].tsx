@@ -414,7 +414,7 @@ export default function SoireeScreen() {
           </Card>
         ) : (
           <View style={styles.dangerLinks}>
-            <TextButton label="Quitter" onPress={() => setConfirm({ kind: "leave" })} />
+            <TextButton label="Quitter la soirée" onPress={() => setConfirm({ kind: "leave" })} />
             {isOwner ? (
               <TextButton
                 label="Supprimer la soirée"
