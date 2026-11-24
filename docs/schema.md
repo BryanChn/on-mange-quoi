@@ -247,7 +247,7 @@ Une soirée est un groupe `kind = 'soiree'` : les invités en deviennent membres
 
 | Fonction | Qui | Effet |
 | --- | --- | --- |
-| `create_soiree(nom)` | vrai compte | soirée à l'étape `choix`, lien tiré, créateur responsable et membre |
+| `create_soiree(nom)` | vrai compte | soirée à l'étape `choix`, lien tiré, créateur responsable et membre (remplacée le 2026-11-24 : voir « trois façons ») |
 | `join_soiree(jeton, pseudo, avatar)` | tout compte, **seule porte d'un anonyme** | crée le profil d'un invité, ajoute le membre ; refus : `invalid_link`, `name_required`, `soiree_closed` (étape `passee`), `soiree_full` (20) |
 | `choose_restaurant(soirée, nom)` | responsable | `choix` → `commande` ; refus si un vote est ouvert (`vote_open`) |
 | trigger `vote_sessions_open_soiree_ordering` | clôture d'un vote | à l'étape `choix`, le plat gagnant devient le resto et la commande s'ouvre (`close_session` inchangée) |
@@ -261,6 +261,30 @@ Une soirée est un groupe `kind = 'soiree'` : les invités en deviennent membres
 - **Aperçu du lien** (migration `soirees_preview_and_guests`) : `soiree_preview(jeton)`, ouverte au rôle `anon` (le visiteur n'a pas encore de compte) : nom, prénom du responsable, étape, nombre de participants, les 5 premiers (prénom, avatar), « déjà membre ? ». Ni code d'invitation, ni commande, ni votes. Le jeton est le secret.
 - **Code d'une soirée** (migration `join_group_soirees`, 2026-11-23) : `join_group(code)` accepte aussi le code d'une soirée (quelqu'un qui a l'app, avec son compte), avec les mêmes refus que le lien : `soiree_closed`, `soiree_full`. Même signature (APK installés).
 - Temps réel : `group_members` et `groups` ajoutés à la publication (qui arrive, l'étape qui change). Tests de l'app : `tests/integration/soirees-app.test.ts`.
+
+## Repas à plusieurs, trois façons (migrations `meal_modes_types` et `meal_modes`, 2026-11-24)
+
+Retour d'usage : un repas servait à choisir un dessert chez quelqu'un, pas un resto. Maquette : https://claude.ai/artifact/Y3YUASnGDVfdk6pqzDvk4p
+
+| Élément | Règle |
+| --- | --- |
+| `groups.soiree_mode` | `commande` (comme avant, valeur des repas existants), `resto`, `maison`. Null pour un foyer |
+| `groups.meal_date` | Jour du repas (heure de Paris), aujourd'hui par défaut, au plus 6 mois à l'avance. Null pour les repas d'avant la migration |
+| Étapes par type | `commande` : `choix` → `commande` → `passee` ; `resto` et `maison` : `choix` → `decide` (contrainte `groups_kind_check` réécrite) |
+| `vote_sessions.topic` | `plat` (foyer, par défaut), `resto` (repas `commande` / `resto`, posé par le trigger `vote_sessions_set_topic`), `apero`, `entree`, `plat`, `dessert` (menu d'un repas `maison`). Jamais écrit par l'app |
+| Votes ouverts | Index `vote_sessions_one_open_per_topic` : un vote ouvert **par sujet** (remplace un par groupe) |
+| `create_soiree(nom, meal_mode, vote_topics, on_date)` | Remplace `create_soiree(nom)` (même appel possible grâce aux valeurs par défaut). `resto` : le vote du resto s'ouvre ; `maison` : un vote par sujet s'ouvre, sans sujet c'est déjà `decide`. Refus : `invalid_date`, `invalid_topic` (`resto` chez quelqu'un) |
+| Fin d'un vote | `open_soiree_ordering` : `commande` comme avant ; `resto` : le gagnant devient le resto, `decide` ; `maison` : `decide` quand plus aucun vote n'est ouvert (`for update` sur le repas : deux votes terminés au même instant ne ratent pas le passage) |
+| `choose_restaurant` | `commande` → `commande`, `resto` → `decide`, `maison` : refus `mode_mismatch` |
+| Lancer un vote depuis l'app | Foyer, ou repas `commande` / `resto` à l'étape `choix`. Le menu d'un repas `maison` ne s'ouvre que par `create_soiree` |
+| `purge_soirees` | Repas commandé depuis 24 h ; repas daté effacé à partir du surlendemain de son jour ; repas sans date : 7 jours après sa création |
+| `send_vote_reminders` | Un seul rappel par groupe (le premier vote ouvert), même si un repas `maison` en a plusieurs |
+
+### soiree_contributions
+
+« Qui apporte quoi » d'un repas `maison` : `id`, `group_id`, `profile_id` (défaut `auth.uid()`), `label` `varchar(80)` non vide, `created_at`. FK composée `(group_id, profile_id)` → `group_members` `on delete cascade`. RLS : les membres lisent ; un membre (invité compris) ajoute en son nom, seulement dans un repas `maison` ; l'auteur modifie ; l'auteur **ou le responsable** retire. Droits par colonne : `insert (group_id, label)`, `update (label)`. Temps réel activé.
+
+Tests : `tests/integration/meals.test.ts` (13 cas, contre-épreuve faite sur l'index par sujet, « qui apporte quoi » hors `maison` et l'ancienne règle d'effacement). Les fichiers de tests d'intégration tournent l'un après l'autre (`--test-concurrency=1`) : la purge efface tous les repas de la base locale.
 
 ## Mesure du feu vert (schéma `private`)
 

@@ -491,12 +491,15 @@ describe("purge", () => {
     assert.equal(await userExists(alice.id), true);
   });
 
-  test("une soirée abandonnée sans commande est effacée après 7 jours, un foyer jamais", async () => {
+  // Depuis meal_modes : un repas est daté (aujourd'hui par défaut) et effacé 24 h après son
+  // jour, à partir du surlendemain (heure de Paris). L'ancienne règle des 7 jours ne vaut plus
+  // que pour les repas sans date : voir meals.test.ts.
+  test("un repas sans commande est effacé 24 h après son jour, un foyer jamais", async () => {
     const foyerId = await createGroup(alice, []);
     const soiree = await newSoiree();
-    await purgeSoirees(new Date(Date.now() + 6 * 24 * HOUR));
+    await purgeSoirees(new Date(Date.now() + 24 * HOUR));
     assert.equal(await groupExists(soiree.id), true);
-    await purgeSoirees(new Date(Date.now() + 8 * 24 * HOUR));
+    await purgeSoirees(new Date(Date.now() + 48 * HOUR));
     assert.equal(await groupExists(soiree.id), false);
     assert.equal(await groupExists(foyerId), true);
   });
