@@ -139,7 +139,7 @@ export function everyoneHasVoted({ votedCount, memberCount }: Participation): bo
 }
 
 // Sous la liste du vote : « 2 sur 3 ont voté · Léa n’a pas encore voté ». Quand tout le
-// monde a voté, il n'y a plus rien à attendre : on dit qui peut clôturer. Sans organisateur
+// monde a voté, il n'y a plus rien à attendre : on dit qui peut terminer le vote. Sans organisateur
 // (il a quitté le groupe), c'est l'owner qui clôture : on ne le nomme pas, l'écran ne le
 // connaît pas.
 export function participationLine(
@@ -149,8 +149,9 @@ export function participationLine(
   const { votedCount, memberCount, pendingLabel } = participation;
 
   if (everyoneHasVoted(participation)) {
-    if (closer.canClose) return "Tout le monde a voté : à toi de clôturer !";
-    if (closer.organizerName) return `Tout le monde a voté : ${closer.organizerName} peut clôturer`;
+    if (closer.canClose) return "Tout le monde a voté : à toi de terminer le vote !";
+    if (closer.organizerName)
+      return `Tout le monde a voté : ${closer.organizerName} peut terminer le vote`;
     return pendingLabel;
   }
   return `${votedCount} sur ${memberCount} ${votedCount > 1 ? "ont" : "a"} voté · ${pendingLabel}`;
