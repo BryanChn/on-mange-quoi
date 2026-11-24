@@ -335,7 +335,7 @@ function TonightCard({
       </SignatureCard>
       {/* Sous la carte : la couleur d'erreur ne se lit pas sur la tomate. */}
       {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {error}
         </Text>
       ) : null}

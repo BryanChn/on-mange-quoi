@@ -23,7 +23,7 @@ export function TextField({ label, error, style, ...inputProps }: TextFieldProps
         {...inputProps}
       />
       {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {error}
         </Text>
       ) : null}

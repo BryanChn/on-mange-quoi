@@ -474,7 +474,11 @@ export default function SessionScreen() {
 
         <View style={styles.footer}>
           {actionError ? (
-            <Text style={styles.error} accessibilityRole="alert">
+            <Text
+              style={styles.error}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+            >
               {actionError}
             </Text>
           ) : null}

@@ -313,11 +313,15 @@ export default function SoireeScreen() {
       )}
 
       {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {error}
         </Text>
       ) : null}
-      {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+      {notice ? (
+        <Text style={styles.notice} accessibilityLiveRegion="polite">
+          {notice}
+        </Text>
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle} accessibilityRole="header">
@@ -515,7 +519,13 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
       lineHeight: 30,
     },
     signatureMuted: { color: colors.onSignatureMuted, fontSize: fontSize.small },
-    signatureLink: { alignSelf: "center", padding: spacing.sm },
+    // 48 de haut, comme TextButton : la taille minimale d'une zone de toucher sur Android.
+    signatureLink: {
+      alignSelf: "center",
+      minHeight: 48,
+      justifyContent: "center",
+      paddingHorizontal: spacing.sm,
+    },
     signatureLinkText: {
       color: colors.onSignature,
       fontSize: fontSize.body,
