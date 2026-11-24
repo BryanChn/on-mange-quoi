@@ -19,6 +19,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
 import { SoireeOrder } from "@/components/soiree-order";
+import { StatusBarBackdrop } from "@/components/status-bar-backdrop";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
@@ -216,213 +217,217 @@ export default function SoireeScreen() {
   const openVoteId = latestSession?.isOpen ? latestSession.id : null;
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      contentContainerStyle={[
-        styles.container,
-        { paddingBottom: insets.bottom + theme.spacing.xl },
-        // Sans en-tête (invité), le titre doit éviter la barre d'état.
-        isGuest && { paddingTop: insets.top + theme.spacing.xl },
-      ]}
-      // Clavier ouvert : un toucher sur « Ajouter » ajoute du premier coup (par défaut, le
-      // premier toucher ne fait que fermer le clavier). Le clavier reste ouvert pour enchaîner.
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* Un invité n'a rien derrière cet écran : pas d'en-tête, donc pas de bande vide. */}
-      <Stack.Screen options={{ headerShown: !isGuest }} />
-      <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">
-          {soiree.name}
-        </Text>
-        <Steps current={soiree.step} styles={styles} />
-      </View>
-
-      {/* Seul dans sa soirée : inviter est la prochaine chose à faire. */}
-      {soiree.members.length === 1 && soiree.step !== "passee" && !isGuest ? (
-        <Card>
-          <Text style={styles.cardTitle}>Invite tes amis</Text>
-          <Text style={styles.muted}>
-            Envoie le lien sur WhatsApp : pas besoin de l’app pour commander. Ceux qui l’ont peuvent
-            aussi taper le code {soiree.inviteCode}.
+    <>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: insets.bottom + theme.spacing.xl },
+          // Sans en-tête (invité), le titre doit éviter la barre d'état.
+          isGuest && { paddingTop: insets.top + theme.spacing.xl },
+        ]}
+        // Clavier ouvert : un toucher sur « Ajouter » ajoute du premier coup (par défaut, le
+        // premier toucher ne fait que fermer le clavier). Le clavier reste ouvert pour enchaîner.
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Un invité n'a rien derrière cet écran : pas d'en-tête, donc pas de bande vide. */}
+        <Stack.Screen options={{ headerShown: !isGuest }} />
+        <View style={styles.header}>
+          <Text style={styles.title} accessibilityRole="header">
+            {soiree.name}
           </Text>
-          <PrimaryButton label="Envoyer le lien" onPress={() => handleShare(soiree)} />
-        </Card>
-      ) : null}
+          <Steps current={soiree.step} styles={styles} />
+        </View>
 
-      {soiree.step === "choix" ? (
-        openVoteId ? (
+        {/* Seul dans sa soirée : inviter est la prochaine chose à faire. */}
+        {soiree.members.length === 1 && soiree.step !== "passee" && !isGuest ? (
           <Card>
-            <Chip label="Vote en cours" hasDot />
-            <Text style={styles.cardTitle}>Où on mange ?</Text>
-            <Text style={styles.muted}>Propose un resto, coche ceux qui te tentent.</Text>
-            <PrimaryButton label="Voter" onPress={() => openSession(openVoteId)} />
+            <Text style={styles.cardTitle}>Invite tes amis</Text>
+            <Text style={styles.muted}>
+              Envoie le lien sur WhatsApp : pas besoin de l’app pour commander. Ceux qui l’ont
+              peuvent aussi taper le code {soiree.inviteCode}.
+            </Text>
+            <PrimaryButton label="Envoyer le lien" onPress={() => handleShare(soiree)} />
           </Card>
-        ) : isGuest ? (
-          <View style={styles.waiting}>
-            <Text style={styles.waitingTitle}>
-              {owner ? `${owner.name} choisit où on mange` : "On choisit où manger"}
+        ) : null}
+
+        {soiree.step === "choix" ? (
+          openVoteId ? (
+            <Card>
+              <Chip label="Vote en cours" hasDot />
+              <Text style={styles.cardTitle}>Où on mange ?</Text>
+              <Text style={styles.muted}>Propose un resto, coche ceux qui te tentent.</Text>
+              <PrimaryButton label="Voter" onPress={() => openSession(openVoteId)} />
+            </Card>
+          ) : isGuest ? (
+            <View style={styles.waiting}>
+              <Text style={styles.waitingTitle}>
+                {owner ? `${owner.name} choisit où on mange` : "On choisit où manger"}
+              </Text>
+              <Text style={styles.muted}>
+                Tu pourras voter s’il lance un vote, puis écrire ta commande. Garde cette page
+                ouverte : elle se met à jour toute seule.
+              </Text>
+            </View>
+          ) : (
+            <SignatureCard>
+              <View style={styles.signatureTop}>
+                <View style={styles.signatureText}>
+                  <Text style={styles.signatureTitle} accessibilityRole="header">
+                    Où on mange ?
+                  </Text>
+                  <Text style={styles.signatureMuted}>
+                    {isOwner
+                      ? "Lance un vote, ou choisis toi-même si c’est déjà décidé."
+                      : "Lance un vote : chacun propose et coche ses restos."}
+                  </Text>
+                </View>
+                <SignatureCat size={56} />
+              </View>
+              {isChoosing ? (
+                <>
+                  <TextField
+                    label="Le resto"
+                    value={restaurant}
+                    onChangeText={setRestaurant}
+                    placeholder="Kebab du coin"
+                    autoCapitalize="sentences"
+                    maxLength={RESTAURANT_MAX_LENGTH}
+                    editable={!isSavingRestaurant}
+                    onSubmitEditing={handleChooseRestaurant}
+                  />
+                  <PrimaryButton
+                    label="Choisir ce resto"
+                    variant="signature"
+                    onPress={handleChooseRestaurant}
+                    isLoading={isSavingRestaurant}
+                  />
+                  <TextButton label="Annuler" onPress={() => setIsChoosing(false)} />
+                </>
+              ) : (
+                <>
+                  <PrimaryButton
+                    label="Lancer le vote"
+                    variant="signature"
+                    onPress={handleStartVote}
+                    isLoading={isStarting}
+                  />
+                  {isOwner ? (
+                    <Pressable
+                      onPress={() => setIsChoosing(true)}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [styles.signatureLink, pressed && styles.pressed]}
+                    >
+                      <Text style={styles.signatureLinkText}>Je choisis le resto</Text>
+                    </Pressable>
+                  ) : null}
+                </>
+              )}
+            </SignatureCard>
+          )
+        ) : (
+          <SoireeOrder soiree={soiree} userId={userId} isOwner={isOwner} onChanged={loadSoiree} />
+        )}
+
+        {error ? (
+          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            {error}
+          </Text>
+        ) : null}
+        {notice ? (
+          <Text style={styles.notice} accessibilityLiveRegion="polite">
+            {notice}
+          </Text>
+        ) : null}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle} accessibilityRole="header">
+            Qui vient · {soiree.members.length}
+          </Text>
+          <ListCard>
+            {soiree.members.map((member) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                isMe={member.id === userId}
+                isOwnerRow={member.id === soiree.ownerId}
+                // Le responsable retire quelqu'un d'autre ; personne d'autre ne peut.
+                onRemove={
+                  isOwner && member.id !== userId && soiree.step !== "passee"
+                    ? () => setConfirm({ kind: "remove", member })
+                    : undefined
+                }
+                styles={styles}
+                mutedColor={theme.colors.textMuted}
+              />
+            ))}
+            {soiree.step !== "passee" ? (
+              <ListRow
+                icon="user-plus"
+                label="Inviter quelqu’un"
+                subtitle={`Lien à partager, ou code ${soiree.inviteCode}`}
+                onPress={() => handleShare(soiree)}
+              />
+            ) : null}
+          </ListCard>
+        </View>
+
+        {confirm.kind !== "none" ? (
+          // Tout en bas et plus haute que les liens qu'elle remplace : sans défilement, elle
+          // apparaît sous l'écran (et loin de la ligne touchée pour retirer quelqu'un).
+          <Card onLayout={() => scrollRef.current?.scrollToEnd({ animated: true })}>
+            <Text style={styles.confirmTitle} accessibilityRole="header">
+              {confirm.kind === "remove"
+                ? `Retirer ${confirm.member.name} ?`
+                : confirm.kind === "leave"
+                  ? "Quitter la soirée ?"
+                  : `Supprimer « ${soiree.name} » ?`}
             </Text>
             <Text style={styles.muted}>
-              Tu pourras voter s’il lance un vote, puis écrire ta commande. Garde cette page ouverte
-              : elle se met à jour toute seule.
-            </Text>
-          </View>
-        ) : (
-          <SignatureCard>
-            <View style={styles.signatureTop}>
-              <View style={styles.signatureText}>
-                <Text style={styles.signatureTitle} accessibilityRole="header">
-                  Où on mange ?
-                </Text>
-                <Text style={styles.signatureMuted}>
-                  {isOwner
-                    ? "Lance un vote, ou choisis toi-même si c’est déjà décidé."
-                    : "Lance un vote : chacun propose et coche ses restos."}
-                </Text>
-              </View>
-              <SignatureCat size={56} />
-            </View>
-            {isChoosing ? (
-              <>
-                <TextField
-                  label="Le resto"
-                  value={restaurant}
-                  onChangeText={setRestaurant}
-                  placeholder="Kebab du coin"
-                  autoCapitalize="sentences"
-                  maxLength={RESTAURANT_MAX_LENGTH}
-                  editable={!isSavingRestaurant}
-                  onSubmitEditing={handleChooseRestaurant}
-                />
-                <PrimaryButton
-                  label="Choisir ce resto"
-                  variant="signature"
-                  onPress={handleChooseRestaurant}
-                  isLoading={isSavingRestaurant}
-                />
-                <TextButton label="Annuler" onPress={() => setIsChoosing(false)} />
-              </>
-            ) : (
-              <>
-                <PrimaryButton
-                  label="Lancer le vote"
-                  variant="signature"
-                  onPress={handleStartVote}
-                  isLoading={isStarting}
-                />
-                {isOwner ? (
-                  <Pressable
-                    onPress={() => setIsChoosing(true)}
-                    accessibilityRole="button"
-                    style={({ pressed }) => [styles.signatureLink, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.signatureLinkText}>Je choisis le resto</Text>
-                  </Pressable>
-                ) : null}
-              </>
-            )}
-          </SignatureCard>
-        )
-      ) : (
-        <SoireeOrder soiree={soiree} userId={userId} isOwner={isOwner} onChanged={loadSoiree} />
-      )}
-
-      {error ? (
-        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-          {error}
-        </Text>
-      ) : null}
-      {notice ? (
-        <Text style={styles.notice} accessibilityLiveRegion="polite">
-          {notice}
-        </Text>
-      ) : null}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Qui vient · {soiree.members.length}
-        </Text>
-        <ListCard>
-          {soiree.members.map((member) => (
-            <MemberRow
-              key={member.id}
-              member={member}
-              isMe={member.id === userId}
-              isOwnerRow={member.id === soiree.ownerId}
-              // Le responsable retire quelqu'un d'autre ; personne d'autre ne peut.
-              onRemove={
-                isOwner && member.id !== userId && soiree.step !== "passee"
-                  ? () => setConfirm({ kind: "remove", member })
-                  : undefined
-              }
-              styles={styles}
-              mutedColor={theme.colors.textMuted}
-            />
-          ))}
-          {soiree.step !== "passee" ? (
-            <ListRow
-              icon="user-plus"
-              label="Inviter quelqu’un"
-              subtitle={`Lien à partager, ou code ${soiree.inviteCode}`}
-              onPress={() => handleShare(soiree)}
-            />
-          ) : null}
-        </ListCard>
-      </View>
-
-      {confirm.kind !== "none" ? (
-        // Tout en bas et plus haute que les liens qu'elle remplace : sans défilement, elle
-        // apparaît sous l'écran (et loin de la ligne touchée pour retirer quelqu'un).
-        <Card onLayout={() => scrollRef.current?.scrollToEnd({ animated: true })}>
-          <Text style={styles.confirmTitle} accessibilityRole="header">
-            {confirm.kind === "remove"
-              ? `Retirer ${confirm.member.name} ?`
-              : confirm.kind === "leave"
-                ? "Quitter la soirée ?"
-                : `Supprimer « ${soiree.name} » ?`}
-          </Text>
-          <Text style={styles.muted}>
-            {confirm.kind === "remove"
-              ? `Sa commande est retirée aussi. ${confirm.member.name} pourra revenir avec le lien.`
-              : confirm.kind === "leave"
-                ? isOwner
-                  ? successorName
-                    ? `${successorName} prendra le relais pour organiser.`
-                    : "Tu es la seule personne de la soirée : elle disparaîtra."
-                  : "Ta commande est retirée. Tu pourras revenir avec le lien."
-                : "Elle disparaît pour tout le monde, commandes comprises. Pas de retour en arrière."}
-          </Text>
-          <PrimaryButton
-            label={
-              confirm.kind === "remove"
-                ? "Retirer"
+              {confirm.kind === "remove"
+                ? `Sa commande est retirée aussi. ${confirm.member.name} pourra revenir avec le lien.`
                 : confirm.kind === "leave"
-                  ? "Quitter"
-                  : "Supprimer pour tout le monde"
-            }
-            variant="danger"
-            onPress={handleConfirm}
-            isLoading={isConfirming}
-          />
-          <TextButton
-            label="Annuler"
-            onPress={() => setConfirm({ kind: "none" })}
-            isDisabled={isConfirming}
-          />
-        </Card>
-      ) : (
-        <View style={styles.dangerLinks}>
-          <TextButton label="Quitter" onPress={() => setConfirm({ kind: "leave" })} />
-          {isOwner ? (
-            <TextButton
-              label="Supprimer la soirée"
+                  ? isOwner
+                    ? successorName
+                      ? `${successorName} prendra le relais pour organiser.`
+                      : "Tu es la seule personne de la soirée : elle disparaîtra."
+                    : "Ta commande est retirée. Tu pourras revenir avec le lien."
+                  : "Elle disparaît pour tout le monde, commandes comprises. Pas de retour en arrière."}
+            </Text>
+            <PrimaryButton
+              label={
+                confirm.kind === "remove"
+                  ? "Retirer"
+                  : confirm.kind === "leave"
+                    ? "Quitter"
+                    : "Supprimer pour tout le monde"
+              }
               variant="danger"
-              onPress={() => setConfirm({ kind: "delete" })}
+              onPress={handleConfirm}
+              isLoading={isConfirming}
             />
-          ) : null}
-        </View>
-      )}
-    </ScrollView>
+            <TextButton
+              label="Annuler"
+              onPress={() => setConfirm({ kind: "none" })}
+              isDisabled={isConfirming}
+            />
+          </Card>
+        ) : (
+          <View style={styles.dangerLinks}>
+            <TextButton label="Quitter" onPress={() => setConfirm({ kind: "leave" })} />
+            {isOwner ? (
+              <TextButton
+                label="Supprimer la soirée"
+                variant="danger"
+                onPress={() => setConfirm({ kind: "delete" })}
+              />
+            ) : null}
+          </View>
+        )}
+      </ScrollView>
+      {/* Sans en-tête (invité) : le contenu ne doit pas passer sous l'heure. */}
+      {isGuest ? <StatusBarBackdrop /> : null}
+    </>
   );
 }
 
