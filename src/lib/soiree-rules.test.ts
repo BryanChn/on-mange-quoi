@@ -44,7 +44,7 @@ test("récap : les lignes identiques s'additionnent, majuscules et espaces ignor
     nameOf,
   );
   assert.deepEqual(lines, [
-    { label: "Kebab sauce blanche", note: null, quantity: 3, people: ["Alice", "Tom ×2"] },
+    { label: "Kebab sauce blanche", note: null, quantity: 3, people: ["Alice", "Tom (2)"] },
     { label: "Tacos XL", note: null, quantity: 1, people: ["Inès"] },
   ]);
 });

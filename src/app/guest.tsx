@@ -48,8 +48,8 @@ export default function GuestHome() {
       <Card>
         {hasFailed ? (
           <>
-            <Text style={styles.title}>Impossible de retrouver ta soirée</Text>
-            <Text style={styles.muted}>Vérifie ton réseau et réessaie.</Text>
+            <Text style={styles.title}>On ne retrouve pas ta soirée</Text>
+            <Text style={styles.muted}>Vérifie ta connexion et réessaie.</Text>
             <PrimaryButton
               label="Réessayer"
               onPress={() => {
@@ -62,7 +62,7 @@ export default function GuestHome() {
           <>
             <Text style={styles.title}>Cette soirée est terminée</Text>
             <Text style={styles.muted}>
-              Merci d’être venu ! Pour une prochaine soirée, ouvre le lien qu’on t’enverra.
+              Merci pour la soirée ! Pour la prochaine, ouvre le lien qu’on t’enverra.
             </Text>
           </>
         )}
