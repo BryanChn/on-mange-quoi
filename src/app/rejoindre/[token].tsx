@@ -103,7 +103,7 @@ export default function JoinSoireeScreen() {
       } else if (known) {
         setFailure(known);
       } else {
-        setError("Impossible de rejoindre la soirée. Vérifie ton réseau et réessaie.");
+        setError("Tu n’as pas pu rejoindre : vérifie ta connexion et réessaie.");
       }
       setIsJoining(false);
     }
@@ -113,8 +113,8 @@ export default function JoinSoireeScreen() {
     return (
       <Centered styles={styles} insetsBottom={insets.bottom}>
         <Card>
-          <Text style={styles.cardTitle}>Impossible d’ouvrir la soirée</Text>
-          <Text style={styles.muted}>Vérifie ton réseau et réessaie.</Text>
+          <Text style={styles.cardTitle}>On n’arrive pas à ouvrir la soirée</Text>
+          <Text style={styles.muted}>Vérifie ta connexion et réessaie.</Text>
           <PrimaryButton label="Réessayer" onPress={() => setAttempt((count) => count + 1)} />
         </Card>
       </Centered>

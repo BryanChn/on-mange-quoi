@@ -81,7 +81,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       setNote("");
       onChanged();
     } catch (addError) {
-      fail(addError, "Impossible d’ajouter ta ligne. Vérifie ton réseau et réessaie.");
+      fail(addError, "Ta ligne n’a pas été ajoutée : vérifie ta connexion et réessaie.");
     } finally {
       setIsAdding(false);
     }
@@ -98,7 +98,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       }
       onChanged();
     } catch (writeError) {
-      fail(writeError, "Impossible de modifier ta ligne. Vérifie ton réseau et réessaie.");
+      fail(writeError, "Ta ligne n’a pas été modifiée : vérifie ta connexion et réessaie.");
     } finally {
       setBusyItemId(null);
     }
@@ -121,7 +121,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       const outcome = await shareOrderText(text);
       if (outcome === "copied") setNotice("Récap copié, colle-le dans WhatsApp.");
     } catch {
-      setError("Impossible de partager le récap. Réessaie.");
+      setError("Le récap n’est pas parti. Réessaie.");
     } finally {
       setIsSharing(false);
     }
@@ -136,7 +136,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       setIsConfirmingOrder(false);
       onChanged();
     } catch {
-      setError("Impossible de marquer la commande comme passée. Vérifie ton réseau et réessaie.");
+      setError("La commande n’est pas marquée comme passée : vérifie ta connexion et réessaie.");
     } finally {
       setIsOrdering(false);
     }
@@ -149,8 +149,8 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
         <Text style={styles.cardTitle}>{soiree.restaurant}</Text>
         <Text style={styles.muted}>
           {isOpen
-            ? "Chacun écrit ce qu’il prend. Tout le monde voit tout, en direct."
-            : "Tout est figé. La soirée reste lisible 24 h, puis elle est effacée."}
+            ? "Chacun note ce qu’il veut, tout le monde le voit en direct."
+            : "C’est commandé ! Le récap reste là jusqu’à demain, puis la soirée s’efface toute seule."}
         </Text>
       </Card>
 
@@ -285,13 +285,13 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
         isConfirmingOrder ? (
           <Card>
             <Text style={styles.confirmTitle} accessibilityRole="header">
-              La commande est passée ?
+              Tu as passé la commande ?
             </Text>
             <Text style={styles.muted}>
               {waiting.length > 0
-                ? `${waiting.join(", ")} n’${waiting.length > 1 ? "ont" : "a"} rien commandé. `
+                ? `${waiting.join(", ")} n’${waiting.length > 1 ? "ont" : "a"} encore rien choisi. `
                 : ""}
-              Plus personne ne pourra modifier la commande, ni rejoindre la soirée.
+              Ensuite, plus personne ne pourra modifier la commande ni rejoindre la soirée.
             </Text>
             <PrimaryButton
               label="Oui, c’est commandé"
@@ -306,7 +306,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
           </Card>
         ) : (
           <PrimaryButton
-            label="Commande passée"
+            label="J’ai passé la commande"
             variant="secondary"
             onPress={() => setIsConfirmingOrder(true)}
             isDisabled={summary.length === 0}

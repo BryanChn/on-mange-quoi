@@ -12,7 +12,7 @@ export async function shareSoiree(
   inviteCode: string,
 ): Promise<"shared" | "copied"> {
   const url = soireeLink(joinToken);
-  const message = `Rejoins ma soirée « ${name} » sur On mange quoi ? ${url}\nTu as déjà l’app ? « Rejoindre avec un code » : ${inviteCode}`;
+  const message = `On commande pour « ${name} » ! Ajoute ce que tu veux, pas besoin de l’app : ${url}\nTu as l’app ? Code : ${inviteCode}`;
 
   if (Platform.OS === "web" && typeof navigator !== "undefined" && !navigator.share) {
     await navigator.clipboard.writeText(url);
