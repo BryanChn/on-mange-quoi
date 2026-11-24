@@ -48,9 +48,9 @@ function leaveMessage(impact: LeaveImpact): string {
     case "member":
       return "Tu ne verras plus ce groupe. Tu pourras revenir avec le code d’invitation.";
     case "transfer":
-      return `${impact.successorName} deviendra responsable du groupe.`;
+      return `${impact.successorName} prendra le relais pour organiser.`;
     case "delete":
-      return "Tu es seul dans ce groupe : il sera supprimé avec tout son historique de votes.";
+      return "Tu es la seule personne du groupe : il disparaîtra avec tout son historique.";
   }
 }
 
@@ -123,7 +123,7 @@ export default function GroupScreen() {
     try {
       openSession(await startSession(id));
     } catch {
-      setError("Impossible de lancer le vote. Vérifie ton réseau et réessaie.");
+      setError("Le vote n’a pas démarré : vérifie ta connexion et réessaie.");
     } finally {
       setIsStarting(false);
     }
@@ -134,10 +134,10 @@ export default function GroupScreen() {
 
     try {
       await Share.share({
-        message: `Rejoins « ${detail.name} » sur On mange quoi ? avec le code ${detail.invite_code}`,
+        message: `Rejoins « ${detail.name} » sur On mange quoi ? Ton code : ${detail.invite_code}`,
       });
     } catch {
-      setError("Impossible d’ouvrir le partage. Note le code et transmets-le à la main.");
+      setError("Le partage ne s’ouvre pas. Note le code et envoie-le toi-même.");
     }
   }
 
@@ -150,7 +150,7 @@ export default function GroupScreen() {
       setLeaveStep("confirm");
     } catch {
       setLeaveStep("idle");
-      setLeaveError("Impossible de préparer ton départ du groupe. Vérifie ton réseau et réessaie.");
+      setLeaveError("On n’arrive pas à préparer ton départ : vérifie ta connexion et réessaie.");
     }
   }
 
@@ -164,9 +164,7 @@ export default function GroupScreen() {
     } catch {
       // Rien n'a changé : leave_group est une seule transaction.
       setLeaveStep("confirm");
-      setLeaveError(
-        "Le départ a échoué, tu es toujours membre du groupe. Vérifie ton réseau et réessaie.",
-      );
+      setLeaveError("Tu n’as pas quitté le groupe : vérifie ta connexion et réessaie.");
     }
   }
 
@@ -190,9 +188,7 @@ export default function GroupScreen() {
       router.dismissTo("/");
     } catch {
       setDeleteStep("confirm");
-      setDeleteError(
-        "La suppression a échoué, le groupe est intact. Vérifie ton réseau et réessaie.",
-      );
+      setDeleteError("Le groupe n’a pas été supprimé : vérifie ta connexion et réessaie.");
     }
   }
 
@@ -204,8 +200,8 @@ export default function GroupScreen() {
   if (hasFailed) {
     return (
       <ErrorScreen
-        title="Impossible de charger ce groupe"
-        message="Vérifie ton réseau et réessaie."
+        title="On n’arrive pas à ouvrir ce groupe"
+        message="Vérifie ta connexion et réessaie."
         onRetry={retry}
       />
     );
@@ -280,7 +276,7 @@ export default function GroupScreen() {
             </>
           ) : (
             <>
-              <Text style={styles.signatureTitle}>Aucun vote pour l’instant</Text>
+              <Text style={styles.signatureTitle}>Pas encore de vote. Lance le premier !</Text>
               <Text style={styles.signatureMuted}>
                 Lance le premier : chacun coche ce qui lui fait envie.
               </Text>
@@ -335,11 +331,11 @@ export default function GroupScreen() {
             Supprimer « {group.name} » ?
           </Text>
           <Text style={styles.muted}>
-            Le groupe sera supprimé pour tous ses membres, avec tout son historique de votes. Ils ne
-            seront pas prévenus. C’est définitif.
+            Il disparaît pour tous ses membres, avec tout l’historique des votes. Personne ne sera
+            prévenu. Pas de retour en arrière.
           </Text>
           <PrimaryButton
-            label="Supprimer pour tous"
+            label="Supprimer pour tout le monde"
             variant="danger"
             onPress={handleDelete}
             isLoading={deleteStep === "deleting"}
