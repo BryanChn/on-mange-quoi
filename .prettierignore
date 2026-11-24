@@ -5,3 +5,8 @@ supabase/
 example/
 docs/
 *.md
+
+# Tests de bout en bout : sorties générées
+e2e/dist-web/
+e2e/test-results/
+e2e/playwright-report/
