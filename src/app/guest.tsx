@@ -48,7 +48,7 @@ export default function GuestHome() {
       <Card>
         {hasFailed ? (
           <>
-            <Text style={styles.title}>On ne retrouve pas ta soirée</Text>
+            <Text style={styles.title}>On ne retrouve pas ton repas</Text>
             <Text style={styles.muted}>Vérifie ta connexion et réessaie.</Text>
             <PrimaryButton
               label="Réessayer"
@@ -60,9 +60,9 @@ export default function GuestHome() {
           </>
         ) : (
           <>
-            <Text style={styles.title}>Cette soirée est terminée</Text>
+            <Text style={styles.title}>Ce repas est terminé</Text>
             <Text style={styles.muted}>
-              Merci pour la soirée ! Pour la prochaine, ouvre le lien qu’on t’enverra.
+              Merci pour le repas ! Pour le prochain, ouvre le lien qu’on t’enverra.
             </Text>
           </>
         )}

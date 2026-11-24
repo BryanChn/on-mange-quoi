@@ -13,7 +13,7 @@ const WEEKDAYS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi",
 export function defaultSoireeName(now: Date, firstName: string): string {
   const name = firstName.trim();
   const day = WEEKDAYS[now.getDay()];
-  const full = name === "" ? `Soirée de ${day.toLowerCase()}` : `${day} chez ${name}`;
+  const full = name === "" ? `Repas de ${day.toLowerCase()}` : `${day} chez ${name}`;
   return full.slice(0, SOIREE_NAME_MAX_LENGTH);
 }
 
@@ -37,14 +37,14 @@ export function toJoinFailure(error: unknown): JoinFailure | null {
 export const JOIN_FAILURE_MESSAGES: Record<JoinFailure, { title: string; message: string }> = {
   invalid_link: {
     title: "Ce lien ne marche pas",
-    message: "Il a peut-être été mal copié, ou la soirée a été supprimée. Demande un nouveau lien.",
+    message: "Il a peut-être été mal copié, ou le repas a été supprimé. Demande un nouveau lien.",
   },
   soiree_closed: {
     title: "Trop tard, c’est commandé",
-    message: "La commande est partie : on ne peut plus rejoindre cette soirée.",
+    message: "La commande est partie : on ne peut plus rejoindre ce repas.",
   },
   soiree_full: {
-    title: "La soirée est complète",
+    title: "Le repas est complet",
     message: `Déjà ${SOIREE_MAX_MEMBERS} personnes, c’est le maximum. Demande à la personne qui organise de faire de la place.`,
   },
   name_required: {

@@ -35,7 +35,7 @@ export default function NewSoiree() {
       // ouvert d'office n'était pas intuitif).
       router.replace({ pathname: "/soiree/[id]", params: { id: soiree.id } });
     } catch {
-      setError("La soirée n’est pas créée : vérifie ta connexion et réessaie.");
+      setError("Le repas n’est pas créé : vérifie ta connexion et réessaie.");
       setIsSaving(false);
     }
   }
@@ -47,14 +47,14 @@ export default function NewSoiree() {
       keyboardVerticalOffset={headerHeight}
     >
       <Text style={styles.title} accessibilityRole="header">
-        Une soirée à organiser ?
+        Un repas à organiser ?
       </Text>
       <Text style={styles.subtitle}>
-        Crée la soirée, puis invite qui tu veux : avec un lien (même sans l’app) ou un code. On
+        Crée le repas, puis invite qui tu veux : avec un lien (même sans l’app) ou un code. On
         choisit où manger, puis chacun note ce qu’il veut.
       </Text>
       <TextField
-        label="Nom de la soirée"
+        label="Nom du repas"
         value={name}
         onChangeText={setName}
         error={error}
@@ -65,7 +65,7 @@ export default function NewSoiree() {
         onSubmitEditing={handleCreate}
       />
       <Text style={styles.hint}>Tes invités verront ce nom.</Text>
-      <PrimaryButton label="Créer la soirée" onPress={handleCreate} isLoading={isSaving} />
+      <PrimaryButton label="Créer le repas" onPress={handleCreate} isLoading={isSaving} />
     </KeyboardAvoidingView>
   );
 }

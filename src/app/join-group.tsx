@@ -23,7 +23,7 @@ export default function JoinGroup() {
   async function handleJoin() {
     const cleanCode = code.trim();
     if (cleanCode === "") {
-      setError("Tape le code qu’on t’a envoyé (groupe ou soirée).");
+      setError("Tape le code qu’on t’a envoyé (groupe ou repas).");
       return;
     }
     setError(null);
@@ -61,8 +61,8 @@ export default function JoinGroup() {
       keyboardVerticalOffset={headerHeight}
     >
       <Text style={styles.subtitle}>
-        Le code d’un groupe ou d’une soirée, reçu d’un de ses membres. Majuscules et espaces n’ont
-        pas d’importance.
+        Le code d’un groupe ou d’un repas, reçu d’un de ses membres. Majuscules et espaces n’ont pas
+        d’importance.
       </Text>
       <TextField
         label="Code d’invitation"

@@ -114,7 +114,7 @@ export default function JoinSoireeScreen() {
     return (
       <Centered styles={styles} insetsBottom={insets.bottom}>
         <Card>
-          <Text style={styles.cardTitle}>On n’arrive pas à ouvrir la soirée</Text>
+          <Text style={styles.cardTitle}>On n’arrive pas à ouvrir le repas</Text>
           <Text style={styles.muted}>Vérifie ta connexion et réessaie.</Text>
           <PrimaryButton label="Réessayer" onPress={() => setAttempt((count) => count + 1)} />
         </Card>
@@ -221,7 +221,7 @@ export default function JoinSoireeScreen() {
           </Text>
         ) : null}
 
-        <PrimaryButton label="Rejoindre la soirée" onPress={handleJoin} isLoading={isJoining} />
+        <PrimaryButton label="Rejoindre le repas" onPress={handleJoin} isLoading={isJoining} />
         {joinsWithProfile ? null : (
           <View style={styles.privacy}>
             <Text style={styles.hint}>

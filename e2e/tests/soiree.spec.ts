@@ -63,7 +63,7 @@ async function joinAsGuest(browser: Browser, joinToken: string, name: string): P
 
   await page.goto(`${BASE_URL}/rejoindre/${joinToken}`);
   await page.getByLabel("Ton prénom ou pseudo").fill(name);
-  await page.getByRole("button", { name: "Rejoindre la soirée" }).click();
+  await page.getByRole("button", { name: "Rejoindre le repas" }).click();
   await expect(page.getByLabel("Ce que tu prends")).toBeVisible();
 
   return {
