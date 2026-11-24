@@ -212,6 +212,9 @@ export default function SoireeScreen() {
         // Sans en-tête (invité), le titre doit éviter la barre d'état.
         isGuest && { paddingTop: insets.top + theme.spacing.xl },
       ]}
+      // Clavier ouvert : un toucher sur « Ajouter » ajoute du premier coup (par défaut, le
+      // premier toucher ne fait que fermer le clavier). Le clavier reste ouvert pour enchaîner.
+      keyboardShouldPersistTaps="handled"
     >
       {/* Un invité n'a rien derrière cet écran : pas d'en-tête, donc pas de bande vide. */}
       <Stack.Screen options={{ headerShown: !isGuest }} />
