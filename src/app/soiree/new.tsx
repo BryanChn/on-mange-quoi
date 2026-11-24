@@ -38,7 +38,7 @@ export default function NewSoiree() {
       // ouvert d'office n'était pas intuitif).
       router.replace({ pathname: "/soiree/[id]", params: { id: soiree.id } });
     } catch {
-      setError("Impossible de créer la soirée. Vérifie ton réseau et réessaie.");
+      setError("La soirée n’est pas créée : vérifie ta connexion et réessaie.");
       setIsSaving(false);
     }
   }

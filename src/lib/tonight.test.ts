@@ -197,11 +197,11 @@ test("participationLine : tout le monde a voté, on dit qui clôture", () => {
   const all = summarizeParticipation(members, [ME, "c", "l"], ME);
   assert.equal(
     participationLine(all, { canClose: true, organizerName: "Bryan" }),
-    "Tout le monde a voté : à toi de clôturer !",
+    "Tout le monde a voté : à toi de terminer le vote !",
   );
   assert.equal(
     participationLine(all, { canClose: false, organizerName: "Camille" }),
-    "Tout le monde a voté : Camille peut clôturer",
+    "Tout le monde a voté : Camille peut terminer le vote",
   );
   // Organisateur parti : l'owner clôture, l'écran ne connaît pas son nom.
   assert.equal(
