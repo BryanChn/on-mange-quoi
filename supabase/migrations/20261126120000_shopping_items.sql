@@ -19,7 +19,6 @@ as $$
       from public.groups g
       join public.group_members m on m.group_id = g.id
       where g.id = target_group_id
-        and g.kind = 'foyer'
         and m.profile_id = (select auth.uid())
     );
 $$;
@@ -99,9 +98,6 @@ begin
 end;
 $$;
 
-create trigger shopping_items_stamp_check
-  before update on public.shopping_items
-  for each row execute function public.stamp_shopping_item_check();
 
 -- Temps réel : chacun voit la liste bouger. Avec la RLS, un DELETE ne transporte que la
 -- clé primaire : l'app écoute les suppressions sans filtre et recharge (src/lib/votes.ts).
