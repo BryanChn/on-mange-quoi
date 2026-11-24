@@ -5,6 +5,7 @@ import {
   defaultSoireeName,
   namesWithoutOrder,
   orderText,
+  recapPeople,
   SOIREE_NAME_MAX_LENGTH,
   summarizeOrder,
   toJoinFailure,
@@ -63,13 +64,86 @@ test("récap : une remarque différente fait une ligne à part", () => {
   ]);
 });
 
-test("récap en texte, à coller ou à lire au comptoir", () => {
-  const text = orderText("Kebab du coin", [
-    { label: "Kebab", note: null, quantity: 3, people: [] },
-    { label: "Tacos XL", note: "sans oignon", quantity: 1, people: [] },
+test("qui prend quoi : une ligne par personne, ses lignes identiques additionnées", () => {
+  const people = recapPeople(
+    [
+      { profileId: "t", label: "Kebab", quantity: 1, note: null },
+      { profileId: "b", label: "Frites", quantity: 1, note: "sans sel" },
+      { profileId: "t", label: "Frites", quantity: 1, note: null },
+      { profileId: "b", label: " frites ", quantity: 1, note: "Sans  sel" },
+    ],
+    (id) => (id === "t" ? "Tom" : "Bryan"),
+  );
+  assert.deepEqual(people, [
+    { name: "Tom", items: "Kebab, Frites" },
+    { name: "Bryan", items: "2× Frites (sans sel)" },
   ]);
-  assert.equal(text, "Kebab du coin · 4 articles\n3× Kebab\n1× Tacos XL (sans oignon)");
-  assert.equal(orderText(null, []), "Commande · 0 article");
+});
+
+const momoLines = [
+  { label: "Kebab", note: null, quantity: 3, people: [] },
+  { label: "Tacos XL", note: "sans oignon", quantity: 1, people: [] },
+];
+const momoPeople = [
+  { name: "Bryan", items: "2× Kebab" },
+  { name: "Léa", items: "Kebab, Tacos XL (sans oignon)" },
+];
+
+test("récap en texte, commande passée : comptoir sans noms, puis qui prend quoi", () => {
+  const text = orderText({
+    restaurant: "Chez Momo",
+    isOrdered: true,
+    lines: momoLines,
+    people: momoPeople,
+    waiting: [],
+    joinUrl: "https://exemple.test/rejoindre/abc",
+  });
+  assert.equal(
+    text,
+    [
+      "*Chez Momo* · commande passée ✅",
+      "4 articles · 2 personnes",
+      "",
+      "*Pour le comptoir*",
+      "3× Kebab",
+      "1× Tacos XL _(sans oignon)_",
+      "",
+      "*Qui prend quoi*",
+      "Bryan : 2× Kebab",
+      "Léa : Kebab, Tacos XL (sans oignon)",
+      "",
+      "Organisé avec On mange quoi ?",
+    ].join("\n"),
+  );
+});
+
+test("récap en texte, commande ouverte : qui manque, et le lien pour commander", () => {
+  const text = orderText({
+    restaurant: "Chez Momo",
+    isOrdered: false,
+    lines: momoLines,
+    people: momoPeople,
+    waiting: ["Tom", "Inès"],
+    joinUrl: "https://exemple.test/rejoindre/abc",
+  });
+  assert.match(text, /^\*Chez Momo\* · commande ouverte\n4 articles · 2 personnes sur 4\n/);
+  assert.match(
+    text,
+    /\n\nPas encore commandé : Tom, Inès\nPour commander : https:\/\/exemple\.test\/rejoindre\/abc\n\nOrganisé avec On mange quoi \?$/,
+  );
+});
+
+test("récap en texte : pas de lien si personne n'attend, singulier pour un seul article", () => {
+  const text = orderText({
+    restaurant: null,
+    isOrdered: false,
+    lines: [{ label: "Kebab", note: null, quantity: 1, people: [] }],
+    people: [{ name: "Tom", items: "Kebab" }],
+    waiting: [],
+    joinUrl: "https://exemple.test/rejoindre/abc",
+  });
+  assert.match(text, /^\*Commande\* · commande ouverte\n1 article · 1 personne\n/);
+  assert.doesNotMatch(text, /Pour commander|Pas encore/);
 });
 
 test("qui n'a encore rien commandé", () => {

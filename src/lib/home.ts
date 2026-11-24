@@ -126,7 +126,10 @@ export function subscribeToHome(onChange: () => void): () => void {
       scheduleReload,
     )
     .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, scheduleReload)
-    .subscribe();
+    // (Re)connexion confirmée : rattrape ce qui a changé pendant une coupure.
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") scheduleReload();
+    });
 
   return () => {
     clearTimeout(timer);

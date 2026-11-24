@@ -281,7 +281,7 @@ export default function GroupScreen() {
       )}
       {/* Sous la carte : la couleur d'erreur ne se lit pas sur la tomate. */}
       {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {error}
         </Text>
       ) : null}
@@ -357,7 +357,7 @@ export default function GroupScreen() {
       )}
 
       {leaveError || deleteError ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {leaveError ?? deleteError}
         </Text>
       ) : null}

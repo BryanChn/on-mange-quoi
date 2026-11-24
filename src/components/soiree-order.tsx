@@ -9,7 +9,7 @@ import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { hapticConfirm, hapticReject } from "@/lib/haptics";
 import { shareOrderText } from "@/lib/share-soiree";
-import { namesWithoutOrder, orderText, summarizeOrder } from "@/lib/soiree-rules";
+import { namesWithoutOrder, orderText, recapPeople, summarizeOrder } from "@/lib/soiree-rules";
 import {
   addOrderItem,
   isOrderingClosedError,
@@ -19,6 +19,7 @@ import {
   ORDER_NOTE_MAX_LENGTH,
   removeOrderItem,
   setOrderItemQuantity,
+  soireeLink,
   type OrderItem,
   type SoireeDetail,
 } from "@/lib/soirees";
@@ -45,13 +46,14 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
   const [notice, setNotice] = useState<string | null>(null);
   const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const isOpen = soiree.step === "commande";
   const myItems = soiree.items.filter((item) => item.profileId === userId);
   const nameById = new Map(soiree.members.map((member) => [member.id, member.name]));
-  const summary = summarizeOrder(soiree.items, (id) =>
-    id === userId ? "toi" : (nameById.get(id) ?? "Quelqu’un"),
-  );
+  const realName = (id: string) => nameById.get(id) ?? "Quelqu’un";
+  // « toi » à l'écran seulement : le récap partagé (handleShare) prend les vrais prénoms.
+  const summary = summarizeOrder(soiree.items, (id) => (id === userId ? "toi" : realName(id)));
   const waiting = namesWithoutOrder(soiree.members, soiree.items);
   const total = soiree.items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -102,14 +104,26 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
     }
   }
 
+  // Le texte est lu par les autres dans WhatsApp : les vrais prénoms, jamais « toi ».
   async function handleShare() {
     setError(null);
     setNotice(null);
+    setIsSharing(true);
     try {
-      const outcome = await shareOrderText(orderText(soiree.restaurant, summary));
-      if (outcome === "copied") setNotice("Récap copié.");
+      const text = orderText({
+        restaurant: soiree.restaurant,
+        isOrdered: !isOpen,
+        lines: summarizeOrder(soiree.items, realName),
+        people: recapPeople(soiree.items, realName),
+        waiting,
+        joinUrl: soireeLink(soiree.joinToken),
+      });
+      const outcome = await shareOrderText(text);
+      if (outcome === "copied") setNotice("Récap copié, colle-le dans WhatsApp.");
     } catch {
       setError("Impossible de partager le récap. Réessaie.");
+    } finally {
+      setIsSharing(false);
     }
   }
 
@@ -156,8 +170,12 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
                   <View style={styles.stepper}>
                     <StepButton
                       icon={item.quantity === 1 ? "trash-2" : "minus"}
+                      // « Frites : un de moins » plutôt que « Un Frites de moins » : juste
+                      // quel que soit le genre ou le nombre de l'article.
                       label={
-                        item.quantity === 1 ? `Retirer ${item.label}` : `Un ${item.label} de moins`
+                        item.quantity === 1
+                          ? `Retirer ${item.label}`
+                          : `${item.label} : un de moins`
                       }
                       onPress={() => handleQuantity(item, item.quantity - 1)}
                       isDisabled={busyItemId === item.id}
@@ -169,7 +187,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
                     </Text>
                     <StepButton
                       icon="plus"
-                      label={`Un ${item.label} de plus`}
+                      label={`${item.label} : un de plus`}
                       onPress={() => handleQuantity(item, item.quantity + 1)}
                       isDisabled={busyItemId === item.id || item.quantity >= ORDER_MAX_QUANTITY}
                       styles={styles}
@@ -207,7 +225,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       ) : null}
 
       {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {error}
         </Text>
       ) : null}
@@ -218,16 +236,25 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
         </Text>
         <Card>
           {summary.length === 0 ? (
-            <Text style={styles.muted}>Personne n’a encore commandé.</Text>
+            <Text style={styles.muted}>
+              Personne n’a encore commandé.
+              {isOpen ? " Ajoute ce que tu prends juste au-dessus." : ""}
+            </Text>
           ) : (
             summary.map((line, index) => (
-              <View key={index} style={styles.summaryLine}>
+              // Lue d'un bloc par TalkBack : « 3 Kebab, sans oignon : Léa, Tom », pas « 3× »
+              // puis l'article puis les noms en trois arrêts.
+              <View
+                key={index}
+                style={styles.summaryLine}
+                accessible
+                accessibilityLabel={`${line.quantity} ${line.label}${line.note ? `, ${line.note}` : ""} : ${line.people.join(", ")}`}
+              >
                 <Text style={styles.summaryQuantity}>{line.quantity}×</Text>
                 <View style={styles.itemText}>
-                  <Text style={styles.itemLabel}>
-                    {line.label}
-                    {line.note ? <Text style={styles.summaryNote}> · {line.note}</Text> : null}
-                  </Text>
+                  <Text style={styles.itemLabel}>{line.label}</Text>
+                  {/* En pastille : une remarque oubliée au comptoir, c'est un kebab raté. */}
+                  {line.note ? <Chip label={line.note} /> : null}
                   <Text style={styles.muted}>{line.people.join(", ")}</Text>
                 </View>
               </View>
@@ -236,11 +263,22 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
           {isOpen && waiting.length > 0 ? (
             <Text style={styles.waiting}>Pas encore commandé : {waiting.join(", ")}</Text>
           ) : null}
-          {summary.length > 0 ? (
-            <TextButton label="Partager le récap" onPress={handleShare} />
-          ) : null}
-          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         </Card>
+        {/* Hors de la carte, pleine largeur : il se voit. Principal une fois la commande
+            passée (c'est ce qui reste à faire), secondaire tant qu'on ajoute des lignes. */}
+        {summary.length > 0 ? (
+          <PrimaryButton
+            label="Partager le récap"
+            variant={isOpen ? "secondary" : "primary"}
+            onPress={handleShare}
+            isLoading={isSharing}
+          />
+        ) : null}
+        {notice ? (
+          <Text style={styles.notice} accessibilityLiveRegion="polite">
+            {notice}
+          </Text>
+        ) : null}
       </View>
 
       {isOpen && isOwner ? (
@@ -350,7 +388,6 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       fontSize: fontSize.button,
       fontVariant: ["tabular-nums"],
     },
-    summaryNote: { color: colors.primary, fontWeight: "700" },
     waiting: { color: colors.textMuted, fontSize: fontSize.small, fontStyle: "italic" },
     error: { color: colors.danger, fontSize: fontSize.small },
     notice: { color: colors.success, fontSize: fontSize.small, textAlign: "center" },
