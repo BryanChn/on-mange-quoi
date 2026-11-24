@@ -95,6 +95,12 @@ Le tirage s'affiche comme une **roulette animée** sur tous les téléphones. Le
 
 Plus tard, volontairement : paiement et partage de la note (chacun paie sa part), catalogue des enseignes, notifications aux invités, transformer un invité en compte.
 
+### Liste de courses (tranché le 2026-11-24)
+
+1. Une liste par groupe (foyer), partagée par ses membres et suivie en direct. Pas de liste pour une soirée.
+2. Articles ajoutés à la main : texte libre et quantité facultative en texte (« 2 », « 500 g »). L'ajout depuis une recette viendra avec les recettes.
+3. Cocher = « je l'ai pris » : l'article descend en bas, barré, avec qui l'a pris (heure et auteur posés par le serveur). On peut décocher. « Retirer les achetés » nettoie la liste.
+
 ## Commandes
 
 ```bash

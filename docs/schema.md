@@ -1,4 +1,4 @@
-# Schéma de données · MVP Décider et V1 Soirées
+# Schéma de données · MVP Décider et V1 Cuisiner
 
 Base Postgres (Supabase). Les migrations SQL sont dans `supabase/migrations/`.
 La Row Level Security est activée sur **toutes** les tables : un membre ne voit que ses groupes.
@@ -203,6 +203,23 @@ Une ligne de la commande d'une soirée (migration `soirees`). Texte libre : le c
 | | | **FK composée** `(group_id, profile_id)` → `group_members` `on delete cascade` : une ligne appartient à un membre ; retiré de la soirée, ses lignes partent |
 
 RLS : les membres lisent toutes les lignes de leur soirée ; chacun ajoute et modifie les siennes ; l'auteur **ou le responsable** supprime. Droits par colonne : `insert (group_id, profile_id, label, quantity, note)`, `update (label, quantity, note)`. Le trigger `order_items_lock_soiree` (`lock_soiree_ordering`, verrou partagé) refuse toute écriture hors de l'étape `commande` avec le hint `ordering_closed` : erreur claire, jamais un filtrage silencieux. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
+
+### shopping_items
+
+Un article de la liste de courses d'un foyer (migration `shopping_items`, 2026-11-24). Une liste par groupe, partagée et suivie en direct.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | `uuid` | PK · default `gen_random_uuid()` |
+| `group_id` | `uuid` | not null · FK → `groups` `on delete cascade` · index |
+| `label` | `varchar(80)` | not null · non vide après `trim` |
+| `quantity` | `varchar(20)` | nullable · non vide après `trim` · texte libre (« 2 », « 500 g ») |
+| `added_by` | `uuid` | default `auth.uid()` · FK → `profiles` `on delete set null` |
+| `checked_at` | `timestamptz` | nullable · coché = « je l'ai pris » |
+| `checked_by` | `uuid` | nullable · FK → `profiles` `on delete set null` · check : `checked_by` non nul seulement si `checked_at` l'est |
+| `created_at` | `timestamptz` | not null · default `now()` |
+
+RLS : tout membre **d'un foyer** lit, ajoute, coche, modifie et retire (`is_foyer_member` : membre, groupe de `kind = 'foyer'`, compte non anonyme). Une soirée n'a pas de liste. Droits par colonne : `insert (group_id, label, quantity)`, `update (label, quantity, checked_at)` : l'auteur et celui qui coche ne viennent jamais de l'app. Le trigger `shopping_items_stamp_check` pose l'heure du serveur et `auth.uid()` quand on coche, les efface quand on décoche, et garde la première coche si on recoche. « Retirer les achetés » = `delete` des lignes cochées du groupe. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
 
 ## Photo de profil (migration `profile_photo`, 2026-11-23)
 
