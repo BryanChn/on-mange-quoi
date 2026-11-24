@@ -1,7 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+  type ScrollViewInstance,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -69,6 +77,7 @@ export default function GroupScreen() {
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran
   // (le temps réel peut en lancer plusieurs coup sur coup).
   const latestRequestRef = useRef(0);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const loadGroup = useCallback(() => {
     latestRequestRef.current += 1;
@@ -205,11 +214,17 @@ export default function GroupScreen() {
     return <LoadingScreen />;
   }
 
+  // Une carte de confirmation apparaît sous les autres : on l'amène à l'écran.
+  function scrollToConfirm() {
+    scrollRef.current?.scrollToEnd({ animated: true });
+  }
+
   // Affichage seulement : la RLS refuse la suppression à tout autre membre.
   const isOwner = group.owner_id === session?.user.id;
 
   return (
     <ScrollView
+      ref={scrollRef}
       // Sans cette marge, « Supprimer le groupe » passe sous les boutons du téléphone.
       contentContainerStyle={[
         styles.container,
@@ -298,7 +313,8 @@ export default function GroupScreen() {
       </ListCard>
 
       {(leaveStep === "confirm" || leaveStep === "leaving") && leaveImpact ? (
-        <Card>
+        // En bas de l'écran et plus haute que les liens : on la fait défiler à l'écran.
+        <Card onLayout={scrollToConfirm}>
           <Text style={styles.confirmTitle} accessibilityRole="header">
             Quitter « {group.name} » ?
           </Text>
@@ -314,7 +330,7 @@ export default function GroupScreen() {
       ) : null}
 
       {deleteStep !== "idle" ? (
-        <Card>
+        <Card onLayout={scrollToConfirm}>
           <Text style={styles.confirmTitle} accessibilityRole="header">
             Supprimer « {group.name} » ?
           </Text>

@@ -1,7 +1,14 @@
 import { Feather } from "@expo/vector-icons";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ScrollViewInstance,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
@@ -77,6 +84,7 @@ export default function SoireeScreen() {
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const loadSoiree = useCallback(() => {
     latestRequestRef.current += 1;
@@ -206,6 +214,7 @@ export default function SoireeScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       contentContainerStyle={[
         styles.container,
         { paddingBottom: insets.bottom + theme.spacing.xl },
@@ -359,7 +368,9 @@ export default function SoireeScreen() {
       </View>
 
       {confirm.kind !== "none" ? (
-        <Card>
+        // Tout en bas et plus haute que les liens qu'elle remplace : sans défilement, elle
+        // apparaît sous l'écran (et loin de la ligne touchée pour retirer quelqu'un).
+        <Card onLayout={() => scrollRef.current?.scrollToEnd({ animated: true })}>
           <Text style={styles.confirmTitle} accessibilityRole="header">
             {confirm.kind === "remove"
               ? `Retirer ${confirm.member.name} ?`
