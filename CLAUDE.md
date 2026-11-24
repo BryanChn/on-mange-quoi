@@ -110,7 +110,7 @@ Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette
 1. Une liste par groupe (foyer), partagée par ses membres et suivie en direct. Pas de liste pour une soirée.
 2. Articles ajoutés à la main : texte libre et quantité facultative en texte (« 2 », « 500 g »). L'ajout depuis une recette viendra avec les recettes.
 3. Cocher = « je l'ai pris » : l'article descend en bas, barré, avec qui l'a pris (heure et auteur posés par le serveur). On peut décocher. « Retirer les achetés » range les articles pris (ils quittent la liste).
-4. Améliorations du 2026-11-24 : modifier un article (appui long), pas de doublon (un article déjà pris revient dans « À acheter »), la liste depuis l'accueil, et « Souvent acheté » : les articles rangés reviennent en suggestions, un toucher les rajoute avec leur dernière quantité.
+4. Améliorations du 2026-11-24 : modifier un article (appui long), pas de doublon (un article déjà pris revient dans « À acheter »), la liste depuis l'accueil (une seule ligne, même avec plusieurs foyers : une liste à faire s'ouvre directement, plusieurs passent par un écran de choix ; 2026-11-24, pour ne pas envahir l'accueil), et « Souvent acheté » : les articles rangés reviennent en suggestions, un toucher les rajoute avec leur dernière quantité.
 
 ## Commandes
 

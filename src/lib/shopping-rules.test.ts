@@ -6,6 +6,7 @@ import {
   cleanShoppingInput,
   findDuplicate,
   normalizeLabel,
+  shoppingShortcut,
   sortShoppingList,
   type ShoppingItem,
 } from "./shopping-rules.ts";
@@ -77,4 +78,40 @@ test("suggestions : les plus fréquents d'abord, avec la dernière quantité ; r
     { label: "Pain", quantity: null },
   ]);
   assert.equal(buildSuggestions(history, [], 2).length, 2);
+});
+
+test("accueil : une seule ligne de courses, même avec plusieurs foyers", () => {
+  const groups = [
+    { id: "maison", name: "Maison" },
+    { id: "test", name: "Test" },
+    { id: "vide", name: "Vide" },
+  ];
+  assert.deepEqual(shoppingShortcut(groups, new Map()), { kind: "none" });
+  assert.deepEqual(
+    shoppingShortcut(
+      groups,
+      new Map([
+        ["maison", 6],
+        ["vide", 0],
+      ]),
+    ),
+    {
+      kind: "one",
+      groupId: "maison",
+      subtitle: "Maison · 6 à acheter",
+    },
+  );
+  assert.deepEqual(
+    shoppingShortcut(
+      groups,
+      new Map([
+        ["maison", 6],
+        ["test", 1],
+      ]),
+    ),
+    {
+      kind: "many",
+      subtitle: "7 à acheter dans 2 groupes",
+    },
+  );
 });

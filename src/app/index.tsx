@@ -17,6 +17,7 @@ import { TextButton } from "@/components/text-button";
 import { getInitial } from "@/lib/avatar";
 import { fetchHome, subscribeToHome, type Home, type HomeSoiree } from "@/lib/home";
 import { useProfile } from "@/lib/profile";
+import { shoppingShortcut } from "@/lib/shopping-rules";
 import {
   groupSubtitle,
   idleLine,
@@ -120,6 +121,7 @@ export default function Index() {
 
   const displayName = profile?.display_name ?? "";
   const hasGroups = home.groups.length > 0;
+  const shopping = shoppingShortcut(home.groups, home.toBuyByGroup);
 
   return (
     <>
@@ -194,29 +196,28 @@ export default function Index() {
                     }
                   />
                 ))}
-                {/* Une ligne par foyer qui a des courses à faire : la liste en un toucher. */}
-                {home.groups.map((group) => {
-                  const toBuy = home.toBuyByGroup.get(group.id) ?? 0;
-                  return toBuy > 0 ? (
-                    <ListRow
-                      key={`courses-${group.id}`}
-                      icon="shopping-cart"
-                      label="Liste de courses"
-                      subtitle={`${group.name} · ${toBuy} à acheter`}
-                      hasChevron
-                      onPress={() =>
-                        router.push({
-                          pathname: "/courses/[groupId]",
-                          params: { groupId: group.id },
-                        })
-                      }
-                    />
-                  ) : null;
-                })}
+                {/* Une seule ligne de courses, même avec plusieurs foyers : pas de liste qui
+                    envahit l'accueil. Une liste à faire : elle s'ouvre directement. */}
+                {shopping.kind === "none" ? null : (
+                  <ListRow
+                    icon="shopping-cart"
+                    label="Liste de courses"
+                    subtitle={shopping.subtitle}
+                    hasChevron
+                    onPress={() =>
+                      shopping.kind === "one"
+                        ? router.push({
+                            pathname: "/courses/[groupId]",
+                            params: { groupId: shopping.groupId },
+                          })
+                        : router.push("/courses")
+                    }
+                  />
+                )}
                 <ListRow
                   icon="star"
                   label="Organiser un repas"
-                  subtitle="Kebab, pizza… chacun note ce qu’il veut"
+                  subtitle="Commande, resto, ou chez quelqu’un"
                   onPress={() => router.push("/soiree/new")}
                 />
                 <ListRow
