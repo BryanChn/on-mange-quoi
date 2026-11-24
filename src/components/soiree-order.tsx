@@ -170,8 +170,12 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
                   <View style={styles.stepper}>
                     <StepButton
                       icon={item.quantity === 1 ? "trash-2" : "minus"}
+                      // « Frites : un de moins » plutôt que « Un Frites de moins » : juste
+                      // quel que soit le genre ou le nombre de l'article.
                       label={
-                        item.quantity === 1 ? `Retirer ${item.label}` : `Un ${item.label} de moins`
+                        item.quantity === 1
+                          ? `Retirer ${item.label}`
+                          : `${item.label} : un de moins`
                       }
                       onPress={() => handleQuantity(item, item.quantity - 1)}
                       isDisabled={busyItemId === item.id}
@@ -183,7 +187,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
                     </Text>
                     <StepButton
                       icon="plus"
-                      label={`Un ${item.label} de plus`}
+                      label={`${item.label} : un de plus`}
                       onPress={() => handleQuantity(item, item.quantity + 1)}
                       isDisabled={busyItemId === item.id || item.quantity >= ORDER_MAX_QUANTITY}
                       styles={styles}
@@ -238,7 +242,14 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
             </Text>
           ) : (
             summary.map((line, index) => (
-              <View key={index} style={styles.summaryLine}>
+              // Lue d'un bloc par TalkBack : « 3 Kebab, sans oignon : Léa, Tom », pas « 3× »
+              // puis l'article puis les noms en trois arrêts.
+              <View
+                key={index}
+                style={styles.summaryLine}
+                accessible
+                accessibilityLabel={`${line.quantity} ${line.label}${line.note ? `, ${line.note}` : ""} : ${line.people.join(", ")}`}
+              >
                 <Text style={styles.summaryQuantity}>{line.quantity}×</Text>
                 <View style={styles.itemText}>
                   <Text style={styles.itemLabel}>{line.label}</Text>

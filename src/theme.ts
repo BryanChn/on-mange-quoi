@@ -37,7 +37,9 @@ const lightColors = {
   chipText: brand.sauce,
   accent: brand.spaghetti,
   onAccent: brand.espresso,
-  success: brand.basilic,
+  // Texte de confirmation (« Lien copié ») : le basilic ne laisse que 4,25:1 sur blanc et 3,8:1
+  // sur crème ; ce vert plus sombre tient 6,5:1 et 5,9:1.
+  success: "#1F6B41",
   // La tomate sur crème ne passe pas pour du petit texte : l'erreur prend la sauce.
   danger: brand.sauce,
   // Carte signature (« Ce soir », dernier vote, résultat) : l'icône « inverse » du chat,
