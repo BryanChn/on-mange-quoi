@@ -9,6 +9,7 @@ import { after, before, describe, test } from "node:test";
 import {
   addShoppingItem,
   clearCheckedItems,
+  fetchShoppingHistory,
   fetchShoppingList,
   removeShoppingItem,
   setShoppingItemChecked,
@@ -177,6 +178,43 @@ describe("liste de courses", () => {
 
     await signInAs(dan);
     await assert.rejects(updateShoppingItem(lait.id, { label: "Piraté", quantity: "" }));
+  });
+
+  test("« Retirer les achetés » range : hors de la liste, dans l'historique, heure du serveur", async () => {
+    await emptyList();
+    await signInAs(alice);
+    const lait = await addShoppingItem(foyerId, { label: "Lait", quantity: "2" });
+    await addShoppingItem(foyerId, { label: "Pain", quantity: "" });
+    await setShoppingItemChecked(lait.id, true);
+    assert.equal(await clearCheckedItems(foyerId), 1);
+
+    assert.deepEqual(
+      (await fetchShoppingList(foyerId)).map((entry) => entry.label),
+      ["Pain"],
+    );
+    const history = await fetchShoppingHistory(foyerId);
+    assert.equal(history.length, 1);
+    assert.equal(history[0].label, "Lait");
+    assert.equal(history[0].quantity, "2");
+    assert.ok(history[0].clearedAt > "2026-01-01");
+
+    // Ranger une deuxième fois ne déplace rien (déjà rangé).
+    assert.equal(await clearCheckedItems(foyerId), 0);
+
+    // Un intrus ne voit pas l'historique du foyer.
+    await signInAs(dan);
+    assert.deepEqual(await fetchShoppingHistory(foyerId), []);
+  });
+
+  test("un article non coché ne peut pas être rangé", async () => {
+    await emptyList();
+    await signInAs(alice);
+    const beurre = await addShoppingItem(foyerId, { label: "Beurre", quantity: "" });
+    const { error } = await supabase
+      .from("shopping_items")
+      .update({ cleared_at: new Date().toISOString() })
+      .eq("id", beurre.id);
+    assert.ok(error, "la contrainte doit refuser de ranger un article non pris");
   });
 
   test("un article vide est refusé par la base", async () => {

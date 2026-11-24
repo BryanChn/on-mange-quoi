@@ -171,14 +171,14 @@ isOneToOne: false
                   ]
                 },"shopping_items": {
                   Row: {
-                    "added_by": string | null,"checked_at": string | null,"checked_by": string | null,"created_at": string,"group_id": string,"id": string,"label": string,"quantity": string | null
+                    "added_by": string | null,"checked_at": string | null,"checked_by": string | null,"cleared_at": string | null,"created_at": string,"group_id": string,"id": string,"label": string,"quantity": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"group_id": string,"id"?: string,"label": string,"quantity"?: string | null
+                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id": string,"id"?: string,"label": string,"quantity"?: string | null
                   }
                   Update: {
-                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"group_id"?: string,"id"?: string,"label"?: string,"quantity"?: string | null
+                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id"?: string,"id"?: string,"label"?: string,"quantity"?: string | null
                   }
                   Relationships: [
                     {

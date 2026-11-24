@@ -1,7 +1,12 @@
 // Liste de courses d'un foyer (migration shopping_items) : lire, ajouter, cocher, retirer,
 // suivre en direct. Les règles d'accès sont dans la base (RLS : membres du foyer) ; la RLS
 // refuse parfois sans erreur (0 ligne) : on le vérifie pour ne pas annoncer un faux succès.
-import { cleanShoppingInput, sortShoppingList, type ShoppingItem } from "./shopping-rules";
+import {
+  cleanShoppingInput,
+  sortShoppingList,
+  type ShoppingHistoryEntry,
+  type ShoppingItem,
+} from "./shopping-rules";
 import { supabase } from "./supabase";
 
 const COLUMNS = "id, label, quantity, added_by, checked_at, checked_by, created_at";
@@ -28,14 +33,35 @@ function toItem(row: Row): ShoppingItem {
   };
 }
 
-// La liste triée pour l'écran (reste à acheter, puis déjà pris).
+// La liste triée pour l'écran (reste à acheter, puis déjà pris), sans les articles rangés.
 export async function fetchShoppingList(groupId: string): Promise<ShoppingItem[]> {
   const { data, error } = await supabase
     .from("shopping_items")
     .select(COLUMNS)
-    .eq("group_id", groupId);
+    .eq("group_id", groupId)
+    .is("cleared_at", null);
   if (error) throw error;
   return sortShoppingList(data.map(toItem));
+}
+
+// Les articles rangés les plus récents : de quoi proposer « ce qu'on achète souvent ».
+// 300 suffisent largement pour un foyer (plusieurs mois de courses).
+const HISTORY_LIMIT = 300;
+
+export async function fetchShoppingHistory(groupId: string): Promise<ShoppingHistoryEntry[]> {
+  const { data, error } = await supabase
+    .from("shopping_items")
+    .select("label, quantity, cleared_at")
+    .eq("group_id", groupId)
+    .not("cleared_at", "is", null)
+    .order("cleared_at", { ascending: false })
+    .limit(HISTORY_LIMIT);
+  if (error) throw error;
+  return data.map((row) => ({
+    label: row.label,
+    quantity: row.quantity,
+    clearedAt: row.cleared_at ?? "",
+  }));
 }
 
 export async function addShoppingItem(
@@ -89,13 +115,15 @@ export async function removeShoppingItem(itemId: string): Promise<void> {
   if (data.length === 0) throw new Error("Article non retiré.");
 }
 
-// « Retirer les achetés » : supprime les articles cochés du groupe. Renvoie combien.
+// « Retirer les achetés » : range les articles cochés du groupe (ils quittent la liste et
+// nourrissent les suggestions). L'heure vient du serveur (trigger). Renvoie combien.
 export async function clearCheckedItems(groupId: string): Promise<number> {
   const { data, error } = await supabase
     .from("shopping_items")
-    .delete()
+    .update({ cleared_at: new Date().toISOString() })
     .eq("group_id", groupId)
     .not("checked_at", "is", null)
+    .is("cleared_at", null)
     .select("id");
   if (error) throw error;
   return data.length;
