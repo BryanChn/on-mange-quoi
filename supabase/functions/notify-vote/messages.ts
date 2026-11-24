@@ -50,14 +50,15 @@ function recipientsFor(input: MessageInput): Recipient[] {
 
 function bodyFor(input: MessageInput): string {
   if (input.event === "opened") {
-    return `${input.organizerName ?? "Quelqu'un"} a lancé un vote : propose et vote !`;
+    // Pas de « ce soir » : un vote se lance aussi le midi.
+    return `${input.organizerName ?? "Quelqu'un"} lance le vote : on mange quoi ?`;
   }
   if (input.event === "reminder") {
     return "Le vote t'attend : propose un plat ou coche ce qui te tente.";
   }
   return input.winnerName
     ? `C'est décidé : ${input.winnerName}. Bon appétit !`
-    : "Le vote est terminé.";
+    : "Le vote est terminé : viens voir le résultat.";
 }
 
 // Lancement : les autres membres (l'organisateur sait qu'il vient de lancer le vote).

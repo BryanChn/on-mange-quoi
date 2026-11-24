@@ -51,14 +51,14 @@ test("lancement : tous les téléphones des autres membres, pas ceux de l'organi
     ["ExponentPushToken[telephoneCompagne]", "ExponentPushToken[tabletteCompagne]"],
   );
   assert.equal(messages[0].title, "Famille");
-  assert.equal(messages[0].body, "Bryan a lancé un vote : propose et vote !");
+  assert.equal(messages[0].body, "Bryan lance le vote : on mange quoi ?");
   assert.deepEqual(messages[0].data, { sessionId: SESSION_ID });
 });
 
 test("lancement par un compte supprimé : tout le monde est prévenu, sans nom", () => {
   const messages = buildMessages({ ...base, event: "opened", organizerId: null, organizerName: null });
   assert.equal(messages.length, 3);
-  assert.equal(messages[0].body, "Quelqu'un a lancé un vote : propose et vote !");
+  assert.equal(messages[0].body, "Quelqu'un lance le vote : on mange quoi ?");
 });
 
 test("résultat : tout le groupe, organisateur compris", () => {
@@ -69,7 +69,7 @@ test("résultat : tout le groupe, organisateur compris", () => {
 
 test("résultat sans plat gagnant connu : pas de « Bon appétit » sur rien", () => {
   const messages = buildMessages({ ...base, event: "closed", winnerName: null });
-  assert.equal(messages[0].body, "Le vote est terminé.");
+  assert.equal(messages[0].body, "Le vote est terminé : viens voir le résultat.");
 });
 
 test("un jeton en double ne sonne qu'une fois", () => {
