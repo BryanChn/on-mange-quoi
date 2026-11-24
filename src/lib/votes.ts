@@ -131,9 +131,7 @@ export function subscribeToGroupSessions(groupId: string, onChange: () => void):
       onChange,
     )
     // (Re)connexion confirmée : rattrape un vote lancé ou clôturé pendant une coupure.
-    .subscribe((status) => {
-      if (status === "SUBSCRIBED") onChange();
-    });
+    .subscribe();
 
   return () => {
     supabase.removeChannel(channel);
