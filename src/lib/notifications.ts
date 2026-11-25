@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 
-import { sessionIdFromNotification } from "./notification-link";
+import { notificationTarget } from "./notification-link";
 import { clearPhotoUrlCache } from "./photo-storage";
 import { supabase } from "./supabase";
 
@@ -130,7 +130,11 @@ export function useNotificationRedirect(state: RedirectState): void {
     if (state === "signedOut") return;
     if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
 
-    const sessionId = sessionIdFromNotification(response.notification.request.content.data);
-    if (sessionId) router.push({ pathname: "/session/[id]", params: { id: sessionId } });
+    const target = notificationTarget(response.notification.request.content.data);
+    if (target?.kind === "session") {
+      router.push({ pathname: "/session/[id]", params: { id: target.id } });
+    } else if (target?.kind === "soiree") {
+      router.push({ pathname: "/soiree/[id]", params: { id: target.id } });
+    }
   }, [state, response]);
 }
