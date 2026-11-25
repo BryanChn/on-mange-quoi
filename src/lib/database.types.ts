@@ -51,14 +51,14 @@ isOneToOne: false
                   ]
                 },"groups": {
                   Row: {
-                    "created_at": string,"digest_pending_since": string | null,"digest_sent_at": string | null,"id": string,"invite_code": string,"join_token": string | null,"kind": Database["public"]['Enums']["group_kind"],"meal_date": string | null,"name": string,"ordered_at": string | null,"owner_digest_pending_since": string | null,"owner_digest_sent_at": string | null,"owner_id": string,"restaurant": string | null,"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,"soiree_step": Database["public"]['Enums']["soiree_step"] | null
+                    "created_at": string,"digest_pending_since": string | null,"digest_sent_at": string | null,"id": string,"invite_code": string,"join_token": string | null,"kind": Database["public"]['Enums']["group_kind"],"meal_date": string | null,"meal_day_reminded_at": string | null,"name": string,"ordered_at": string | null,"owner_digest_pending_since": string | null,"owner_digest_sent_at": string | null,"owner_id": string,"restaurant": string | null,"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,"soiree_step": Database["public"]['Enums']["soiree_step"] | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"digest_pending_since"?: string | null,"digest_sent_at"?: string | null,"id"?: string,"invite_code": string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"name": string,"ordered_at"?: string | null,"owner_digest_pending_since"?: string | null,"owner_digest_sent_at"?: string | null,"owner_id": string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
+                    "created_at"?: string,"digest_pending_since"?: string | null,"digest_sent_at"?: string | null,"id"?: string,"invite_code": string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"meal_day_reminded_at"?: string | null,"name": string,"ordered_at"?: string | null,"owner_digest_pending_since"?: string | null,"owner_digest_sent_at"?: string | null,"owner_id": string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
                   }
                   Update: {
-                    "created_at"?: string,"digest_pending_since"?: string | null,"digest_sent_at"?: string | null,"id"?: string,"invite_code"?: string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"name"?: string,"ordered_at"?: string | null,"owner_digest_pending_since"?: string | null,"owner_digest_sent_at"?: string | null,"owner_id"?: string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
+                    "created_at"?: string,"digest_pending_since"?: string | null,"digest_sent_at"?: string | null,"id"?: string,"invite_code"?: string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"meal_day_reminded_at"?: string | null,"name"?: string,"ordered_at"?: string | null,"owner_digest_pending_since"?: string | null,"owner_digest_sent_at"?: string | null,"owner_id"?: string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
                   }
                   Relationships: [
                     {
@@ -338,6 +338,7 @@ isOneToOne: false
 "join_token": string | null,
 "kind": Database["public"]['Enums']["group_kind"],
 "meal_date": string | null,
+"meal_day_reminded_at": string | null,
 "name": string,
 "ordered_at": string | null,
 "owner_digest_pending_since": string | null,
@@ -382,6 +383,7 @@ isOneToOne: false
 "join_token": string | null,
 "kind": Database["public"]['Enums']["group_kind"],
 "meal_date": string | null,
+"meal_day_reminded_at": string | null,
 "name": string,
 "ordered_at": string | null,
 "owner_digest_pending_since": string | null,
@@ -407,6 +409,7 @@ isOneToOne: false
 "join_token": string | null,
 "kind": Database["public"]['Enums']["group_kind"],
 "meal_date": string | null,
+"meal_day_reminded_at": string | null,
 "name": string,
 "ordered_at": string | null,
 "owner_digest_pending_since": string | null,
@@ -470,6 +473,7 @@ isOneToOne: false
 "join_token": string | null,
 "kind": Database["public"]['Enums']["group_kind"],
 "meal_date": string | null,
+"meal_day_reminded_at": string | null,
 "name": string,
 "ordered_at": string | null,
 "owner_digest_pending_since": string | null,
@@ -499,6 +503,9 @@ isOneToOne: false
                            },
 "register_push_token":
 { Args: { "new_token": string }; Returns: undefined
+                           },
+"send_meal_day_reminders":
+{ Args: { "reference_time"?: string }; Returns: number
                            },
 "send_meal_digests":
 { Args: { "reference_time"?: string }; Returns: number

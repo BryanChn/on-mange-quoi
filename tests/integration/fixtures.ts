@@ -311,3 +311,35 @@ export async function setMealDigest(
     .eq("id", groupId);
   if (error) throw error;
 }
+
+// Rappel du jour d'un repas (migration meal_ordered_and_day) : ce que pg_cron lance toutes les
+// 15 minutes, à l'heure choisie ; la date du repas et sa création, antidatées.
+export async function sendMealDayReminders(referenceTime: Date): Promise<number> {
+  const { data, error } = await admin.rpc("send_meal_day_reminders", {
+    reference_time: referenceTime.toISOString(),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function setMealDates(
+  groupId: string,
+  mealDate: string,
+  createdAt: Date,
+): Promise<void> {
+  const { error } = await admin
+    .from("groups")
+    .update({ meal_date: mealDate, created_at: createdAt.toISOString() })
+    .eq("id", groupId);
+  if (error) throw error;
+}
+
+export async function mealDayRemindedAt(groupId: string): Promise<string | null> {
+  const { data, error } = await admin
+    .from("groups")
+    .select("meal_day_reminded_at")
+    .eq("id", groupId)
+    .single();
+  if (error) throw error;
+  return data.meal_day_reminded_at;
+}
