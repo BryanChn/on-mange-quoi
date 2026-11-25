@@ -266,22 +266,48 @@ export async function sendMealDigests(referenceTime: Date): Promise<number> {
   return data;
 }
 
-export async function mealDigestState(
-  groupId: string,
-): Promise<{ pendingSince: string | null; sentAt: string | null }> {
+export type MealDigestState = {
+  pendingSince: string | null;
+  sentAt: string | null;
+  ownerPendingSince: string | null;
+  ownerSentAt: string | null;
+};
+
+export async function mealDigestState(groupId: string): Promise<MealDigestState> {
   const { data, error } = await admin
     .from("groups")
-    .select("digest_pending_since, digest_sent_at")
+    .select(
+      "digest_pending_since, digest_sent_at, owner_digest_pending_since, owner_digest_sent_at",
+    )
     .eq("id", groupId)
     .single();
   if (error) throw error;
-  return { pendingSince: data.digest_pending_since, sentAt: data.digest_sent_at };
+  return {
+    pendingSince: data.digest_pending_since,
+    sentAt: data.digest_sent_at,
+    ownerPendingSince: data.owner_digest_pending_since,
+    ownerSentAt: data.owner_digest_sent_at,
+  };
 }
 
-export async function setMealDigestPendingSince(groupId: string, at: Date): Promise<void> {
+// Antidate les marques d'un repas (les triggers les posent « maintenant »).
+export async function setMealDigest(
+  groupId: string,
+  marks: {
+    pendingSince?: Date | null;
+    sentAt?: Date | null;
+    ownerPendingSince?: Date | null;
+  },
+): Promise<void> {
+  const iso = (value: Date | null | undefined) =>
+    value === undefined ? undefined : value === null ? null : value.toISOString();
   const { error } = await admin
     .from("groups")
-    .update({ digest_pending_since: at.toISOString() })
+    .update({
+      digest_pending_since: iso(marks.pendingSince),
+      digest_sent_at: iso(marks.sentAt),
+      owner_digest_pending_since: iso(marks.ownerPendingSince),
+    })
     .eq("id", groupId);
   if (error) throw error;
 }
