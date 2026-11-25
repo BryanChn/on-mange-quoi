@@ -16,6 +16,7 @@ import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
 import { ListCard, ListRow } from "@/components/list";
+import { MomentPicker } from "@/components/moment-picker";
 import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
@@ -28,6 +29,7 @@ import {
   type GroupDetail,
   type LeaveImpact,
 } from "@/lib/groups";
+import { defaultMoment, momentLabel, type MealMoment } from "@/lib/tonight";
 import { useSession } from "@/lib/session";
 import {
   fetchLatestSession,
@@ -67,6 +69,8 @@ export default function GroupScreen() {
   const [latestSession, setLatestSession] = useState<LatestSession | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  // Midi ou soir du prochain vote, présélectionné selon l'heure d'ouverture de l'écran.
+  const [moment, setMoment] = useState<MealMoment>(() => defaultMoment(new Date()));
   const [error, setError] = useState<string | null>(null);
   const [leaveStep, setLeaveStep] = useState<LeaveStep>("idle");
   const [leaveImpact, setLeaveImpact] = useState<LeaveImpact | null>(null);
@@ -121,7 +125,7 @@ export default function GroupScreen() {
     setIsStarting(true);
 
     try {
-      openSession(await startSession(id));
+      openSession(await startSession(id, moment));
     } catch {
       setError("Le vote n’a pas démarré : vérifie ta connexion et réessaie.");
     } finally {
@@ -253,7 +257,9 @@ export default function GroupScreen() {
       {latestSession?.isOpen ? (
         <Card>
           <Chip label="Vote en cours" hasDot />
-          <Text style={styles.cardTitle}>On mange quoi ce soir ?</Text>
+          <Text style={styles.cardTitle}>
+            On mange quoi {momentLabel(latestSession.moment ?? "soir")} ?
+          </Text>
           <Text style={styles.muted}>Un vote est ouvert : coche tout ce qui te tente.</Text>
           <PrimaryButton label="Voter" onPress={() => openSession(latestSession.id)} />
         </Card>
@@ -282,6 +288,12 @@ export default function GroupScreen() {
               </Text>
             </>
           )}
+          <MomentPicker
+            value={moment}
+            onChange={setMoment}
+            tone="signature"
+            isDisabled={isStarting}
+          />
           <PrimaryButton
             label="Lancer un vote"
             variant="signature"

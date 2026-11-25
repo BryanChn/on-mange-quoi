@@ -28,7 +28,9 @@ import {
   dayLabel,
   everyoneHasVoted,
   formatTime,
+  isMomentPast,
   isSameDay,
+  momentLabel,
   participationLine,
   summarizeParticipation,
 } from "@/lib/tonight";
@@ -587,7 +589,13 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
   const winner = session.proposals.find((proposal) => proposal.id === session.winnerProposalId);
   const winnerName = winner?.name ?? `${wordsFor(session).label} introuvable`;
   const closedAt = session.closedAt ? new Date(session.closedAt) : null;
-  const isTonight = closedAt !== null && isSameDay(closedAt, now);
+  // « Ce midi, c'est Pizza ! » le jour même, tant que ce repas n'est pas passé ; un repas à
+  // plusieurs n'a pas de moment.
+  const isComing =
+    closedAt !== null &&
+    session.moment !== null &&
+    isSameDay(closedAt, now) &&
+    !isMomentPast(session.moment, now);
   // Échelle des barres : le nombre de membres, ou plus si d'anciens membres avaient voté.
   const scale = Math.max(
     session.members.length,
@@ -612,10 +620,14 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
         <SignatureCard style={styles.hero}>
           <SignatureCat size={96} />
           <Text style={styles.heroLabel}>
-            {closedAt ? `${session.groupName} · ${dayLabel(closedAt, now)}` : session.groupName}
+            {closedAt
+              ? `${session.groupName} · ${dayLabel(closedAt, now, session.moment)}`
+              : session.groupName}
           </Text>
           <Text style={styles.winner} accessibilityRole="header">
-            {isTonight ? `Ce soir, c’est\n${winnerName} !` : winnerName}
+            {isComing && session.moment
+              ? `${capitalize(momentLabel(session.moment))}, c’est\n${winnerName} !`
+              : winnerName}
           </Text>
           {decision ? <Chip label={decision} variant="accent" style={styles.leadChip} /> : null}
           <Text style={styles.heroLabel}>Bon appétit !</Text>

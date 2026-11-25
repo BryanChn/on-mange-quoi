@@ -16,7 +16,14 @@ export type OpenHomeSession = {
   voterIds: string[];
 };
 
-export type ClosedHomeSession = { id: string; isOpen: false; closedAt: string; winnerName: string };
+export type ClosedHomeSession = {
+  id: string;
+  isOpen: false;
+  closedAt: string;
+  winnerName: string;
+  // Midi ou soir : « Ce midi, c'est Pizza ! », et midi n'est plus « décidé » après 15 h.
+  moment: MealMoment;
+};
 
 export type HomeGroup = {
   id: string;
@@ -37,6 +44,30 @@ export type Tonight =
   | { kind: "idle"; groupToStart: HomeGroup | null };
 
 export type Participation = { votedCount: number; memberCount: number; pendingLabel: string };
+
+// ─── Midi ou soir (migration vote_moment) ───────────────
+
+export type MealMoment = "midi" | "soir";
+
+// Avant 15 h, on pense au repas de midi ; après, à celui du soir. Même heure que le serveur
+// (set_vote_session_moment) pour un lancement sans moment.
+export const MOMENT_SWITCH_HOUR = 15;
+
+// Le moment présélectionné au lancement, et celui de la question de l'accueil.
+export function defaultMoment(now: Date): MealMoment {
+  return now.getHours() < MOMENT_SWITCH_HOUR ? "midi" : "soir";
+}
+
+// « ce midi », « ce soir ».
+export function momentLabel(moment: MealMoment): string {
+  return moment === "midi" ? "ce midi" : "ce soir";
+}
+
+// Un vote décidé aujourd'hui pour midi n'est plus « le repas qui vient » après 15 h : l'accueil
+// repasse à « on mange quoi ce soir ? ».
+export function isMomentPast(moment: MealMoment, now: Date): boolean {
+  return moment === "midi" && now.getHours() >= MOMENT_SWITCH_HOUR;
+}
 
 const WEEKDAYS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -61,10 +92,11 @@ export function formatTime(date: Date): string {
   return `${hours}:${minutes}`;
 }
 
-// Quand un vote a été clôturé : « ce soir », « mardi », puis la date au-delà de six jours
-// (le nom du jour tromperait).
-export function dayLabel(date: Date, now: Date): string {
-  if (isSameDay(date, now)) return "ce soir";
+// Quand un vote a été clôturé : « ce midi » ou « ce soir » (« aujourd'hui » pour un repas à
+// plusieurs, sans moment), « mardi », puis la date au-delà de six jours (le nom du jour
+// tromperait).
+export function dayLabel(date: Date, now: Date, moment: MealMoment | null): string {
+  if (isSameDay(date, now)) return moment ? momentLabel(moment) : "aujourd’hui";
   if (now.getTime() - date.getTime() < 6 * DAY_IN_MS) return weekdayName(date);
 
   const day = String(date.getDate()).padStart(2, "0");
@@ -184,7 +216,9 @@ export function groupSubtitle(group: HomeGroup, now: Date): string {
   if (session.isOpen) return `${members} · vote en cours`;
 
   const closedAt = new Date(session.closedAt);
-  if (isSameDay(closedAt, now)) return `${members} · ce soir : ${session.winnerName}`;
+  if (isSameDay(closedAt, now)) {
+    return `${members} · ${momentLabel(session.moment)} : ${session.winnerName}`;
+  }
   if (now.getTime() - closedAt.getTime() < 6 * DAY_IN_MS) {
     return `${members} · ${weekdayName(closedAt)} : ${session.winnerName}`;
   }
@@ -203,7 +237,8 @@ export function pickTonight(groups: HomeGroup[], userId: string, now: Date): Ton
       if (!latestOpen || session.createdAt > latestOpen.session.createdAt) {
         latestOpen = { group, session };
       }
-    } else if (isSameDay(new Date(session.closedAt), now)) {
+    } else if (isSameDay(new Date(session.closedAt), now) && !isMomentPast(session.moment, now)) {
+      // Décidé aujourd'hui pour un repas qui n'est pas encore passé : midi s'efface à 15 h.
       if (!latestDecided || session.closedAt > latestDecided.session.closedAt) {
         latestDecided = { group, session };
       }

@@ -11,11 +11,14 @@ import {
 import { pickSuccessor, toMembers, type Member } from "./members.ts";
 import {
   dayLabel,
+  defaultMoment,
   everyoneHasVoted,
   formatTime,
   groupSubtitle,
   idleLine,
+  isMomentPast,
   leadingTitle,
+  momentLabel,
   participationLine,
   pickTonight,
   summarizeParticipation,
@@ -41,8 +44,13 @@ function group(id: string, latestSession: HomeGroup["latestSession"]): HomeGroup
 function open(id: string, createdAt: string, voterIds: string[] = []): OpenHomeSession {
   return { id, isOpen: true, createdAt, proposals: [], voterIds };
 }
-function closed(id: string, closedAt: string, winnerName = "Pizza"): ClosedHomeSession {
-  return { id, isOpen: false, closedAt, winnerName };
+function closed(
+  id: string,
+  closedAt: string,
+  winnerName = "Pizza",
+  moment: "midi" | "soir" = "soir",
+): ClosedHomeSession {
+  return { id, isOpen: false, closedAt, winnerName, moment };
 }
 
 test("getInitial : première lettre en majuscule, espaces ignorés, nom vide", () => {
@@ -111,10 +119,12 @@ test("formatTime : deux chiffres pour les heures et les minutes", () => {
   assert.equal(formatTime(new Date(2026, 0, 1, 18, 42)), "18:42");
 });
 
-test("dayLabel : ce soir, jour de la semaine, puis date", () => {
-  assert.equal(dayLabel(new Date(at(12, 13)), now), "ce soir");
-  assert.equal(dayLabel(new Date(at(10)), now), "mardi");
-  assert.equal(dayLabel(new Date(at(1)), now), "le 01/11");
+test("dayLabel : ce midi ou ce soir, jour de la semaine, puis date", () => {
+  assert.equal(dayLabel(new Date(at(12, 13)), now, "soir"), "ce soir");
+  assert.equal(dayLabel(new Date(at(12, 11)), now, "midi"), "ce midi");
+  assert.equal(dayLabel(new Date(at(12, 13)), now, null), "aujourd’hui");
+  assert.equal(dayLabel(new Date(at(10)), now, "soir"), "mardi");
+  assert.equal(dayLabel(new Date(at(1)), now, "soir"), "le 01/11");
 });
 
 test("leadingTitle : aucun plat, aucun vote, un plat en tête, égalités", () => {
@@ -265,6 +275,24 @@ test("pickTonight : un vote clôturé aujourd'hui, mais pas celui d'hier", () =>
   assert.equal(yesterday.kind, "idle");
 });
 
+test("pickTonight : décidé pour midi, c'est réglé jusqu'à 15 h, puis on pense au soir", () => {
+  const lunch = [group("a", closed("s", at(12, 11), "Salade", "midi"))];
+  const atNoon = new Date(2026, 10, 12, 12, 30);
+  const noonCard = pickTonight(lunch, ME, atNoon);
+  assert.ok(noonCard.kind === "decided" && noonCard.session.winnerName === "Salade");
+
+  // À 19 h (now), le midi est passé : l'accueil propose de lancer le vote du soir.
+  const eveningCard = pickTonight(lunch, ME, now);
+  assert.ok(eveningCard.kind === "idle" && eveningCard.groupToStart?.id === "a");
+});
+
+test("groupSubtitle : « ce midi : Salade » le jour même", () => {
+  assert.equal(
+    groupSubtitle(group("a", closed("s", at(12, 11), "Salade", "midi")), now),
+    "3 membres · ce midi : Salade",
+  );
+});
+
 test("pickTonight : rien ce soir, lancement direct seulement avec un seul groupe", () => {
   const single = pickTonight([group("a", null)], ME, now);
   assert.ok(single.kind === "idle" && single.groupToStart?.id === "a");
@@ -274,4 +302,25 @@ test("pickTonight : rien ce soir, lancement direct seulement avec un seul groupe
 
   const none = pickTonight([], ME, now);
   assert.ok(none.kind === "idle" && none.groupToStart === null);
+});
+
+// ─── Midi ou soir ───
+const clock = (hours: number, minutes = 0) => new Date(2026, 10, 25, hours, minutes);
+
+test("defaultMoment : midi jusqu'à 14 h 59, soir dès 15 h", () => {
+  assert.equal(defaultMoment(clock(8)), "midi");
+  assert.equal(defaultMoment(clock(14, 59)), "midi");
+  assert.equal(defaultMoment(clock(15)), "soir");
+  assert.equal(defaultMoment(clock(23)), "soir");
+});
+
+test("momentLabel : « ce midi », « ce soir »", () => {
+  assert.equal(momentLabel("midi"), "ce midi");
+  assert.equal(momentLabel("soir"), "ce soir");
+});
+
+test("isMomentPast : midi passé à 15 h, le soir jamais dans la journée", () => {
+  assert.equal(isMomentPast("midi", clock(14, 59)), false);
+  assert.equal(isMomentPast("midi", clock(15)), true);
+  assert.equal(isMomentPast("soir", clock(23, 59)), false);
 });

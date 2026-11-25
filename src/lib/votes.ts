@@ -1,8 +1,8 @@
 import type { Enums } from "./database.types";
+import { summarizeParticipation, type MealMoment, type Participation } from "./tonight";
 import { MEMBER_COLUMNS, toMembers, type Member } from "./members";
 import { MY_VOTER_NAME } from "./optimistic-vote";
 import { getUserId, supabase } from "./supabase";
-import { summarizeParticipation, type Participation } from "./tonight";
 import type { VoteTopic } from "./vote-topic";
 
 // Code Postgres d'une contrainte d'unicité violée.
@@ -33,6 +33,8 @@ export type VoteSession = {
   topic: VoteTopic;
   // Type du repas (commande, resto, maison), null pour un foyer : le bouton après le résultat.
   soireeMode: Enums<"soiree_mode"> | null;
+  // Midi ou soir pour un foyer (« Ce midi, c'est Pizza ! ») ; null pour un repas.
+  moment: MealMoment | null;
   members: Member[];
   // null : l'organisateur a quitté le groupe ou supprimé son compte.
   organizerName: string | null;
@@ -53,8 +55,10 @@ export type VoteSession = {
 
 // Dernière session du groupe : l'ouverte s'il y en a une (une seule possible, et c'est
 // forcément la plus récente), sinon la dernière clôturée et son gagnant.
+// moment : midi ou soir pour un foyer, null pour un repas à plusieurs.
 export type LatestSession =
-  { id: string; isOpen: true } | { id: string; isOpen: false; winnerName: string };
+  | { id: string; isOpen: true; moment: MealMoment | null }
+  | { id: string; isOpen: false; winnerName: string; moment: MealMoment | null };
 
 export async function fetchOpenSessionId(groupId: string): Promise<string | null> {
   const { data, error } = await supabase
@@ -71,7 +75,7 @@ export async function fetchOpenSessionId(groupId: string): Promise<string | null
 export async function fetchLatestSession(groupId: string): Promise<LatestSession | null> {
   const { data, error } = await supabase
     .from("vote_sessions")
-    .select("id, status, winner:proposals!vote_sessions_winner_fk(name)")
+    .select("id, status, moment, winner:proposals!vote_sessions_winner_fk(name)")
     .eq("group_id", groupId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -79,9 +83,9 @@ export async function fetchLatestSession(groupId: string): Promise<LatestSession
 
   if (error) throw error;
   if (!data) return null;
-  if (data.status === "open") return { id: data.id, isOpen: true };
+  if (data.status === "open") return { id: data.id, isOpen: true, moment: data.moment };
   // Une session clôturée a toujours un gagnant (contrainte de vote_sessions).
-  return { id: data.id, isOpen: false, winnerName: data.winner?.name ?? "" };
+  return { id: data.id, isOpen: false, winnerName: data.winner?.name ?? "", moment: data.moment };
 }
 
 // Appelle onChange à chaque plat ou vote ajouté, retiré, modifié, et à la clôture (la RLS
@@ -147,11 +151,13 @@ export function subscribeToGroupSessions(groupId: string, onChange: () => void):
 
 // Si un autre membre vient de lancer un vote, l'index unique refuse le second :
 // on rejoint alors sa session au lieu d'afficher une erreur.
-export async function startSession(groupId: string): Promise<string> {
+// moment : midi ou soir, pour un foyer (pastille au lancement) ; sans moment pour un repas à
+// plusieurs (le serveur l'ignore de toute façon).
+export async function startSession(groupId: string, moment?: MealMoment): Promise<string> {
   const userId = await getUserId();
   const { data, error } = await supabase
     .from("vote_sessions")
-    .insert({ group_id: groupId, organizer_id: userId })
+    .insert({ group_id: groupId, organizer_id: userId, ...(moment ? { moment } : {}) })
     .select("id")
     .single();
 
@@ -170,7 +176,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
   const { data, error } = await supabase
     .from("vote_sessions")
     .select(
-      `group_id, status, organizer_id, winner_proposal_id, decided_by, created_at, closed_at, topic,
+      `group_id, status, organizer_id, winner_proposal_id, decided_by, created_at, closed_at, topic, moment,
       groups(owner_id, name, kind, soiree_mode, ${MEMBER_COLUMNS}),
       proposals!proposals_session_id_fkey(id, name, proposed_by, votes(profile_id))`,
     )
@@ -193,6 +199,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     isSoiree: data.groups?.kind === "soiree",
     topic: data.topic,
     soireeMode: data.groups?.soiree_mode ?? null,
+    moment: data.moment,
     members,
     organizerName: data.organizer_id ? (nameById.get(data.organizer_id) ?? null) : null,
     createdAt: data.created_at,
