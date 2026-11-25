@@ -40,3 +40,36 @@ export async function saveNotificationSetting(
   // La RLS peut refuser sans erreur (0 ligne) : pas de faux succès.
   if (!data || data.length === 0) throw new Error("notification_settings_not_saved");
 }
+
+// Un seul repas (migration meal_notification_mutes) : une ligne = ce repas est coupé pour
+// moi. Pas de ligne = activé.
+export async function fetchMealNotificationsOn(soireeId: string): Promise<boolean> {
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from("meal_notification_mutes")
+    .select("group_id")
+    .eq("group_id", soireeId)
+    .eq("profile_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data === null;
+}
+
+export async function setMealNotificationsOn(soireeId: string, isOn: boolean): Promise<void> {
+  const userId = await getUserId();
+  if (isOn) {
+    // Retirer une ligne absente n'est pas une erreur : l'état voulu est atteint.
+    const { error } = await supabase
+      .from("meal_notification_mutes")
+      .delete()
+      .eq("group_id", soireeId)
+      .eq("profile_id", userId);
+    if (error) throw error;
+    return;
+  }
+  // Déjà coupé (deux touchers, deux téléphones) : même état, pas une erreur.
+  const { error } = await supabase
+    .from("meal_notification_mutes")
+    .upsert({ group_id: soireeId, profile_id: userId }, { ignoreDuplicates: true });
+  if (error) throw error;
+}
