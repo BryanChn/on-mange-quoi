@@ -1,5 +1,6 @@
 // notify-meal : le résumé d'un repas (qui a rejoint, qui apporte quoi), une notification
-// regroupée. Appelée par send_meal_digests (pg_cron, toutes les 2 min), jamais par l'app.
+// regroupée, pour l'organisateur (1 min environ) ou pour les autres (30 min au plus).
+// Appelée par send_meal_digests (pg_cron, toutes les 30 s), jamais par l'app.
 
 import {
   internalError,
@@ -9,7 +10,13 @@ import {
   sendPushMessages,
   serviceClient,
 } from "../_shared/server.ts";
-import { buildDigestMessages, parseDigestRequest, type Arrival, type Contribution } from "./digest.ts";
+import {
+  buildDigestMessages,
+  parseDigestRequest,
+  recipientsFor,
+  type Arrival,
+  type Contribution,
+} from "./digest.ts";
 
 Deno.serve(async (request) => {
   const rejected = rejectUnlessInternal(request);
@@ -97,7 +104,7 @@ Deno.serve(async (request) => {
     groupName: group.name,
     arrivals,
     contributions,
-    recipients,
+    recipients: recipientsFor(digest.audience, group.owner_id, recipients),
   });
   return json(200, await sendPushMessages(supabase, messages));
 });

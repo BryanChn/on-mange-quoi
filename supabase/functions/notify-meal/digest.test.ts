@@ -6,6 +6,7 @@ import {
   digestBody,
   listNames,
   parseDigestRequest,
+  recipientsFor,
   type Arrival,
   type Contribution,
   type Recipient,
@@ -21,26 +22,51 @@ const tom: Arrival = { profileId: TOM, name: "Tom" };
 const leaBrings = (label: string): Contribution => ({ profileId: LEA, name: "Léa", label });
 const tomBrings = (label: string): Contribution => ({ profileId: TOM, name: "Tom", label });
 
-test("parseDigestRequest accepte la fenêtre, premier résumé compris", () => {
+test("parseDigestRequest accepte la fenêtre et le destinataire, premier résumé compris", () => {
   const until = "2026-12-24T18:10:00+00:00";
-  assert.deepEqual(parseDigestRequest({ group_id: GROUP_ID, since: null, until }), {
+  assert.deepEqual(parseDigestRequest({ group_id: GROUP_ID, audience: "owner", since: null, until }), {
     groupId: GROUP_ID,
+    audience: "owner",
     since: null,
     until,
   });
   assert.deepEqual(
-    parseDigestRequest({ group_id: GROUP_ID, since: "2026-12-24T17:00:00+00:00", until }),
-    { groupId: GROUP_ID, since: "2026-12-24T17:00:00+00:00", until },
+    parseDigestRequest({
+      group_id: GROUP_ID,
+      audience: "others",
+      since: "2026-12-24T17:00:00+00:00",
+      until,
+    }),
+    { groupId: GROUP_ID, audience: "others", since: "2026-12-24T17:00:00+00:00", until },
   );
 });
 
 test("parseDigestRequest refuse tout le reste", () => {
   const until = "2026-12-24T18:10:00+00:00";
+  const ok = { group_id: GROUP_ID, audience: "owner", since: null, until };
   assert.equal(parseDigestRequest(null), null);
-  assert.equal(parseDigestRequest({ group_id: "pas-un-uuid", since: null, until }), null);
-  assert.equal(parseDigestRequest({ group_id: GROUP_ID, since: null }), null);
-  assert.equal(parseDigestRequest({ group_id: GROUP_ID, since: null, until: "demain" }), null);
-  assert.equal(parseDigestRequest({ group_id: GROUP_ID, since: 12, until }), null);
+  assert.equal(parseDigestRequest({ ...ok, group_id: "pas-un-uuid" }), null);
+  assert.equal(parseDigestRequest({ ...ok, audience: undefined }), null);
+  assert.equal(parseDigestRequest({ ...ok, audience: "tous" }), null);
+  assert.equal(parseDigestRequest({ ...ok, until: undefined }), null);
+  assert.equal(parseDigestRequest({ ...ok, until: "demain" }), null);
+  assert.equal(parseDigestRequest({ ...ok, since: 12 }), null);
+});
+
+test("recipientsFor : l'organisateur seul, ou tous sauf lui", () => {
+  const all: Recipient[] = [
+    { profileId: BRYAN, token: "ExponentPushToken[bryan]" },
+    { profileId: LEA, token: "ExponentPushToken[lea]" },
+    { profileId: TOM, token: "ExponentPushToken[tom]" },
+  ];
+  assert.deepEqual(
+    recipientsFor("owner", BRYAN, all).map((recipient) => recipient.profileId),
+    [BRYAN],
+  );
+  assert.deepEqual(
+    recipientsFor("others", BRYAN, all).map((recipient) => recipient.profileId),
+    [LEA, TOM],
+  );
 });
 
 test("listNames : nommer jusqu'à 3, compter au-delà", () => {
