@@ -27,13 +27,15 @@ import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { deleteGroup, leaveGroup } from "@/lib/groups";
 import { signOut } from "@/lib/notifications";
-import { shareSoiree } from "@/lib/share-soiree";
-import { goingTo } from "@/lib/soiree-rules";
+import { formatShortDay } from "@/lib/meal-date";
+import { shareOrderText, shareSoiree } from "@/lib/share-soiree";
+import { contributionsByPerson, decidedText, goingTo } from "@/lib/soiree-rules";
 import { useSession } from "@/lib/session";
 import {
   chooseRestaurant,
   fetchSoiree,
   removeParticipant,
+  soireeLink,
   subscribeToSoiree,
   type SoireeDetail,
   type SoireeMember,
@@ -46,6 +48,7 @@ import {
   subscribeToGroupSessions,
   type LatestSession,
 } from "@/lib/votes";
+import { topicWords } from "@/lib/vote-topic";
 import { useTheme, type Theme } from "@/theme";
 
 type Styles = ReturnType<typeof createStyles>;
@@ -102,6 +105,7 @@ export default function SoireeScreen() {
   const [hasFailed, setHasFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isSharingDecided, setIsSharingDecided] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isChoosing, setIsChoosing] = useState(false);
   const [restaurant, setRestaurant] = useState("");
@@ -161,6 +165,32 @@ export default function SoireeScreen() {
       if (outcome === "copied") setNotice("Lien copié : colle-le dans ta conversation.");
     } catch {
       setError("Le lien n’est pas parti. Réessaie.");
+    }
+  }
+
+  // C'est décidé (resto, ou menu chez quelqu'un) : le résultat part sur WhatsApp, le canal
+  // des invités. Les vrais prénoms, jamais « toi » : le texte est lu par les autres.
+  async function handleShareDecided(detail: SoireeDetail) {
+    setError(null);
+    setNotice(null);
+    setIsSharingDecided(true);
+    try {
+      const text = decidedText({
+        name: detail.name,
+        dayLabel: detail.mealDate ? formatShortDay(detail.mealDate) : null,
+        restaurant: detail.mode === "resto" ? (detail.restaurant ?? "") : null,
+        menu: detail.menu.flatMap((vote) =>
+          vote.winnerName ? [{ label: topicWords(vote.topic).label, winner: vote.winnerName }] : [],
+        ),
+        contributions: contributionsByPerson(detail.members, detail.contributions),
+        joinUrl: soireeLink(detail.joinToken),
+      });
+      const outcome = await shareOrderText(text);
+      if (outcome === "copied") setNotice("Copié, colle-le dans WhatsApp.");
+    } catch {
+      setError("Le message n’est pas parti. Réessaie.");
+    } finally {
+      setIsSharingDecided(false);
     }
   }
 
@@ -297,27 +327,41 @@ export default function SoireeScreen() {
               isOwner={isOwner}
               onChanged={loadSoiree}
             />
+            {soiree.step === "decide" ? (
+              <PrimaryButton
+                label={soiree.menu.length > 0 ? "Partager le menu" : "Partager qui apporte quoi"}
+                onPress={() => handleShareDecided(soiree)}
+                isLoading={isSharingDecided}
+              />
+            ) : null}
           </>
         ) : soiree.mode === "resto" && soiree.step === "decide" ? (
-          <SignatureCard>
-            <View style={styles.decided}>
-              <SignatureCat size={72} />
-              <Text style={styles.decidedKicker}>C’est décidé !</Text>
-              <Text style={styles.decidedTitle} accessibilityRole="header">
-                {goingTo(soiree.restaurant ?? "")}
-              </Text>
-              <Text style={styles.signatureMuted}>Bon appétit !</Text>
-            </View>
-            {latestSession && !latestSession.isOpen ? (
-              <Pressable
-                onPress={() => openSession(latestSession.id)}
-                accessibilityRole="button"
-                style={({ pressed }) => [styles.signatureLink, pressed && styles.pressed]}
-              >
-                <Text style={styles.signatureLinkText}>Voir le vote</Text>
-              </Pressable>
-            ) : null}
-          </SignatureCard>
+          <>
+            <SignatureCard>
+              <View style={styles.decided}>
+                <SignatureCat size={72} />
+                <Text style={styles.decidedKicker}>C’est décidé !</Text>
+                <Text style={styles.decidedTitle} accessibilityRole="header">
+                  {goingTo(soiree.restaurant ?? "")}
+                </Text>
+                <Text style={styles.signatureMuted}>Bon appétit !</Text>
+              </View>
+              {latestSession && !latestSession.isOpen ? (
+                <Pressable
+                  onPress={() => openSession(latestSession.id)}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [styles.signatureLink, pressed && styles.pressed]}
+                >
+                  <Text style={styles.signatureLinkText}>Voir le vote</Text>
+                </Pressable>
+              ) : null}
+            </SignatureCard>
+            <PrimaryButton
+              label="Partager le resto"
+              onPress={() => handleShareDecided(soiree)}
+              isLoading={isSharingDecided}
+            />
+          </>
         ) : soiree.step === "choix" ? (
           openVoteId ? (
             <Card>
