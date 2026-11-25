@@ -26,6 +26,14 @@ import {
 } from "./fixtures.ts";
 import { supabase } from "./supabase-test-client.ts";
 
+// Le moment (midi ou soir) dépend de l'heure du test : il est vérifié dans vote-moment.test.ts.
+function withoutMoment<T extends { moment?: unknown }>(session: T | null) {
+  if (!session) return session;
+  const { moment, ...rest } = session;
+  assert.ok(moment === "midi" || moment === "soir");
+  return rest;
+}
+
 let alice: TestUser;
 let bea: TestUser;
 let chloe: TestUser;
@@ -135,7 +143,7 @@ describe("supprimer son compte", () => {
     await deleteAccount();
 
     await signInAs(alice);
-    assert.deepEqual(await fetchLatestSession(groupId), {
+    assert.deepEqual(withoutMoment(await fetchLatestSession(groupId)), {
       id: sessionId,
       isOpen: false,
       winnerName: "Curry",

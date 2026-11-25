@@ -24,7 +24,7 @@ Deno.serve(async (request) => {
   // On ne fait confiance qu'à l'identifiant : tout le reste est relu en base.
   const { data: session, error: sessionError } = await supabase
     .from("vote_sessions")
-    .select("id, group_id, organizer_id, status, winner_proposal_id, topic")
+    .select("id, group_id, organizer_id, status, winner_proposal_id, topic, moment")
     .eq("id", notify.sessionId)
     .maybeSingle();
   if (sessionError) return internalError("Lecture de la session", sessionError);
@@ -94,6 +94,7 @@ Deno.serve(async (request) => {
     groupName: groupResult.data!.name,
     mealMode,
     topic: session.topic as VoteTopic,
+    moment: (session.moment ?? null) as "midi" | "soir" | null,
     menu,
     organizerId: session.organizer_id,
     organizerName: organizerResult.data?.display_name ?? null,

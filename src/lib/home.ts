@@ -38,7 +38,7 @@ export async function fetchHome(): Promise<Home> {
     .select(
       `id, name, kind, soiree_step, soiree_mode,
       ${MEMBER_COLUMNS},
-      vote_sessions(id, status, created_at, closed_at,
+      vote_sessions(id, status, created_at, closed_at, moment,
         winner:proposals!vote_sessions_winner_fk(name),
         proposals!proposals_session_id_fkey(name, votes(profile_id)))`,
     )
@@ -108,6 +108,8 @@ export async function fetchHome(): Promise<Home> {
           isOpen: false,
           // Une session clôturée a toujours une date et un gagnant (contraintes de vote_sessions).
           closedAt: session.closed_at ?? session.created_at,
+          // Toujours posé pour un foyer (trigger vote_sessions_set_moment).
+          moment: session.moment ?? "soir",
           winnerName: session.winner?.name ?? "",
         },
       };

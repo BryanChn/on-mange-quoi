@@ -23,6 +23,14 @@ import { createSerialQueue } from "../../src/lib/serial-queue.ts";
 import { cleanUp, createGroup, createUser, signInAs, type TestUser } from "./fixtures.ts";
 import { supabase } from "./supabase-test-client.ts";
 
+// Le moment (midi ou soir) dépend de l'heure du test : il est vérifié dans vote-moment.test.ts.
+function withoutMoment<T extends { moment?: unknown }>(session: T | null) {
+  if (!session) return session;
+  const { moment, ...rest } = session;
+  assert.ok(moment === "midi" || moment === "soir");
+  return rest;
+}
+
 let alice: TestUser;
 let bea: TestUser;
 let chloe: TestUser;
@@ -73,7 +81,7 @@ describe("lancer un vote", () => {
 
     assert.equal(second, first);
     assert.equal(await fetchOpenSessionId(groupId), first);
-    assert.deepEqual(await fetchLatestSession(groupId), { id: first, isOpen: true });
+    assert.deepEqual(withoutMoment(await fetchLatestSession(groupId)), { id: first, isOpen: true });
   });
 
   test("un non-membre ne voit pas la session et ne peut pas en lancer", async () => {
@@ -253,7 +261,7 @@ describe("clôturer", () => {
     assert.equal(session.winnerProposalId, idOf("Pizza"));
     assert.equal(session.decidedBy, "vote");
     assert.ok(session.closedAt);
-    assert.deepEqual(await fetchLatestSession(groupId), {
+    assert.deepEqual(withoutMoment(await fetchLatestSession(groupId)), {
       id: sessionId,
       isOpen: false,
       winnerName: "Pizza",

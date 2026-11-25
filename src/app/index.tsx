@@ -7,6 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
 import { InitialTile, ListCard, ListRow } from "@/components/list";
+import { MomentPicker } from "@/components/moment-picker";
 import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
@@ -16,18 +17,22 @@ import { UpdateBanner } from "@/components/update-banner";
 import { TextButton } from "@/components/text-button";
 import { getInitial } from "@/lib/avatar";
 import { fetchHome, subscribeToHome, type Home, type HomeSoiree } from "@/lib/home";
-import { useProfile } from "@/lib/profile";
-import { shoppingShortcut } from "@/lib/shopping-rules";
 import {
+  defaultMoment,
   groupSubtitle,
   idleLine,
   leadingTitle,
+  momentLabel,
   pickTonight,
   summarizeParticipation,
   voteProgressLabel,
   type HomeGroup,
+  type MealMoment,
   type Tonight,
 } from "@/lib/tonight";
+import { useProfile } from "@/lib/profile";
+import { shoppingShortcut } from "@/lib/shopping-rules";
+import { capitalize } from "@/lib/vote-topic";
 import { startSession } from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
 
@@ -54,6 +59,8 @@ export default function Index() {
   const [home, setHome] = useState<LoadedHome | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  // Midi ou soir touché par l'utilisateur ; null : la présélection selon l'heure du chargement.
+  const [chosenMoment, setChosenMoment] = useState<MealMoment | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran
@@ -91,12 +98,16 @@ export default function Index() {
     loadHome();
   }
 
+  // Sans choix, l'heure du dernier chargement décide (pas l'horloge lue au rendu).
+  const moment: MealMoment = chosenMoment ?? (home ? defaultMoment(home.loadedAt) : "soir");
+
   async function handleStart(group: HomeGroup) {
     setStartError(null);
     setIsStarting(true);
 
     try {
-      openSession(await startSession(group.id));
+      openSession(await startSession(group.id, moment));
+      setChosenMoment(null);
     } catch {
       setStartError("Le vote n’a pas démarré : vérifie ta connexion et réessaie.");
     } finally {
@@ -140,7 +151,7 @@ export default function Index() {
           <View style={styles.headerText}>
             <Text style={styles.title} accessibilityRole="header">
               <Text style={styles.titleName}>Salut {displayName}</Text>
-              {hasGroups ? ",\non mange quoi ce soir ?" : null}
+              {hasGroups ? `,\non mange quoi ${momentLabel(defaultMoment(home.loadedAt))} ?` : null}
             </Text>
           </View>
           <Pressable
@@ -175,6 +186,8 @@ export default function Index() {
               now={home.loadedAt}
               isStarting={isStarting}
               error={startError}
+              moment={moment}
+              onMomentChange={setChosenMoment}
               onStart={handleStart}
               styles={styles}
             />
@@ -248,6 +261,9 @@ type TonightCardProps = {
   now: Date;
   isStarting: boolean;
   error: string | null;
+  // Midi ou soir du prochain vote (pastille de la carte « rien de prévu »).
+  moment: MealMoment;
+  onMomentChange: (moment: MealMoment) => void;
   onStart: (group: HomeGroup) => void;
   styles: Styles;
 };
@@ -259,6 +275,8 @@ function TonightCard({
   now,
   isStarting,
   error,
+  moment,
+  onMomentChange,
   onStart,
   styles,
 }: TonightCardProps) {
@@ -319,7 +337,7 @@ function TonightCard({
           <View style={styles.signatureText}>
             <Chip label={`${group.name} · c’est décidé`} variant="accent" />
             <Text style={styles.signatureTitle} accessibilityRole="header">
-              Ce soir, c’est {session.winnerName} !
+              {capitalize(momentLabel(session.moment))}, c’est {session.winnerName} !
             </Text>
             <Text style={styles.signatureMuted}>Bon appétit !</Text>
           </View>
@@ -342,7 +360,7 @@ function TonightCard({
         <View style={styles.signatureTop}>
           <View style={styles.signatureText}>
             <Text style={styles.signatureTitle} accessibilityRole="header">
-              Rien de prévu ce soir
+              Rien de prévu {momentLabel(moment)}
             </Text>
             <Text style={styles.signatureMuted}>
               {groupToStart ? idleLine(now) : "Choisis un groupe ci-dessous pour lancer le vote."}
@@ -351,12 +369,20 @@ function TonightCard({
           <SignatureCat size={CAT_SIZE} />
         </View>
         {groupToStart ? (
-          <PrimaryButton
-            label="Lancer le vote"
-            variant="signature"
-            onPress={() => onStart(groupToStart)}
-            isLoading={isStarting}
-          />
+          <>
+            <MomentPicker
+              value={moment}
+              onChange={onMomentChange}
+              tone="signature"
+              isDisabled={isStarting}
+            />
+            <PrimaryButton
+              label="Lancer le vote"
+              variant="signature"
+              onPress={() => onStart(groupToStart)}
+              isLoading={isStarting}
+            />
+          </>
         ) : null}
       </SignatureCard>
       {/* Sous la carte : la couleur d'erreur ne se lit pas sur la tomate. */}
