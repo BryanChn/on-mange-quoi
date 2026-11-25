@@ -2,6 +2,7 @@
 // Testée avec node --test (messages.test.ts). Le reste de l'API Expo est dans _shared.
 
 import type { ExpoMessage } from "../_shared/expo-push.ts";
+import type { NotificationCategory } from "../_shared/notification-category.ts";
 
 // reminder : le rappel unique (send_vote_reminders, pg_cron), 1 h après le lancement.
 export type VoteEvent = "opened" | "closed" | "reminder";
@@ -52,8 +53,6 @@ const LABEL: Record<VoteTopic, string> = {
 
 // Quel interrupteur de Mon compte (table notification_settings) s'applique : les votes d'un
 // foyer, ou tout ce qui concerne un repas à plusieurs.
-export type NotificationCategory = "votes" | "meals";
-
 export function notificationCategory(mealMode: MealMode | null): NotificationCategory {
   return mealMode === null ? "votes" : "meals";
 }
