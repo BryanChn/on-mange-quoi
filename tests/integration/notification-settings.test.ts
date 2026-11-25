@@ -48,11 +48,22 @@ describe("réglages des notifications", () => {
   test("couper un interrupteur laisse l'autre activé, et se relit", async () => {
     await signInAs(alice);
     await saveNotificationSetting("meals", false);
-    assert.deepEqual(await fetchNotificationSettings(), { votes: true, meals: false });
+    assert.deepEqual(await fetchNotificationSettings(), {
+      votes: true,
+      meals: false,
+      shopping: true,
+    });
 
     await saveNotificationSetting("votes", false);
     await saveNotificationSetting("meals", true);
-    assert.deepEqual(await fetchNotificationSettings(), { votes: false, meals: true });
+    assert.deepEqual(await fetchNotificationSettings(), {
+      votes: false,
+      meals: true,
+      shopping: true,
+    });
+
+    await saveNotificationSetting("shopping", false);
+    assert.equal((await fetchNotificationSettings()).shopping, false);
   });
 
   test("une co-membre ne voit pas les réglages d'une autre", async () => {

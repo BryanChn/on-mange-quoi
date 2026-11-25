@@ -343,3 +343,35 @@ export async function mealDayRemindedAt(groupId: string): Promise<string | null>
   if (error) throw error;
   return data.meal_day_reminded_at;
 }
+
+// Passages aux courses (migration shopping_trips) : ce que pg_cron lance toutes les 30 s, et
+// l'état des passages d'un foyer, du plus récent au plus ancien.
+export async function sendShoppingAdditions(referenceTime: Date): Promise<number> {
+  const { data, error } = await admin.rpc("send_shopping_additions", {
+    reference_time: referenceTime.toISOString(),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function shoppingTrips(groupId: string): Promise<
+  {
+    shopperId: string;
+    announced: boolean;
+    addedPendingSince: string | null;
+    addedSentAt: string | null;
+  }[]
+> {
+  const { data, error } = await admin
+    .from("shopping_trips")
+    .select("shopper_id, announced, added_pending_since, added_sent_at")
+    .eq("group_id", groupId)
+    .order("started_at", { ascending: false });
+  if (error) throw error;
+  return data.map((row) => ({
+    shopperId: row.shopper_id,
+    announced: row.announced,
+    addedPendingSince: row.added_pending_since,
+    addedSentAt: row.added_sent_at,
+  }));
+}
