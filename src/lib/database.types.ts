@@ -91,14 +91,14 @@ isOneToOne: true
                   ]
                 },"notification_settings": {
                   Row: {
-                    "meals": boolean,"profile_id": string,"updated_at": string,"votes": boolean
+                    "meals": boolean,"profile_id": string,"shopping": boolean,"updated_at": string,"votes": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "meals"?: boolean,"profile_id": string,"updated_at"?: string,"votes"?: boolean
+                    "meals"?: boolean,"profile_id": string,"shopping"?: boolean,"updated_at"?: string,"votes"?: boolean
                   }
                   Update: {
-                    "meals"?: boolean,"profile_id"?: string,"updated_at"?: string,"votes"?: boolean
+                    "meals"?: boolean,"profile_id"?: string,"shopping"?: boolean,"updated_at"?: string,"votes"?: boolean
                   }
                   Relationships: [
                     {
@@ -239,6 +239,26 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "groups"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"shopping_trips": {
+                  Row: {
+                    "added_pending_since": string | null,"added_sent_at": string | null,"announced": boolean,"ends_at": string,"group_id": string,"id": string,"shopper_id": string,"started_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "added_pending_since"?: string | null,"added_sent_at"?: string | null,"announced": boolean,"ends_at"?: string,"group_id": string,"id"?: string,"shopper_id": string,"started_at"?: string
+                  }
+                  Update: {
+                    "added_pending_since"?: string | null,"added_sent_at"?: string | null,"announced"?: boolean,"ends_at"?: string,"group_id"?: string,"id"?: string,"shopper_id"?: string,"started_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shopping_trips_group_id_shopper_id_fkey"
+      columns: ["group_id","shopper_id"]
+isOneToOne: false
+      referencedRelation: "group_members"
+      referencedColumns: ["group_id","profile_id"]
     }
                   ]
                 },"soiree_contributions": {
@@ -428,6 +448,9 @@ isOneToOne: false
 "delete_account":
 { Args: Record<PropertyKey, never>; Returns: undefined
                            },
+"end_shopping_trip":
+{ Args: { "target_group_id": string }; Returns: undefined
+                           },
 "generate_invite_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -510,6 +533,9 @@ isOneToOne: false
 "send_meal_digests":
 { Args: { "reference_time"?: string }; Returns: number
                            },
+"send_shopping_additions":
+{ Args: { "reference_time"?: string }; Returns: number
+                           },
 "send_vote_reminders":
 { Args: { "reference_time"?: string }; Returns: number
                            },
@@ -521,6 +547,23 @@ isOneToOne: false
               "id": string,"is_member": boolean,"member_count": number,"members": Json,"name": string,"owner_name": string,"step": Database["public"]['Enums']["soiree_step"]
             }[]
                            },
+"start_shopping_trip":
+{ Args: { "target_group_id": string }; Returns: {
+              "added_pending_since": string | null,
+"added_sent_at": string | null,
+"announced": boolean,
+"ends_at": string,
+"group_id": string,
+"id": string,
+"shopper_id": string,
+"started_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "shopping_trips"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "tidy_text":
 { Args: { "value": string }; Returns: string
                            }

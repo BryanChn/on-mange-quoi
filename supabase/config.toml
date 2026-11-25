@@ -427,3 +427,6 @@ verify_jwt = false
 
 [functions.notify-meal]
 verify_jwt = false
+
+[functions.notify-shopping]
+verify_jwt = false

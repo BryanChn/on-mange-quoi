@@ -162,6 +162,12 @@ export function subscribeToShoppingList(groupId: string, onChange: () => void): 
       { event: "DELETE", schema: "public", table: "shopping_items" },
       scheduleReload,
     )
+    // Qui est aux courses (« Léa est aux courses jusqu'à 19 h 40 »), départ et « J'ai fini ».
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "shopping_trips", filter },
+      scheduleReload,
+    )
     .subscribe((status) => {
       if (status === "SUBSCRIBED") scheduleReload();
     });
@@ -198,4 +204,36 @@ export async function fetchShoppingLists(): Promise<ShoppingListSummary[]> {
     name: group.name,
     toBuy: toBuy.get(group.id) ?? 0,
   }));
+}
+
+// ─── « Je pars faire les courses » (migration shopping_trips) ───
+
+// Un passage en cours : qui y est, jusqu'à quand.
+export type ShoppingTrip = { shopperId: string; endsAt: string };
+
+// Les passages en cours du foyer, le plus récent d'abord.
+export async function fetchActiveTrips(groupId: string): Promise<ShoppingTrip[]> {
+  const { data, error } = await supabase
+    .from("shopping_trips")
+    .select("shopper_id, ends_at")
+    .eq("group_id", groupId)
+    .gt("ends_at", new Date().toISOString())
+    .order("started_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({ shopperId: row.shopper_id, endsAt: row.ends_at }));
+}
+
+// Le foyer est prévenu (sauf la nuit, ou si un départ a déjà été annoncé il y a moins de
+// 30 min) ; un passage déjà en cours est rendu tel quel.
+// Renvoie si le foyer a été prévenu, pour que l'écran le dise juste.
+export async function startShoppingTrip(groupId: string): Promise<{ isAnnounced: boolean }> {
+  const { data, error } = await supabase.rpc("start_shopping_trip", { target_group_id: groupId });
+  if (error) throw error;
+  return { isAnnounced: data.announced };
+}
+
+// « J'ai fini » : plus aucun ajout ne prévient.
+export async function endShoppingTrip(groupId: string): Promise<void> {
+  const { error } = await supabase.rpc("end_shopping_trip", { target_group_id: groupId });
+  if (error) throw error;
 }

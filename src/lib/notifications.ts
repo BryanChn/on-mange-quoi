@@ -135,6 +135,8 @@ export function useNotificationRedirect(state: RedirectState): void {
       router.push({ pathname: "/session/[id]", params: { id: target.id } });
     } else if (target?.kind === "soiree") {
       router.push({ pathname: "/soiree/[id]", params: { id: target.id } });
+    } else if (target?.kind === "courses") {
+      router.push({ pathname: "/courses/[groupId]", params: { groupId: target.id } });
     }
   }, [state, response]);
 }

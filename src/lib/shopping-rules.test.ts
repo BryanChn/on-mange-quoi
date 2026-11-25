@@ -4,10 +4,12 @@ import { test } from "node:test";
 import {
   buildSuggestions,
   cleanShoppingInput,
+  clockLabel,
   findDuplicate,
   normalizeLabel,
   shoppingShortcut,
   sortShoppingList,
+  tripToShow,
   type ShoppingItem,
 } from "./shopping-rules.ts";
 
@@ -114,4 +116,17 @@ test("accueil : une seule ligne de courses, même avec plusieurs foyers", () => 
       subtitle: "7 à acheter dans 2 groupes",
     },
   );
+});
+
+test("clockLabel : « 19 h 40 », « 9 h 05 »", () => {
+  assert.equal(clockLabel(new Date(2026, 10, 25, 19, 40)), "19 h 40");
+  assert.equal(clockLabel(new Date(2026, 10, 25, 9, 5)), "9 h 05");
+});
+
+test("tripToShow : le mien d'abord, sinon le plus récent des autres, sinon rien", () => {
+  const lea = { shopperId: "lea", endsAt: "2026-11-25T19:40:00Z" };
+  const me = { shopperId: "me", endsAt: "2026-11-25T19:00:00Z" };
+  assert.deepEqual(tripToShow([lea, me], "me"), { trip: me, isMine: true });
+  assert.deepEqual(tripToShow([lea], "me"), { trip: lea, isMine: false });
+  assert.equal(tripToShow([], "me"), null);
 });

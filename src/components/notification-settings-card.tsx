@@ -76,6 +76,14 @@ export function NotificationSettingsCard() {
           onChange={(isOn) => handleChange("meals", isOn)}
           isDisabled={isDisabled}
         />
+        <ListSwitchRow
+          icon="shopping-cart"
+          label="Liste de courses"
+          subtitle="Quelqu’un part faire les courses, ce que le foyer ajoute pendant les tiennes"
+          value={shown.shopping}
+          onChange={(isOn) => handleChange("shopping", isOn)}
+          isDisabled={isDisabled}
+        />
       </ListCard>
       {/* Retour d'usage du 2026-11-25 : un test seul, sans notification pour son propre
           apport, faisait croire à une panne. */}

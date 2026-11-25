@@ -129,3 +129,19 @@ export function shoppingShortcut(
   const total = withItems.reduce((sum, group) => sum + (toBuyByGroup.get(group.id) ?? 0), 0);
   return { kind: "many", subtitle: `${total} à acheter dans ${withItems.length} groupes` };
 }
+
+// « 19 h 40 », l'heure de fin d'un passage aux courses (heure du téléphone).
+export function clockLabel(instant: Date): string {
+  const minutes = String(instant.getMinutes()).padStart(2, "0");
+  return `${instant.getHours()} h ${minutes}`;
+}
+
+// Le passage à montrer sur la liste : le mien d'abord, sinon celui d'un autre (le plus récent).
+export function tripToShow<T extends { shopperId: string }>(
+  trips: T[],
+  userId: string | undefined,
+): { trip: T; isMine: boolean } | null {
+  const mine = trips.find((trip) => trip.shopperId === userId);
+  if (mine) return { trip: mine, isMine: true };
+  return trips[0] ? { trip: trips[0], isMine: false } : null;
+}

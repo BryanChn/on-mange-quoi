@@ -186,6 +186,7 @@ Réglages des notifications d'un membre (migration `notification_settings`, 2026
 | `profile_id` | `uuid` | **PK** · FK → `profiles(id)` `on delete cascade` (RGPD) |
 | `votes` | `boolean` | not null · default `true` · les votes d'un foyer |
 | `meals` | `boolean` | not null · default `true` · tout ce qui concerne un repas à plusieurs |
+| `shopping` | `boolean` | not null · default `true` · « Je pars faire les courses » et ce que le foyer ajoute pendant ce temps (migration `shopping_trips`) |
 | `updated_at` | `timestamptz` | not null · posée par le trigger `notification_settings_touch` |
 
 RLS : chacun **lit, crée et modifie** sa ligne, rien d'autre (une table à part plutôt que des colonnes de `profiles`, lisibles par les co-membres). Droits par colonne : `profile_id`, `votes`, `meals`. `notify-vote` (clé `service_role`) écarte les membres qui ont coupé la catégorie du groupe avant de lire leurs jetons : rien n'est envoyé.
@@ -204,6 +205,21 @@ Un repas coupé par un participant (migration `meal_notification_mutes`, 2026-11
 | `created_at` | `timestamptz` | not null · default `now()` |
 
 RLS : chacun lit, crée et retire les siennes, seulement dans un repas (jamais un foyer). `notify-vote` et `notify-meal` écartent ces membres pour ce groupe (brique commune `reachableTokens`).
+
+### shopping_trips
+
+« Je pars faire les courses » (migration `shopping_trips`, 2026-11-25) : un passage d'un membre d'un foyer, actif 1 h ou jusqu'à « J'ai fini ».
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | `uuid` | **PK** |
+| `group_id`, `shopper_id` | `uuid` | not null · FK → `group_members(group_id, profile_id)` `on delete cascade` |
+| `started_at` | `timestamptz` | not null · default `now()` |
+| `ends_at` | `timestamptz` | not null · default `now() + 1 h` ; « J'ai fini » le ramène à `now()` |
+| `announced` | `boolean` | not null · le départ a-t-il été annoncé (pas la nuit, pas deux fois en 30 min) |
+| `added_pending_since`, `added_sent_at` | `timestamptz` | ajouts des autres en attente, et dernier envoi |
+
+RLS : visible par le foyer (« Léa est aux courses »), aucune écriture directe. `start_shopping_trip(groupe)` (foyer d'au moins 2 personnes ; un passage en cours est rendu tel quel) et `end_shopping_trip(groupe)`. Le trigger `shopping_trips_notify_started` appelle `notify-shopping` (`kind = 'started'`) si le départ est annoncé : les autres membres. Un article ajouté par quelqu'un d'autre que la personne aux courses pose `added_pending_since` (trigger `shopping_items_mark_addition`) ; `pg_cron` lance `send_shopping_additions()` toutes les 30 secondes (tâche `shopping-additions`) : 30 s après, `notify-shopping` (`kind = 'added'`) envoie à la personne aux courses ce qui reste à prendre. Les passages de plus d'un jour sont effacés. Dans la publication Realtime.
 
 ### push_tickets
 Ticket d'Expo en attente de son reçu (migration `push_receipts`). Expo répond en deux temps : un ticket tout de suite, un reçu environ 15 min plus tard (gardé 24 h) ; un jeton mort peut n'apparaître que dans le reçu.
