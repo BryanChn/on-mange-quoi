@@ -71,7 +71,7 @@ export function NotificationSettingsCard() {
         <ListSwitchRow
           icon="users"
           label="Repas à plusieurs"
-          subtitle="Qui rejoint et qui apporte quoi (un résumé, 10 min après), les votes du repas"
+          subtitle="Qui rejoint et qui apporte quoi, les votes du repas"
           value={shown.meals}
           onChange={(isOn) => handleChange("meals", isOn)}
           isDisabled={isDisabled}
