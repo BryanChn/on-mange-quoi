@@ -283,14 +283,14 @@ isOneToOne: false
                   ]
                 },"vote_sessions": {
                   Row: {
-                    "closed_at": string | null,"created_at": string,"decided_by": Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id": string,"organizer_id": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["session_status"],"topic": Database["public"]['Enums']["vote_topic"],"winner_proposal_id": string | null
+                    "closed_at": string | null,"created_at": string,"decided_by": Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id": string,"moment": Database["public"]['Enums']["meal_moment"] | null,"organizer_id": string | null,"reminder_sent_at": string | null,"status": Database["public"]['Enums']["session_status"],"topic": Database["public"]['Enums']["vote_topic"],"winner_proposal_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id"?: string,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"topic"?: Database["public"]['Enums']["vote_topic"],"winner_proposal_id"?: string | null
+                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id": string,"id"?: string,"moment"?: Database["public"]['Enums']["meal_moment"] | null,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"topic"?: Database["public"]['Enums']["vote_topic"],"winner_proposal_id"?: string | null
                   }
                   Update: {
-                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id"?: string,"id"?: string,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"topic"?: Database["public"]['Enums']["vote_topic"],"winner_proposal_id"?: string | null
+                    "closed_at"?: string | null,"created_at"?: string,"decided_by"?: Database["public"]['Enums']["decision_method"] | null,"group_id"?: string,"id"?: string,"moment"?: Database["public"]['Enums']["meal_moment"] | null,"organizer_id"?: string | null,"reminder_sent_at"?: string | null,"status"?: Database["public"]['Enums']["session_status"],"topic"?: Database["public"]['Enums']["vote_topic"],"winner_proposal_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -381,6 +381,7 @@ isOneToOne: false
 "decided_by": Database["public"]['Enums']["decision_method"] | null,
 "group_id": string,
 "id": string,
+"moment": Database["public"]['Enums']["meal_moment"] | null,
 "organizer_id": string | null,
 "reminder_sent_at": string | null,
 "status": Database["public"]['Enums']["session_status"],
@@ -569,7 +570,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
+            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","meal_moment": "midi"|"soir","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -689,7 +690,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
+            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"meal_moment": ["midi", "soir"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
           }
         }
 } as const

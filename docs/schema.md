@@ -137,6 +137,8 @@ Une décision à prendre dans un groupe, lancée par un membre (l'organisateur).
 | `closed_at` | `timestamptz` | |
 | | | **check** : `closed` ⇔ `winner_proposal_id`, `decided_by` et `closed_at` renseignés |
 
+**Midi ou soir** (migration `vote_moment`, 2026-11-25) : colonne `moment` (`meal_moment` : `midi`, `soir`). Le trigger `vote_sessions_set_moment` (`before insert`) garde le moment envoyé par l'app pour un foyer, ou le déduit de l'heure (avant 15 h à Paris : `midi`) ; il le vide toujours pour un repas à plusieurs. Les votes de foyer d'avant la migration sont `soir` (l'app ne parlait que du soir). Droit d'insertion sur la colonne pour l'app.
+
 ### proposals
 
 Plat soumis au vote, en texte libre.
