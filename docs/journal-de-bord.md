@@ -1,6 +1,6 @@
 # Journal de bord
 
-État du projet au **2026-11-24** (midi), pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-24** (soir), pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
@@ -9,40 +9,66 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne (mise à jour EAS `c0bc1e0`, site en production) sauf #94 (barre d'état) et cette PR de journal. Je ne code plus moi-même (j'ai un emploi hors du dev) : Claude écrit tout, je relis les PR ; je dirai si je veux coder une partie le week-end.
+Tout est mergé et en ligne : base (migrations `meal_modes` et `tidy_free_text`), mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit), site en production. Je ne code plus moi-même : Claude écrit tout, je relis les PR.
 
-**1. Tout de suite**
+**1. Tout de suite : tester sur le téléphone**
 
 | # | Tâche | Détail |
 | --- | --- | --- |
-| 1 | Merger #94 et ce journal | Barre d'état : le titre ne passe plus sous l'heure (accueil, Rejoindre, soirée d'un invité) |
-| 2 | Relire les nouveaux textes sur l'app | Voix « pote qui organise » (#88 à #91). Doc : https://claude.ai/artifact/KRx1uPAeZokpj6ZFqxbEVh . Une phrase qui sonne faux = un message ou un commentaire dans le doc |
-| 3 | Tester sur téléphone | « Ajouter » du premier coup (clavier ouvert), confirmation de suppression qui arrive à l'écran, nom de soirée en exemple grisé, récap WhatsApp (gras, prénoms, lien), notification « Bryan lance le vote : on mange quoi ? » |
-| 4 | Le temps réel en vraie soirée | Passer 1 min dans WhatsApp pendant qu'un autre ajoute une ligne : elle doit être là au retour. Si elle manque encore : autre cause, à chercher avec Supabase local |
+| 1 | Les trois façons de faire un repas | Commande et resto en 1 toucher ; chez quelqu'un : cocher les sujets, le bouton dit « Lancer 2 votes » ou « C'est parti, sans vote » ; une date au calendrier |
+| 2 | Chez quelqu'un, à plusieurs | « Le menu » (« Proposer » sur un vote vide, puis « Voter »), « Qui apporte quoi » en direct, menu décidé quand le dernier vote se termine |
+| 3 | Un invité sans l'app sur un repas chez quelqu'un | Le lien WhatsApp → page web : voit le menu, vote le dessert (« Proposer un dessert »), écrit ce qu'il apporte |
+| 4 | Accueil | Une seule ligne « Liste de courses » ; plusieurs foyers avec des courses → écran de choix |
+| 5 | « Noël à Soultz » (vrai repas d'un ami, 24/12) | Il disparaîtra le 26/12 (24 h après sa date). S'il doit tenir jusqu'au 26 au soir : passer sa date au 26, seulement si je le demande |
 
 **2. À voir à la fin de la V1** (avant de la déclarer livrée)
 
 | Tâche | Détail |
 | --- | --- |
-| Captures du README | Il manque la page web d'un invité (pseudo + avatar, ouverte depuis le lien) et le récap dans WhatsApp. Réponse attendue : peut-on montrer le pseudo « SuperNono » (capture du 24/11) ou en refaire une avec des pseudos inventés ? Jamais la photo de ma compagne sans son accord : floutée en disque dans les captures actuelles |
-| Vérification complète d'un invité | Un vrai proche, sur son téléphone, sans l'app : lien WhatsApp → page web → pseudo → commande → voir les autres en direct → fin de soirée (« Merci pour la soirée ! »). Puis la même chose avec l'app installée (le lien doit l'ouvrir), et avec le code dans « Rejoindre avec un code ». Noter tout ce qui bloque |
-| « Ce soir, c'est … ! » le matin | Un vote ou une soirée tranchés à 9 h 58 affichent « ce soir ». Juste pour une soirée, faux pour un vote du midi : décider s'il faut « ce midi » selon l'heure |
-| Seul dans une soirée | Deux cartes fortes se suivent (« Invite tes amis », « Où on mange ? ») : à revoir si ça paraît chargé à l'usage |
+| Captures du README | Page web d'un invité, récap WhatsApp, et maintenant les trois façons de faire un repas. Pseudo « SuperNono » : accord à demander, ou pseudos inventés. Jamais la photo de ma compagne sans son accord (floutée) |
+| Vérification complète d'un invité | Un vrai proche, sans l'app : lien → pseudo → commande ou menu → direct → fin. Puis avec l'app (le lien l'ouvre) et avec le code |
+| « Ce soir, c'est … ! » le matin | Décider s'il faut « ce midi » selon l'heure |
+| Seul dans un repas | Deux cartes fortes se suivent (« Invite tes amis », « Où on mange ? ») : à revoir si ça paraît chargé |
+| Les 3 repas « commande » à 1 personne | Repas de test sur mon compte : à supprimer quand je veux |
 
 **3. V1 · Cuisiner : la suite**
 
 | Fonctionnalité | Note |
 | --- | --- |
-| Liste de courses | Cœur de la V1 « Cuisiner » : commencer par une étude (parcours, schéma SQL, questions produit) à valider avant le code |
-| Recettes | Reste de la V1 |
-| Catalogue des enseignes | Marqué « plus tard » dans `CLAUDE.md` (section V1) : à valider explicitement avant de le faire |
-| Partage de la note | Chacun paie sa part (décidé : plus tard) |
+| Recettes | Reste de la V1 : commencer par une étude (parcours, schéma, questions produit) à valider avant le code. L'ajout d'une recette à la liste de courses viendra avec |
+| Catalogue des enseignes | « Plus tard » dans `CLAUDE.md` : à valider explicitement |
+| Partage de la note | Plus tard |
 
-**4. Avant les stores (backlog)** : signaler ou bloquer quelqu'un (règle 1.2 de l'App Store, photos de profil) ; purge des photos orphelines ; nom du responsable dans la politique de confidentialité ; service d'envoi des codes (le dossier « Envoyés » de Gmail garde adresses et codes) ; CAPTCHA sur la connexion anonyme ; réglage des notifications ; limiter les essais de `join_group`.
+**4. Avant les stores (backlog)** : signaler ou bloquer quelqu'un ; purge des photos orphelines ; nom du responsable dans la politique de confidentialité ; service d'envoi des codes ; CAPTCHA sur la connexion anonyme ; réglage des notifications ; limiter les essais de `join_group`.
 
 **5. Indicateur** : feu vert (ne bloque plus rien), requête `private.feu_vert` le lundi 30/11.
 
-#### 🗓️ Session du 2026-11-24 : ce qui a été fait
+#### 🗓️ Session du 2026-11-24, après-midi : les repas en trois façons
+
+| PR | Contenu |
+| --- | --- |
+| #96 à #103 | Liste de courses d'un foyer : base, écran, modifier (appui long), pas de doublon, « Souvent acheté », refonte dans la DA |
+| #100, #99 | « Repas » au lieu de « soirée » dans toute l'app (le code garde `soiree`), « Quitter le repas » |
+| #104 | Base des trois façons : `soiree_mode` (commande, resto, maison), `meal_date`, `vote_sessions.topic` (plat, resto, apéro, entrée, dessert), un vote ouvert par sujet, `create_soiree(nom, mode, sujets, date)`, table `soiree_contributions` (qui apporte quoi), purge 24 h après la date, un seul rappel par repas. 13 tests, contre-épreuve faite |
+| #105 | Écrans : création en deux questions, carte « Le menu », « Qui apporte quoi », resto décidé (« On va Chez Momo »), phrases du vote accordées au sujet, message d'invitation selon le repas |
+| #106 | Retour du téléphone : rien de choisi d'office (cartes du plan identiques, l'icône blanche sur crème était illisible en clair ; aucun sujet coché), « Proposer » sur un vote vide |
+| #107 | Texte libre rangé côté serveur (trigger `tidy_text`) : un seul espace entre les mots. Corrige un vrai bug : « Pizza  Roma » n'était pas le doublon de « Pizza Roma » |
+| #108 | Accueil : une seule ligne « Liste de courses » (une liste → directe, plusieurs → écran de choix `/courses`) |
+
+**Décisions de l'après-midi**
+- **Une valeur par défaut seulement quand un choix est obligatoire** (la date : aujourd'hui). Pré-cocher plat et dessert obligeait à décocher pour un repas « dessert » : piège retiré (`CLAUDE.md`).
+- **Le toucher sur un groupe reste le vote** : pas de sous-menu vote / courses, il ajoutait un toucher à l'action de tous les soirs.
+- **Règles de texte côté serveur** : l'app, la page web et tout futur client écrivent pareil.
+
+**Pièges trouvés l'après-midi**
+- **Le site en production a un cache** : après `deploy-web.sh --prod`, l'adresse de production sert l'ancienne version quelques minutes. Vérifier que `index.html` en ligne référence le même `entry-….js` que `dist/index.html` avant d'annoncer « en ligne ». Le web non déployé = invités sur l'ancien code (le vote dessert disait « resto »).
+- **Les écrans web sont chargés à la demande** : un texte d'écran n'est pas dans `entry-….js` mais dans un fichier par route (`new-….js`, `[id]-….js`).
+- **`alter type … add value`** doit vivre dans sa propre migration, avant celle qui utilise la valeur.
+- **Tests d'intégration en série** (`--test-concurrency=1`) : la purge d'un fichier effaçait les repas d'un autre.
+- **`case … end` dans un `update`** d'une colonne enum : caster (`::public.soiree_step`), sinon erreur 42804.
+- **Routes typées** : après un nouvel écran, `tsc` échoue tant que `.expo/types/router.d.ts` n'est pas régénéré (lancer `expo start` quelques secondes) ; la CI n'a pas ce fichier.
+
+#### 🗓️ Session du 2026-11-24, matin : ce qui a été fait
 
 | PR | Contenu |
 | --- | --- |
