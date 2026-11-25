@@ -92,6 +92,7 @@ Deno.serve(async (request) => {
   try {
     recipients = await reachableTokens(
       supabase,
+      group.id,
       members.map((member) => member.profile_id),
       "meals",
     );

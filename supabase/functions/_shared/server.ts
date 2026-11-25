@@ -71,22 +71,32 @@ export async function postToExpo<T>(url: string, body: unknown): Promise<T | nul
 }
 
 
-// Les téléphones à prévenir parmi ces membres : ceux qui n'ont pas coupé la catégorie dans
-// Mon compte (pas de ligne de réglages = tout est activé). On ne lit même pas les jetons
-// des autres.
+// Les téléphones à prévenir parmi les membres de ce groupe : ceux qui n'ont coupé ni la
+// catégorie dans Mon compte (pas de ligne de réglages = tout est activé), ni ce repas en
+// particulier (meal_notification_mutes, toujours vide pour un foyer). On ne lit même pas
+// les jetons des autres.
 export async function reachableTokens(
   supabase: SupabaseClient,
+  groupId: string,
   memberIds: string[],
   category: NotificationCategory,
 ): Promise<{ profileId: string; token: string }[]> {
   if (memberIds.length === 0) return [];
-  const { data: mutedRows, error: mutedError } = await supabase
-    .from("notification_settings")
-    .select("profile_id")
-    .in("profile_id", memberIds)
-    .eq(category, false);
-  if (mutedError) throw mutedError;
-  const muted = new Set((mutedRows ?? []).map((row) => row.profile_id as string));
+  const [settingsResult, mealResult] = await Promise.all([
+    supabase
+      .from("notification_settings")
+      .select("profile_id")
+      .in("profile_id", memberIds)
+      .eq(category, false),
+    supabase.from("meal_notification_mutes").select("profile_id").eq("group_id", groupId),
+  ]);
+  if (settingsResult.error) throw settingsResult.error;
+  if (mealResult.error) throw mealResult.error;
+  const muted = new Set(
+    [...(settingsResult.data ?? []), ...(mealResult.data ?? [])].map(
+      (row) => row.profile_id as string,
+    ),
+  );
   const reachable = memberIds.filter((id) => !muted.has(id));
   if (reachable.length === 0) return [];
 

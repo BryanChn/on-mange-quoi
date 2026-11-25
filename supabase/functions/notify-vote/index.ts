@@ -78,7 +78,12 @@ Deno.serve(async (request) => {
   const memberIds = (membersResult.data ?? []).map((member) => member.profile_id);
   let recipients;
   try {
-    recipients = await reachableTokens(supabase, memberIds, notificationCategory(mealMode));
+    recipients = await reachableTokens(
+      supabase,
+      session.group_id,
+      memberIds,
+      notificationCategory(mealMode),
+    );
   } catch (error) {
     return internalError("Lecture des réglages et des jetons", error);
   }
