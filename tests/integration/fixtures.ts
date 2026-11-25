@@ -375,3 +375,39 @@ export async function shoppingTrips(groupId: string): Promise<
     addedSentAt: row.added_sent_at,
   }));
 }
+
+// Recettes (migration recipes) : une recette de base et un aliment, écrits comme le feront
+// les migrations (l'app ne peut pas : lecture seule).
+export async function createFood(id: number, name: string): Promise<void> {
+  const { error } = await admin
+    .from("foods")
+    .upsert({ id, name, kcal: 250, protein_g: 20, carbs_g: 0, fat_g: 18 });
+  if (error) throw error;
+}
+
+export async function createBaseRecipe(title: string): Promise<string> {
+  const { data, error } = await admin
+    .from("recipes")
+    .insert({ group_id: null, title, servings: 4, steps: ["Cuire", "Servir"] })
+    .select("id")
+    .single();
+  if (error) throw error;
+  const { error: ingredientsError } = await admin.from("recipe_ingredients").insert([
+    {
+      recipe_id: data.id,
+      position: 0,
+      raw: "400 g de pâtes",
+      label: "pâtes",
+      quantity: 400,
+      unit: "g",
+    },
+    { recipe_id: data.id, position: 1, raw: "sel", label: "sel" },
+  ]);
+  if (ingredientsError) throw ingredientsError;
+  return data.id;
+}
+
+export async function deleteBaseRecipe(recipeId: string): Promise<void> {
+  const { error } = await admin.from("recipes").delete().eq("id", recipeId);
+  if (error) throw error;
+}
