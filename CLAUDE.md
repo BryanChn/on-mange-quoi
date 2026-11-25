@@ -112,6 +112,18 @@ Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette
 3. Cocher = « je l'ai pris » : l'article descend en bas, barré, avec qui l'a pris (heure et auteur posés par le serveur). On peut décocher. « Retirer les achetés » range les articles pris (ils quittent la liste).
 4. Améliorations du 2026-11-24 : modifier un article (appui long), pas de doublon (un article déjà pris revient dans « À acheter »), la liste depuis l'accueil (une seule ligne, même avec plusieurs foyers : une liste à faire s'ouvre directement, plusieurs passent par un écran de choix ; 2026-11-24, pour ne pas envahir l'accueil), et « Souvent acheté » : les articles rangés reviennent en suggestions, un toucher les rajoute avec leur dernière quantité.
 
+### Notifications d'un repas (tranché le 2026-11-25)
+
+Retour d'usage : savoir qui rejoint et qui apporte quoi, sans être noyé de notifications.
+
+1. Les votes d'un repas parlent de leur sujet (« où on mange ? », « quel dessert ? »). Repas chez quelqu'un : une seule notification quand tout le menu est décidé, avec tous les plats ; le rappel unique parle du menu.
+2. **Réglages dans Mon compte** : deux interrupteurs, « Votes » et « Repas à plusieurs », activés par défaut (une notification à activer soi-même, personne ne l'active). Le serveur ne prévient pas qui a coupé.
+3. **Résumé du repas** : une seule notification regroupée, environ 10 min après le premier changement (« Léa et Tom ont rejoint · Léa apporte le pain »), aux participants qui ont l'app, sauf les auteurs. Arrivées et apports seulement, pas la commande.
+4. **Partager sur WhatsApp** aux moments clés (menu décidé, resto décidé, commande passée) : c'est le canal des invités.
+5. Haptique : un ajout réussi (apport, ligne de commande, article) vibre comme cocher un plat.
+
+Écarté : une notification par ajout ou par arrivée (du bruit à 20) ; les notifications aux invités sans l'app (Web Push : une page ouverte une fois, souvent refusée, et sur iPhone seulement si le site est sur l'écran d'accueil).
+
 ## Commandes
 
 ```bash
