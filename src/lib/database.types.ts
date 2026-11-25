@@ -69,6 +69,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"notification_settings": {
+                  Row: {
+                    "meals": boolean,"profile_id": string,"updated_at": string,"votes": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "meals"?: boolean,"profile_id": string,"updated_at"?: string,"votes"?: boolean
+                  }
+                  Update: {
+                    "meals"?: boolean,"profile_id"?: string,"updated_at"?: string,"votes"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notification_settings_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"order_items": {
                   Row: {
                     "created_at": string,"group_id": string,"id": string,"label": string,"note": string | null,"profile_id": string,"quantity": number
