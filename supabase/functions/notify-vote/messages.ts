@@ -11,7 +11,44 @@ export type NotifyRequest = { sessionId: string; event: VoteEvent };
 // Un téléphone à prévenir : le jeton et le membre à qui il appartient.
 export type Recipient = { profileId: string; token: string };
 
+// Ce que décide un vote (enum vote_topic) et le type d'un repas (enum soiree_mode).
+// Copiés de la base : une Edge Function ne peut pas importer le code de l'app.
+export type VoteTopic = "plat" | "resto" | "apero" | "entree" | "dessert";
+export type MealMode = "commande" | "resto" | "maison";
+
+// Un vote d'un repas « maison », relu au moment de l'envoi.
+export type MenuVote = {
+  id: string;
+  topic: VoteTopic;
+  status: "open" | "closed";
+  closedAt: string | null;
+  winnerName: string | null;
+};
+
+// Un plat décidé du menu : « Dessert : Tiramisu ».
+export type MenuDish = { topic: VoteTopic; winnerName: string };
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Dans l'ordre d'un repas, comme l'enum vote_topic.
+const TOPIC_ORDER: VoteTopic[] = ["apero", "entree", "plat", "dessert", "resto"];
+
+// « Bryan lance le vote : quel dessert ? »
+const QUESTION: Record<VoteTopic, string> = {
+  plat: "on mange quoi ?",
+  resto: "où on mange ?",
+  apero: "quel apéro ?",
+  entree: "quelle entrée ?",
+  dessert: "quel dessert ?",
+};
+
+const LABEL: Record<VoteTopic, string> = {
+  plat: "Plat",
+  resto: "Resto",
+  apero: "Apéro",
+  entree: "Entrée",
+  dessert: "Dessert",
+};
 
 // Le corps vient du trigger, mais l'URL de la fonction est publique : on valide tout.
 export function parseNotifyRequest(body: unknown): NotifyRequest | null {
@@ -22,20 +59,49 @@ export function parseNotifyRequest(body: unknown): NotifyRequest | null {
   return { sessionId, event };
 }
 
+// Repas « maison » : le menu est décidé quand plus aucun vote n'est ouvert. Seul le dernier
+// vote terminé annonce le menu, les autres se taisent (une notification par sujet serait du
+// bruit). Deux votes terminés au même instant appellent la fonction deux fois, et les deux
+// appels relisent la même base : ils désignent le même dernier vote, un seul envoie.
+// null : ce vote n'est pas le dernier, rien à annoncer.
+export function menuIfLast(votes: MenuVote[], sessionId: string): MenuDish[] | null {
+  if (votes.some((vote) => vote.status === "open")) return null;
+
+  const last = [...votes].sort(
+    (a, b) => (a.closedAt ?? "").localeCompare(b.closedAt ?? "") || a.id.localeCompare(b.id),
+  ).at(-1);
+  if (last?.id !== sessionId) return null;
+
+  return votes
+    .filter((vote): vote is MenuVote & { winnerName: string } => vote.winnerName !== null)
+    .sort((a, b) => TOPIC_ORDER.indexOf(a.topic) - TOPIC_ORDER.indexOf(b.topic))
+    .map((vote) => ({ topic: vote.topic, winnerName: vote.winnerName }));
+}
+
 type MessageInput = {
   event: VoteEvent;
   sessionId: string;
   groupName: string;
+  // null pour un foyer.
+  mealMode: MealMode | null;
+  topic: VoteTopic;
   organizerId: string | null;
   organizerName: string | null;
   winnerName: string | null;
+  // Repas « maison », fin d'un vote : le menu complet (menuIfLast), ou null tant qu'un
+  // autre vote du menu reste à terminer.
+  menu: MenuDish[] | null;
   recipients: Recipient[];
   // Membres qui ont déjà proposé un plat ou voté (lu seulement pour le rappel).
   participantIds: string[];
 };
 
 function recipientsFor(input: MessageInput): Recipient[] {
-  if (input.event === "closed") return input.recipients;
+  if (input.event === "closed") {
+    // Le menu n'est pas encore complet : personne à prévenir.
+    if (input.mealMode === "maison" && input.menu === null) return [];
+    return input.recipients;
+  }
   if (input.event === "opened") {
     return input.recipients.filter((recipient) => recipient.profileId !== input.organizerId);
   }
@@ -48,21 +114,45 @@ function recipientsFor(input: MessageInput): Recipient[] {
   );
 }
 
+// « on va chez Momo », mais « on va Chez Momo » (même règle que goingTo dans l'app).
+function goingTo(restaurant: string): string {
+  const name = restaurant.trim();
+  return /^chez\s/i.test(name) ? `on va ${name}` : `on va chez ${name}`;
+}
+
+const NO_WINNER = "Le vote est terminé : viens voir le résultat.";
+
+function closedBody(input: MessageInput): string {
+  if (input.mealMode === "maison") {
+    const dishes = input.menu ?? [];
+    if (dishes.length === 0) return NO_WINNER;
+    const lines = dishes.map((dish) => `${LABEL[dish.topic]} : ${dish.winnerName}.`);
+    return `Le menu est décidé. ${lines.join(" ")}`;
+  }
+  if (!input.winnerName) return NO_WINNER;
+  // Commande : le resto est choisi, la suite est d'écrire sa commande.
+  if (input.mealMode === "commande") return `C'est décidé : ${input.winnerName}. Écris ta commande.`;
+  if (input.mealMode === "resto") return `C'est décidé : ${goingTo(input.winnerName)}.`;
+  return `C'est décidé : ${input.winnerName}. Bon appétit !`;
+}
+
 function bodyFor(input: MessageInput): string {
   if (input.event === "opened") {
     // Pas de « ce soir » : un vote se lance aussi le midi.
-    return `${input.organizerName ?? "Quelqu'un"} lance le vote : on mange quoi ?`;
+    return `${input.organizerName ?? "Quelqu'un"} lance le vote : ${QUESTION[input.topic]}`;
   }
   if (input.event === "reminder") {
-    return "Le vote t'attend : propose un plat ou coche ce qui te tente.";
+    // Un repas « maison » n'a qu'un rappel pour tous ses votes : il parle du menu.
+    if (input.mealMode === "maison") return "Le menu t'attend : propose ou coche ce qui te tente.";
+    const dish = input.topic === "resto" ? "un resto" : "un plat";
+    return `Le vote t'attend : propose ${dish} ou coche ce qui te tente.`;
   }
-  return input.winnerName
-    ? `C'est décidé : ${input.winnerName}. Bon appétit !`
-    : "Le vote est terminé : viens voir le résultat.";
+  return closedBody(input);
 }
 
 // Lancement : les autres membres (l'organisateur sait qu'il vient de lancer le vote).
-// Résultat : tout le groupe, organisateur compris (il n'est peut-être plus sur l'écran).
+// Résultat : tout le groupe, organisateur compris (il n'est peut-être plus sur l'écran) ;
+// pour un repas « maison », une seule fois, quand tout le menu est décidé.
 // Rappel : les membres qui n'ont ni proposé ni voté.
 export function buildMessages(input: MessageInput): ExpoMessage[] {
   const recipients = recipientsFor(input);
@@ -75,7 +165,8 @@ export function buildMessages(input: MessageInput): ExpoMessage[] {
     to: token,
     title: input.groupName,
     body,
-    // Lu par l'app (notification-link.ts) pour ouvrir le vote au toucher.
+    // Lu par l'app (notification-link.ts) pour ouvrir le vote au toucher. Le vote d'un repas
+    // a un bouton « Retour au repas ».
     data: { sessionId: input.sessionId },
     sound: "default",
     channelId: "default",
