@@ -19,7 +19,7 @@ import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextField } from "@/components/text-field";
 import { fetchGroup } from "@/lib/groups";
-import { hapticReject, hapticTick, hapticToggle } from "@/lib/haptics";
+import { hapticAdded, hapticReject, hapticTick, hapticToggle } from "@/lib/haptics";
 import type { Member } from "@/lib/members";
 import {
   checkEntering,
@@ -191,6 +191,7 @@ export default function ShoppingListScreen() {
       } else {
         await addShoppingItem(groupId, { label, quantity });
       }
+      hapticAdded();
       setLabel("");
       setQuantity("");
       loadList();
@@ -204,7 +205,6 @@ export default function ShoppingListScreen() {
 
   // « Souvent acheté » : un toucher remet l'article dans la liste, avec sa dernière quantité.
   async function handleAddSuggestion(suggestion: ShoppingSuggestion) {
-    hapticTick();
     setError(null);
     setNotice(null);
     setAddingSuggestion(suggestion.label);
@@ -213,6 +213,7 @@ export default function ShoppingListScreen() {
         label: suggestion.label,
         quantity: suggestion.quantity ?? "",
       });
+      hapticAdded();
       loadList();
     } catch {
       hapticReject();

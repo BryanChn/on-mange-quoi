@@ -7,7 +7,7 @@ import { Chip } from "@/components/chip";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
-import { hapticConfirm, hapticReject } from "@/lib/haptics";
+import { hapticAdded, hapticConfirm, hapticReject } from "@/lib/haptics";
 import { shareOrderText } from "@/lib/share-soiree";
 import { namesWithoutOrder, orderText, recapPeople, summarizeOrder } from "@/lib/soiree-rules";
 import {
@@ -77,6 +77,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
     setIsAdding(true);
     try {
       await addOrderItem(soiree.id, { label: cleanLabel, note });
+      hapticAdded();
       setLabel("");
       setNote("");
       onChanged();
