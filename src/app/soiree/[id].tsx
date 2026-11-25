@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import { Chip } from "@/components/chip";
 import { ListCard, ListRow } from "@/components/list";
 import { MealContributions } from "@/components/meal-contributions";
 import { MealMenu } from "@/components/meal-menu";
+import { MealNotificationsRow } from "@/components/meal-notifications-row";
 import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
@@ -484,6 +486,11 @@ export default function SoireeScreen() {
             ) : null}
           </ListCard>
         </View>
+
+        {/* Pas de notifications sur le web (invités) ; une commande passée est figée. */}
+        {!isGuest && Platform.OS !== "web" && soiree.step !== "passee" ? (
+          <MealNotificationsRow soireeId={soiree.id} />
+        ) : null}
 
         {confirm.kind !== "none" ? (
           // Tout en bas et plus haute que les liens qu'elle remplace : sans défilement, elle
