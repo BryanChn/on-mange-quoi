@@ -243,3 +243,73 @@ export function goingTo(restaurant: string): string {
   const name = restaurant.trim();
   return /^chez\s/i.test(name) ? `On va ${name}` : `On va chez ${name}`;
 }
+
+type DecidedTextInput = {
+  name: string;
+  // « jeu. 24 déc. », ou null (repas créé avant les dates).
+  dayLabel: string | null;
+  // Repas « resto » : le resto choisi. null pour un repas « maison ».
+  restaurant: string | null;
+  // Repas « maison » : les plats décidés, dans l'ordre du repas (« Dessert », « Tiramisu »).
+  menu: { label: string; winner: string }[];
+  // Qui apporte quoi, une ligne par personne, dans l'ordre d'arrivée.
+  contributions: { name: string; labels: string[] }[];
+  joinUrl: string;
+};
+
+// Le résultat partagé sur WhatsApp, quand c'est décidé : c'est le canal des invités, qui
+// n'ont pas de notification. Même mise en forme que le récap de commande (*gras*). Le lien
+// rouvre le repas (voir, dire ce qu'on apporte).
+export function decidedText({
+  name,
+  dayLabel,
+  restaurant,
+  menu,
+  contributions,
+  joinUrl,
+}: DecidedTextInput): string {
+  const day = dayLabel ? `, ${dayLabel}` : "";
+
+  if (restaurant !== null) {
+    return [
+      [`*${name}* · c’est décidé ✅`, `${goingTo(restaurant)}${day}`, "Bon appétit !"],
+      [`Le repas : ${joinUrl}`, "Organisé avec On mange quoi ?"],
+    ]
+      .map((block) => block.join("\n"))
+      .join("\n\n");
+  }
+
+  const blocks: string[][] = [];
+  blocks.push(
+    menu.length > 0
+      ? [
+          `*${name}*${day} · le menu est décidé ✅`,
+          ...menu.map((dish) => `${dish.label} : ${dish.winner}`),
+        ]
+      : [`*${name}*${day} · qui apporte quoi`],
+  );
+  if (contributions.length > 0) {
+    blocks.push([
+      "*Qui apporte quoi*",
+      ...contributions.map((person) => `${person.name} : ${person.labels.join(", ")}`),
+    ]);
+  }
+  blocks.push([`Pour dire ce que tu apportes : ${joinUrl}`, "Organisé avec On mange quoi ?"]);
+  return blocks.map((block) => block.join("\n")).join("\n\n");
+}
+
+// Qui apporte quoi, regroupé par personne dans l'ordre d'arrivée (les membres), avec les
+// vrais prénoms : le texte est lu par les autres.
+export function contributionsByPerson(
+  members: { id: string; name: string }[],
+  contributions: { profileId: string; label: string }[],
+): { name: string; labels: string[] }[] {
+  return members
+    .map((member) => ({
+      name: member.name,
+      labels: contributions
+        .filter((contribution) => contribution.profileId === member.id)
+        .map((contribution) => contribution.label),
+    }))
+    .filter((person) => person.labels.length > 0);
+}

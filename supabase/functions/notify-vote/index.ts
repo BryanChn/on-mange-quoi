@@ -3,16 +3,14 @@
 // par l'app.
 
 import {
-  chunk,
-  EXPO_PUSH_URL,
-  EXPO_SEND_BATCH_SIZE,
-  ticketsToTrack,
-  tokensToForget,
-  type ExpoTicket,
-  type TrackedTicket,
-} from "../_shared/expo-push.ts";
-import { internalError, json, postToExpo, rejectUnlessInternal, serviceClient } from "../_shared/server.ts";
-import { buildMessages, parseNotifyRequest } from "./messages.ts";
+  internalError,
+  json,
+  reachableTokens,
+  rejectUnlessInternal,
+  sendPushMessages,
+  serviceClient,
+} from "../_shared/server.ts";
+import { buildMessages, menuIfLast, notificationCategory, parseNotifyRequest, type MealMode, type MenuDish, type VoteTopic } from "./messages.ts";
 
 Deno.serve(async (request) => {
   const rejected = rejectUnlessInternal(request);
@@ -26,7 +24,7 @@ Deno.serve(async (request) => {
   // On ne fait confiance qu'à l'identifiant : tout le reste est relu en base.
   const { data: session, error: sessionError } = await supabase
     .from("vote_sessions")
-    .select("id, group_id, organizer_id, status, winner_proposal_id")
+    .select("id, group_id, organizer_id, status, winner_proposal_id, topic")
     .eq("id", notify.sessionId)
     .maybeSingle();
   if (sessionError) return internalError("Lecture de la session", sessionError);
@@ -37,7 +35,7 @@ Deno.serve(async (request) => {
   if (session.status !== expectedStatus) return json(200, { sent: 0, skipped: "stale_event" });
 
   const [groupResult, organizerResult, winnerResult, membersResult, proposalsResult] = await Promise.all([
-    supabase.from("groups").select("name").eq("id", session.group_id).single(),
+    supabase.from("groups").select("name, soiree_mode").eq("id", session.group_id).single(),
     session.organizer_id
       ? supabase.from("profiles").select("display_name").eq("id", session.organizer_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -55,45 +53,52 @@ Deno.serve(async (request) => {
   )?.error;
   if (readError) return internalError("Lecture du groupe", readError);
 
+  // Repas « maison » : le menu n'est annoncé qu'à la fin du dernier vote, avec tous ses plats.
+  const mealMode = (groupResult.data!.soiree_mode ?? null) as MealMode | null;
+  let menu: MenuDish[] | null = null;
+  if (mealMode === "maison" && notify.event === "closed") {
+    const { data: votes, error: votesError } = await supabase
+      .from("vote_sessions")
+      .select("id, topic, status, closed_at, winner:proposals!vote_sessions_winner_fk(name)")
+      .eq("group_id", session.group_id);
+    if (votesError) return internalError("Lecture du menu", votesError);
+    menu = menuIfLast(
+      (votes ?? []).map((vote) => ({
+        id: vote.id,
+        topic: vote.topic as VoteTopic,
+        status: vote.status as "open" | "closed",
+        closedAt: vote.closed_at,
+        winnerName: (vote.winner as { name: string } | null)?.name ?? null,
+      })),
+      session.id,
+    );
+  }
+
+  // Seulement ceux qui n'ont pas coupé cette catégorie dans Mon compte.
   const memberIds = (membersResult.data ?? []).map((member) => member.profile_id);
-  const { data: tokens, error: tokensError } = await supabase
-    .from("push_tokens")
-    .select("token, profile_id")
-    .in("profile_id", memberIds);
-  if (tokensError) return internalError("Lecture des jetons", tokensError);
+  let recipients;
+  try {
+    recipients = await reachableTokens(supabase, memberIds, notificationCategory(mealMode));
+  } catch (error) {
+    return internalError("Lecture des réglages et des jetons", error);
+  }
 
   const messages = buildMessages({
     event: notify.event,
     sessionId: session.id,
     groupName: groupResult.data!.name,
+    mealMode,
+    topic: session.topic as VoteTopic,
+    menu,
     organizerId: session.organizer_id,
     organizerName: organizerResult.data?.display_name ?? null,
     winnerName: winnerResult.data?.name ?? null,
-    recipients: (tokens ?? []).map((row) => ({ profileId: row.profile_id, token: row.token })),
+    recipients,
     participantIds: (proposalsResult.data ?? []).flatMap((proposal) => [
       ...(proposal.proposed_by ? [proposal.proposed_by] : []),
       ...proposal.votes.map((vote) => vote.profile_id),
     ]),
   });
 
-  const forgotten: string[] = [];
-  const tracked: TrackedTicket[] = [];
-  for (const batch of chunk(messages, EXPO_SEND_BATCH_SIZE)) {
-    const tickets = (await postToExpo<ExpoTicket[]>(EXPO_PUSH_URL, batch)) ?? [];
-    forgotten.push(...tokensToForget(batch, tickets));
-    tracked.push(...ticketsToTrack(batch, tickets));
-  }
-
-  // Les notifications sont parties : un échec ici se journalise sans faire échouer l'appel.
-  if (forgotten.length > 0) {
-    const { error } = await supabase.from("push_tokens").delete().in("token", forgotten);
-    if (error) console.error("Suppression des jetons morts impossible", error);
-  }
-  if (tracked.length > 0) {
-    // push-receipts lira leurs reçus plus tard (pg_cron, toutes les 30 min).
-    const { error } = await supabase.from("push_tickets").insert(tracked);
-    if (error) console.error("Enregistrement des tickets impossible", error);
-  }
-
-  return json(200, { sent: messages.length, forgotten: forgotten.length, tracked: tracked.length });
+  return json(200, await sendPushMessages(supabase, messages));
 });

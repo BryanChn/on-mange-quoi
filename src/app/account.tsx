@@ -16,6 +16,7 @@ import { Avatar } from "@/components/avatar";
 import { AvatarPicker } from "@/components/avatar-picker";
 import { Card } from "@/components/card";
 import { ListCard, ListRow } from "@/components/list";
+import { NotificationSettingsCard } from "@/components/notification-settings-card";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
@@ -300,6 +301,8 @@ export default function AccountScreen() {
                 </Text>
               )}
             </Card>
+            {/* Pas de notifications sur la version web. */}
+            {Platform.OS !== "web" ? <NotificationSettingsCard /> : null}
             <ListCard>
               <ListRow icon="edit-2" label="Changer mon nom" onPress={handleStartRename} />
               <ListRow icon="log-out" label="Se déconnecter" onPress={signOut} />

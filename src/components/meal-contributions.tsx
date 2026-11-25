@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Avatar } from "@/components/avatar";
-import { hapticReject, hapticTick } from "@/lib/haptics";
+import { hapticAdded, hapticReject } from "@/lib/haptics";
 import {
   addContribution,
   CONTRIBUTION_MAX_LENGTH,
@@ -40,7 +40,7 @@ export function MealContributions({ soiree, userId, isOwner, onChanged }: MealCo
     setIsAdding(true);
     try {
       await addContribution(soiree.id, label);
-      hapticTick();
+      hapticAdded();
       setLabel("");
       onChanged();
     } catch {
