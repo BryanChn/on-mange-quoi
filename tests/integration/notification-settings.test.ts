@@ -6,22 +6,36 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
+import { leaveGroup } from "../../src/lib/groups.ts";
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
+  fetchMealNotificationsOn,
   fetchNotificationSettings,
   saveNotificationSetting,
+  setMealNotificationsOn,
 } from "../../src/lib/notification-settings.ts";
+import { createSoiree, joinSoiree } from "../../src/lib/soirees.ts";
 import { cleanUp, createGroup, createUser, signInAs, type TestUser } from "./fixtures.ts";
 import { supabase } from "./supabase-test-client.ts";
 
 let alice: TestUser;
 let bea: TestUser;
+let foyerId: string;
 
 before(async () => {
   alice = await createUser("Alice");
   bea = await createUser("Bea");
-  await createGroup(alice, [bea]);
+  foyerId = await createGroup(alice, [bea]);
 });
+
+// Repas créé par Alice, rejoint par Bea.
+async function mealWithBea(): Promise<string> {
+  await signInAs(alice);
+  const meal = await createSoiree({ name: "Noël", mode: "maison", topics: [], date: null });
+  await signInAs(bea);
+  await joinSoiree(meal.joinToken);
+  return meal.id;
+}
 
 after(cleanUp);
 
@@ -72,5 +86,53 @@ describe("réglages des notifications", () => {
       .update({ updated_at: "2099-01-01T00:00:00Z" } as never)
       .eq("profile_id", alice.id);
     assert.ok(error, "updated_at ne doit pas être modifiable");
+  });
+});
+
+describe("couper un seul repas", () => {
+  test("activé par défaut, coupé puis rétabli, deux touchers d'affilée sans erreur", async () => {
+    const mealId = await mealWithBea();
+    assert.equal(await fetchMealNotificationsOn(mealId), true);
+
+    await setMealNotificationsOn(mealId, false);
+    await setMealNotificationsOn(mealId, false);
+    assert.equal(await fetchMealNotificationsOn(mealId), false);
+
+    await setMealNotificationsOn(mealId, true);
+    await setMealNotificationsOn(mealId, true);
+    assert.equal(await fetchMealNotificationsOn(mealId), true);
+  });
+
+  test("pas dans un foyer", async () => {
+    await signInAs(bea);
+    await assert.rejects(setMealNotificationsOn(foyerId, false));
+  });
+
+  test("invisible pour les autres, et personne ne coupe pour une autre", async () => {
+    const mealId = await mealWithBea();
+    await setMealNotificationsOn(mealId, false);
+
+    await signInAs(alice);
+    const { data } = await supabase
+      .from("meal_notification_mutes")
+      .select("profile_id")
+      .eq("group_id", mealId);
+    assert.deepEqual(data, []);
+    const { error } = await supabase
+      .from("meal_notification_mutes")
+      .insert({ group_id: mealId, profile_id: bea.id });
+    assert.ok(error, "Alice ne doit pas couper pour Bea");
+  });
+
+  test("quitter le repas efface le réglage : on revient activé", async () => {
+    const mealId = await mealWithBea();
+    await setMealNotificationsOn(mealId, false);
+    await leaveGroup(mealId);
+
+    const { count } = await supabase
+      .from("meal_notification_mutes")
+      .select("*", { count: "exact", head: true })
+      .eq("group_id", mealId);
+    assert.equal(count, 0);
   });
 });

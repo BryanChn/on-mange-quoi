@@ -69,6 +69,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"meal_notification_mutes": {
+                  Row: {
+                    "created_at": string,"group_id": string,"profile_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"group_id": string,"profile_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"group_id"?: string,"profile_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "meal_notification_mutes_group_id_profile_id_fkey"
+      columns: ["group_id","profile_id"]
+isOneToOne: true
+      referencedRelation: "group_members"
+      referencedColumns: ["group_id","profile_id"]
+    }
+                  ]
                 },"notification_settings": {
                   Row: {
                     "meals": boolean,"profile_id": string,"updated_at": string,"votes": boolean
