@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  contributionsByPerson,
+  decidedText,
   defaultSoireeName,
   goingTo,
   inviteMessage,
@@ -178,4 +180,91 @@ test("le resto choisi : pas de « chez Chez Momo »", () => {
   assert.equal(goingTo("Chez Momo"), "On va Chez Momo");
   assert.equal(goingTo(" chez momo "), "On va chez momo");
   assert.equal(goingTo("Chezmoi Burger"), "On va chez Chezmoi Burger");
+});
+
+const URL = "https://on-mange-quoi.expo.app/rejoindre/abc";
+
+test("decidedText : le resto décidé, avec le jour", () => {
+  assert.equal(
+    decidedText({
+      name: "Anniv Léa",
+      dayLabel: "sam. 28 nov.",
+      restaurant: "Chez Momo",
+      menu: [],
+      contributions: [],
+      joinUrl: URL,
+    }),
+    [
+      "*Anniv Léa* · c’est décidé ✅",
+      "On va Chez Momo, sam. 28 nov.",
+      "Bon appétit !",
+      "",
+      `Le repas : ${URL}`,
+      "Organisé avec On mange quoi ?",
+    ].join("\n"),
+  );
+});
+
+test("decidedText : le menu décidé et qui apporte quoi", () => {
+  assert.equal(
+    decidedText({
+      name: "Noël à Soultz",
+      dayLabel: "jeu. 24 déc.",
+      restaurant: null,
+      menu: [
+        { label: "Apéro", winner: "Chips" },
+        { label: "Dessert", winner: "Tiramisu" },
+      ],
+      contributions: [{ name: "Léa", labels: ["le pain", "le vin"] }],
+      joinUrl: URL,
+    }),
+    [
+      "*Noël à Soultz*, jeu. 24 déc. · le menu est décidé ✅",
+      "Apéro : Chips",
+      "Dessert : Tiramisu",
+      "",
+      "*Qui apporte quoi*",
+      "Léa : le pain, le vin",
+      "",
+      `Pour dire ce que tu apportes : ${URL}`,
+      "Organisé avec On mange quoi ?",
+    ].join("\n"),
+  );
+});
+
+test("decidedText : chez quelqu'un sans vote, seulement qui apporte quoi", () => {
+  const text = decidedText({
+    name: "Goûter",
+    dayLabel: null,
+    restaurant: null,
+    menu: [],
+    contributions: [],
+    joinUrl: URL,
+  });
+  assert.equal(
+    text,
+    [
+      "*Goûter* · qui apporte quoi",
+      "",
+      `Pour dire ce que tu apportes : ${URL}`,
+      "Organisé avec On mange quoi ?",
+    ].join("\n"),
+  );
+});
+
+test("contributionsByPerson : par personne, dans l'ordre d'arrivée, sans ceux qui n'apportent rien", () => {
+  const members = [
+    { id: "a", name: "Bryan" },
+    { id: "b", name: "Léa" },
+    { id: "c", name: "Tom" },
+  ];
+  const contributions = [
+    { profileId: "c", label: "les chips" },
+    { profileId: "b", label: "le pain" },
+    { profileId: "c", label: "le vin" },
+  ];
+  assert.deepEqual(contributionsByPerson(members, contributions), [
+    { name: "Léa", labels: ["le pain"] },
+    { name: "Tom", labels: ["les chips", "le vin"] },
+  ]);
 });
