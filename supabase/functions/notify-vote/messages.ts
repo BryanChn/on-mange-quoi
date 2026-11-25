@@ -50,6 +50,14 @@ const LABEL: Record<VoteTopic, string> = {
   dessert: "Dessert",
 };
 
+// Quel interrupteur de Mon compte (table notification_settings) s'applique : les votes d'un
+// foyer, ou tout ce qui concerne un repas à plusieurs.
+export type NotificationCategory = "votes" | "meals";
+
+export function notificationCategory(mealMode: MealMode | null): NotificationCategory {
+  return mealMode === null ? "votes" : "meals";
+}
+
 // Le corps vient du trigger, mais l'URL de la fonction est publique : on valide tout.
 export function parseNotifyRequest(body: unknown): NotifyRequest | null {
   if (typeof body !== "object" || body === null) return null;

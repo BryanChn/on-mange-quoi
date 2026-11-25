@@ -1,0 +1,95 @@
+import { useEffect, useMemo, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+
+import { ListCard, ListSwitchRow } from "@/components/list";
+import { hapticToggle } from "@/lib/haptics";
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  fetchNotificationSettings,
+  saveNotificationSetting,
+  type NotificationCategory,
+  type NotificationSettings,
+} from "@/lib/notification-settings";
+import { createSerialQueue } from "@/lib/serial-queue";
+import { useTheme, type Theme } from "@/theme";
+
+// Mon compte : les deux interrupteurs des notifications (CLAUDE.md, « Notifications d'un
+// repas »). Le serveur ne prévient plus qui a coupé une catégorie.
+export function NotificationSettingsCard() {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  // null tant que les réglages ne sont pas lus : interrupteurs grisés, pour ne pas afficher
+  // « activé » puis basculer sous le doigt.
+  const [settings, setSettings] = useState<NotificationSettings | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  // Basculer vite deux fois envoie deux requêtes : elles partent dans l'ordre des touchers.
+  const [enqueue] = useState(createSerialQueue);
+
+  // Lecture au montage de l'écran : la base est un système externe, l'effet est justifié.
+  useEffect(() => {
+    let isCurrent = true;
+    fetchNotificationSettings()
+      .then((loaded) => {
+        if (isCurrent) setSettings(loaded);
+      })
+      .catch(() => {
+        if (isCurrent) setError("Tes réglages ne se chargent pas : vérifie ta connexion.");
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  // Optimiste : l'interrupteur bascule tout de suite, et revient si l'enregistrement échoue.
+  function handleChange(category: NotificationCategory, isOn: boolean) {
+    hapticToggle(isOn);
+    setError(null);
+    setSettings((current) => (current ? { ...current, [category]: isOn } : current));
+    enqueue(() => saveNotificationSetting(category, isOn)).catch(() => {
+      setSettings((current) => (current ? { ...current, [category]: !isOn } : current));
+      setError("Ton réglage n’est pas enregistré : vérifie ta connexion et réessaie.");
+    });
+  }
+
+  const shown = settings ?? DEFAULT_NOTIFICATION_SETTINGS;
+  const isDisabled = settings === null;
+
+  return (
+    <View style={styles.block}>
+      <Text style={styles.title} accessibilityRole="header">
+        Notifications
+      </Text>
+      <ListCard>
+        <ListSwitchRow
+          icon="bell"
+          label="Votes"
+          subtitle="Un vote commence, le rappel, le résultat"
+          value={shown.votes}
+          onChange={(isOn) => handleChange("votes", isOn)}
+          isDisabled={isDisabled}
+        />
+        <ListSwitchRow
+          icon="users"
+          label="Repas à plusieurs"
+          subtitle="Les votes et les nouvelles d’un repas"
+          value={shown.meals}
+          onChange={(isOn) => handleChange("meals", isOn)}
+          isDisabled={isDisabled}
+        />
+      </ListCard>
+      {error ? (
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+          {error}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
+  return StyleSheet.create({
+    block: { gap: spacing.sm },
+    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    error: { color: colors.danger, fontSize: fontSize.small },
+  });
+}

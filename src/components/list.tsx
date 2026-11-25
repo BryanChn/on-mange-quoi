@@ -6,7 +6,7 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 import { useTheme, type Theme } from "@/theme";
 
@@ -94,6 +94,59 @@ export function ListRow({
       {hasChevron ? (
         <Feather name="chevron-right" size={20} color={theme.colors.textMuted} />
       ) : null}
+    </Pressable>
+  );
+}
+
+type ListSwitchRowProps = {
+  label: string;
+  subtitle?: string;
+  icon: IconName;
+  value: boolean;
+  onChange: (value: boolean) => void;
+  isDisabled?: boolean;
+};
+
+// Ligne de réglage avec un interrupteur. Toute la ligne bascule (cible plus grande que
+// l'interrupteur seul) ; un lecteur d'écran l'annonce comme un interrupteur, activé ou non.
+export function ListSwitchRow({
+  label,
+  subtitle,
+  icon,
+  value,
+  onChange,
+  isDisabled = false,
+}: ListSwitchRowProps) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return (
+    <Pressable
+      onPress={() => onChange(!value)}
+      disabled={isDisabled}
+      accessibilityRole="switch"
+      accessibilityLabel={subtitle ? `${label}, ${subtitle}` : label}
+      accessibilityState={{ checked: value, disabled: isDisabled }}
+      style={({ pressed }) => [styles.row, (pressed || isDisabled) && styles.dimmed]}
+    >
+      <View style={styles.tile}>
+        <Feather name={icon} size={20} color={theme.colors.text} />
+      </View>
+      <View style={styles.text}>
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+      {/* Décoratif pour l'accessibilité : la ligne porte déjà le rôle et l'état. */}
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        disabled={isDisabled}
+        trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
     </Pressable>
   );
 }
