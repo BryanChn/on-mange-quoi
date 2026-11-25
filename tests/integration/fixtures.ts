@@ -255,3 +255,33 @@ export async function setSoireeDates(
   const { error } = await admin.from("groups").update(update).eq("id", groupId);
   if (error) throw error;
 }
+
+// Résumé d'un repas (migration meal_digest) : ce que pg_cron lance toutes les 2 minutes, à
+// l'heure choisie, et l'état du repas.
+export async function sendMealDigests(referenceTime: Date): Promise<number> {
+  const { data, error } = await admin.rpc("send_meal_digests", {
+    reference_time: referenceTime.toISOString(),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function mealDigestState(
+  groupId: string,
+): Promise<{ pendingSince: string | null; sentAt: string | null }> {
+  const { data, error } = await admin
+    .from("groups")
+    .select("digest_pending_since, digest_sent_at")
+    .eq("id", groupId)
+    .single();
+  if (error) throw error;
+  return { pendingSince: data.digest_pending_since, sentAt: data.digest_sent_at };
+}
+
+export async function setMealDigestPendingSince(groupId: string, at: Date): Promise<void> {
+  const { error } = await admin
+    .from("groups")
+    .update({ digest_pending_since: at.toISOString() })
+    .eq("id", groupId);
+  if (error) throw error;
+}

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildMessages, menuIfLast, parseNotifyRequest, type MenuVote, type Recipient } from "./messages.ts";
+import { buildMessages, menuIfLast, notificationCategory, parseNotifyRequest, type MenuVote, type Recipient } from "./messages.ts";
 
 const SESSION_ID = "6f1c2a9e-3b4d-4e5f-8a7b-1c2d3e4f5a6b";
 const BRYAN = "00000000-0000-0000-0000-00000000000a";
@@ -212,4 +212,11 @@ test("menuIfLast : deux votes terminés au même instant, un seul annonce", () =
   ];
   const announcing = [APERO, DESSERT].filter((id) => menuIfLast(votes, id) !== null);
   assert.deepEqual(announcing, [DESSERT]);
+});
+
+test("réglages : un foyer obéit à « Votes », un repas à « Repas à plusieurs »", () => {
+  assert.equal(notificationCategory(null), "votes");
+  assert.equal(notificationCategory("commande"), "meals");
+  assert.equal(notificationCategory("resto"), "meals");
+  assert.equal(notificationCategory("maison"), "meals");
 });

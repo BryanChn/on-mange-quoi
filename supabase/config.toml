@@ -424,3 +424,6 @@ verify_jwt = false
 
 [functions.push-receipts]
 verify_jwt = false
+
+[functions.notify-meal]
+verify_jwt = false
