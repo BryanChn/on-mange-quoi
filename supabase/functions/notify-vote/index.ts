@@ -12,7 +12,7 @@ import {
   type TrackedTicket,
 } from "../_shared/expo-push.ts";
 import { internalError, json, postToExpo, rejectUnlessInternal, serviceClient } from "../_shared/server.ts";
-import { buildMessages, menuIfLast, parseNotifyRequest, type MealMode, type MenuDish, type VoteTopic } from "./messages.ts";
+import { buildMessages, menuIfLast, notificationCategory, parseNotifyRequest, type MealMode, type MenuDish, type VoteTopic } from "./messages.ts";
 
 Deno.serve(async (request) => {
   const rejected = rejectUnlessInternal(request);
@@ -76,7 +76,18 @@ Deno.serve(async (request) => {
     );
   }
 
-  const memberIds = (membersResult.data ?? []).map((member) => member.profile_id);
+  // Membres qui ont coupé cette catégorie dans Mon compte : on ne lit même pas leurs jetons.
+  // Pas de ligne de réglages = tout est activé.
+  const category = notificationCategory(mealMode);
+  const allMemberIds = (membersResult.data ?? []).map((member) => member.profile_id);
+  const { data: mutedRows, error: mutedError } = await supabase
+    .from("notification_settings")
+    .select("profile_id")
+    .in("profile_id", allMemberIds)
+    .eq(category, false);
+  if (mutedError) return internalError("Lecture des réglages", mutedError);
+  const muted = new Set((mutedRows ?? []).map((row) => row.profile_id));
+  const memberIds = allMemberIds.filter((id) => !muted.has(id));
   const { data: tokens, error: tokensError } = await supabase
     .from("push_tokens")
     .select("token, profile_id")
