@@ -23,7 +23,21 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "group_members": {
+            "foods": {
+                  Row: {
+                    "carbs_g": number | null,"fat_g": number | null,"group_name": string | null,"id": number,"kcal": number | null,"name": string,"protein_g": number | null,"unit_weight_g": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "carbs_g"?: number | null,"fat_g"?: number | null,"group_name"?: string | null,"id": number,"kcal"?: number | null,"name": string,"protein_g"?: number | null,"unit_weight_g"?: number | null
+                  }
+                  Update: {
+                    "carbs_g"?: number | null,"fat_g"?: number | null,"group_name"?: string | null,"id"?: number,"kcal"?: number | null,"name"?: string,"protein_g"?: number | null,"unit_weight_g"?: number | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"group_members": {
                   Row: {
                     "group_id": string,"joined_at": string,"profile_id": string
                   }
@@ -145,14 +159,14 @@ isOneToOne: false
                   ]
                 },"proposals": {
                   Row: {
-                    "created_at": string,"id": string,"name": string,"proposed_by": string | null,"session_id": string
+                    "created_at": string,"id": string,"name": string,"proposed_by": string | null,"recipe_id": string | null,"session_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"name": string,"proposed_by"?: string | null,"session_id": string
+                    "created_at"?: string,"id"?: string,"name": string,"proposed_by"?: string | null,"recipe_id"?: string | null,"session_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"name"?: string,"proposed_by"?: string | null,"session_id"?: string
+                    "created_at"?: string,"id"?: string,"name"?: string,"proposed_by"?: string | null,"recipe_id"?: string | null,"session_id"?: string
                   }
                   Relationships: [
                     {
@@ -160,6 +174,12 @@ isOneToOne: false
       columns: ["proposed_by"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "proposals_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "proposals_session_id_fkey"
@@ -209,16 +229,74 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"shopping_items": {
+                },"recipe_ingredients": {
                   Row: {
-                    "added_by": string | null,"checked_at": string | null,"checked_by": string | null,"cleared_at": string | null,"created_at": string,"group_id": string,"id": string,"label": string,"quantity": string | null
+                    "food_id": number | null,"id": string,"label": string,"position": number,"quantity": number | null,"raw": string,"recipe_id": string,"unit": Database["public"]['Enums']["ingredient_unit"] | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id": string,"id"?: string,"label": string,"quantity"?: string | null
+                    "food_id"?: number | null,"id"?: string,"label": string,"position": number,"quantity"?: number | null,"raw": string,"recipe_id": string,"unit"?: Database["public"]['Enums']["ingredient_unit"] | null
                   }
                   Update: {
-                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id"?: string,"id"?: string,"label"?: string,"quantity"?: string | null
+                    "food_id"?: number | null,"id"?: string,"label"?: string,"position"?: number,"quantity"?: number | null,"raw"?: string,"recipe_id"?: string,"unit"?: Database["public"]['Enums']["ingredient_unit"] | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recipe_ingredients_food_id_fkey"
+      columns: ["food_id"]
+isOneToOne: false
+      referencedRelation: "foods"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"recipes": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"group_id": string | null,"id": string,"photo_path": string | null,"servings": number,"source_recipe_id": string | null,"steps": (string)[],"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recipes_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipes_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipes_source_recipe_id_fkey"
+      columns: ["source_recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shopping_items": {
+                  Row: {
+                    "added_by": string | null,"checked_at": string | null,"checked_by": string | null,"cleared_at": string | null,"created_at": string,"group_id": string,"id": string,"label": string,"quantity": string | null,"recipe_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id": string,"id"?: string,"label": string,"quantity"?: string | null,"recipe_id"?: string | null
+                  }
+                  Update: {
+                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id"?: string,"id"?: string,"label"?: string,"quantity"?: string | null,"recipe_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -238,6 +316,12 @@ isOneToOne: false
       columns: ["group_id"]
 isOneToOne: false
       referencedRelation: "groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shopping_items_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
       referencedColumns: ["id"]
     }
                   ]
@@ -348,6 +432,12 @@ isOneToOne: false
             "call_edge_function":
 { Args: { "function_name": string,"payload": Json }; Returns: undefined
                            },
+"can_edit_recipe":
+{ Args: { "target_recipe_id": string }; Returns: boolean
+                           },
+"can_read_recipe":
+{ Args: { "target_recipe_id": string }; Returns: boolean
+                           },
 "choose_restaurant":
 { Args: { "restaurant_name": string,"target_group_id": string }; Returns: {
               "created_at": string,
@@ -394,6 +484,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"copy_base_recipe":
+{ Args: { "base_recipe_id": string,"target_group_id": string }; Returns: string
+                           },
 "create_group":
 { Args: { "group_name": string }; Returns: {
               "created_at": string,
@@ -469,6 +562,9 @@ isOneToOne: false
 "is_foyer_member":
 { Args: { "target_group_id": string }; Returns: boolean
                            },
+"is_foyer_member_folder":
+{ Args: { "folder": string }; Returns: boolean
+                           },
 "is_group_member":
 { Args: { "target_group_id": string }; Returns: boolean
                            },
@@ -522,11 +618,17 @@ isOneToOne: false
 "purge_soirees":
 { Args: { "reference_time"?: string }; Returns: number
                            },
+"recipe_steps_are_valid":
+{ Args: { "steps": (string)[] }; Returns: boolean
+                           },
 "regenerate_invite_code":
 { Args: { "target_group_id": string }; Returns: string
                            },
 "register_push_token":
 { Args: { "new_token": string }; Returns: undefined
+                           },
+"save_recipe":
+{ Args: { "ingredients": Json,"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
                            },
 "send_meal_day_reminders":
 { Args: { "reference_time"?: string }; Returns: number
@@ -570,7 +672,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","meal_moment": "midi"|"soir","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
+            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -690,7 +792,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"meal_moment": ["midi", "soir"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
+            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
           }
         }
 } as const

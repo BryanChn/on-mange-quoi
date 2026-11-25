@@ -116,6 +116,18 @@ Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette
 
 5. **« Je pars faire les courses »** (2026-11-25), dans un foyer d'au moins 2 personnes : les autres sont prévenus (« Besoin de quelque chose ? Ajoute-le à la liste. »), puis pendant 1 h, ce qu'ils ajoutent prévient celui qui fait les courses, regroupé sur 30 s (« À prendre aussi : lait, œufs. »). « J'ai fini » arrête. Un départ annoncé au plus toutes les 30 min par personne, pas d'annonce la nuit. Interrupteur « Liste de courses » dans Mon compte.
 
+### Recettes (tranché le 2026-11-25)
+
+Étude : https://claude.ai/artifact/SbaydwqqNZ36yrqnLn2yH2. La V1 se termine avec les recettes, avant les stores.
+
+1. Un **carnet par foyer**, partagé et modifiable par tous ses membres (ingrédients compris), suivi en direct. Pas de recette dans un repas à plusieurs.
+2. **Recettes de base** écrites pour l'app (contenu préparé par moi avec mon assistant cuisine, textes originaux : pas d'import d'un site, pas de scraping) ; « Ajouter à mon carnet » en fait une copie modifiable.
+3. Une recette : titre, parts, ingrédients, étapes, photo facultative (galerie, ou le plat pris en photo à la fin du mode cuisine). Un ingrédient = une ligne (« 500 g bœuf ») avec autocomplétion sur la table **Ciqual** (Anses) ; sans aliment choisi, la ligne reste en texte libre.
+4. **Calories et macros par part**, estimées depuis Ciqual, toujours affichées « ≈ … estimation », jamais un conseil de santé.
+5. La boucle : proposer une recette au vote, « Voir la recette » au résultat, « Ajouter aux courses » (parts = nombre de membres du foyer, on décoche ce qu'on a, pas de doublon), mode cuisine (une étape par écran, écran allumé).
+
+Plus tard, volontairement : partage communautaire des recettes (V2, avec modération) ; recettes qui connaissent le stock (V3) ; filtres végétarien, sans porc, difficulté, budget (V2).
+
 ### Notifications d'un repas (tranché le 2026-11-25)
 
 Retour d'usage : savoir qui rejoint et qui apporte quoi, sans être noyé de notifications.
