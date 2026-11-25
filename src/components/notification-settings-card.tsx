@@ -57,13 +57,13 @@ export function NotificationSettingsCard() {
   return (
     <View style={styles.block}>
       <Text style={styles.title} accessibilityRole="header">
-        Notifications
+        Me prévenir
       </Text>
       <ListCard>
         <ListSwitchRow
           icon="bell"
-          label="Votes"
-          subtitle="Un vote commence, le rappel, le résultat"
+          label="Votes du foyer"
+          subtitle="Un vote commence, un rappel si tu n’as rien coché, le plat choisi"
           value={shown.votes}
           onChange={(isOn) => handleChange("votes", isOn)}
           isDisabled={isDisabled}
@@ -71,12 +71,15 @@ export function NotificationSettingsCard() {
         <ListSwitchRow
           icon="users"
           label="Repas à plusieurs"
-          subtitle="Les votes et les nouvelles d’un repas"
+          subtitle="Qui rejoint et qui apporte quoi, les votes du repas"
           value={shown.meals}
           onChange={(isOn) => handleChange("meals", isOn)}
           isDisabled={isDisabled}
         />
       </ListCard>
+      {/* Retour d'usage du 2026-11-25 : un test seul, sans notification pour son propre
+          apport, faisait croire à une panne. */}
+      <Text style={styles.hint}>Jamais pour ce que tu fais toi-même.</Text>
       {error ? (
         <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {error}
@@ -91,5 +94,6 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     block: { gap: spacing.sm },
     title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
     error: { color: colors.danger, fontSize: fontSize.small },
+    hint: { color: colors.textMuted, fontSize: fontSize.caption },
   });
 }
