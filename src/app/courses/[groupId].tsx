@@ -14,12 +14,13 @@ import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
+import { ShoppingTripCard } from "@/components/shopping-trip-card";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextField } from "@/components/text-field";
 import { fetchGroup } from "@/lib/groups";
-import { hapticAdded, hapticReject, hapticTick, hapticToggle } from "@/lib/haptics";
+import { hapticAdded, hapticConfirm, hapticReject, hapticTick, hapticToggle } from "@/lib/haptics";
 import type { Member } from "@/lib/members";
 import {
   checkEntering,
@@ -32,12 +33,16 @@ import { useSession } from "@/lib/session";
 import {
   addShoppingItem,
   clearCheckedItems,
+  endShoppingTrip,
+  fetchActiveTrips,
   fetchShoppingHistory,
   fetchShoppingList,
   removeShoppingItem,
   setShoppingItemChecked,
+  startShoppingTrip,
   subscribeToShoppingList,
   updateShoppingItem,
+  type ShoppingTrip,
 } from "@/lib/shopping";
 import {
   buildSuggestions,
@@ -56,6 +61,8 @@ type ListState = {
   items: ShoppingItem[];
   history: ShoppingHistoryEntry[];
   members: Map<string, Member>;
+  // Qui est aux courses en ce moment (« Je pars faire les courses »).
+  trips: ShoppingTrip[];
 };
 
 // La liste de courses d'un foyer (maquette du 24/11 : https://claude.ai/artifact/TbwTRnDRkExZVUx6rupwNC).
@@ -80,6 +87,7 @@ export default function ShoppingListScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isTripBusy, setIsTripBusy] = useState(false);
   // Article ouvert par un appui long, et ses champs.
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
@@ -102,14 +110,16 @@ export default function ShoppingListScreen() {
       fetchGroup(groupId),
       fetchShoppingList(groupId),
       fetchShoppingHistory(groupId),
+      fetchActiveTrips(groupId),
     ]).then(
-      ([group, items, history]) => {
+      ([group, items, history, trips]) => {
         if (latestRequestRef.current !== requestId) return;
         setList({
           groupName: group.name,
           items,
           history,
           members: new Map(group.members.map((member) => [member.id, member])),
+          trips,
         });
         setHasFailed(false);
       },
@@ -164,6 +174,44 @@ export default function ShoppingListScreen() {
     if (profileId === null) return "quelqu’un";
     if (profileId === userId) return "toi";
     return list?.members.get(profileId)?.name ?? "quelqu’un";
+  }
+
+  async function handleStartTrip() {
+    setError(null);
+    setNotice(null);
+    setIsTripBusy(true);
+    try {
+      const { isAnnounced } = await startShoppingTrip(groupId);
+      hapticConfirm();
+      // La nuit, ou un départ déjà annoncé il y a peu : le foyer n'est pas prévenu une fois de
+      // plus, mais les ajouts arrivent quand même.
+      setNotice(
+        isAnnounced
+          ? "Le foyer est prévenu. Ce qu’ils ajoutent t’arrive pendant 1 h."
+          : "Ce que le foyer ajoute t’arrive pendant 1 h.",
+      );
+      loadList();
+    } catch {
+      hapticReject();
+      setError("Le départ n’est pas passé : vérifie ta connexion et réessaie.");
+    } finally {
+      setIsTripBusy(false);
+    }
+  }
+
+  async function handleEndTrip() {
+    setError(null);
+    setNotice(null);
+    setIsTripBusy(true);
+    try {
+      await endShoppingTrip(groupId);
+      loadList();
+    } catch {
+      hapticReject();
+      setError("Ce n’est pas passé : vérifie ta connexion et réessaie.");
+    } finally {
+      setIsTripBusy(false);
+    }
   }
 
   async function handleAdd() {
@@ -473,6 +521,16 @@ export default function ShoppingListScreen() {
           </View>
         ) : null}
       </SignatureCard>
+
+      <ShoppingTripCard
+        trips={list.trips}
+        userId={userId}
+        nameOf={(profileId) => list.members.get(profileId)?.name ?? "Quelqu’un"}
+        canStart={list.members.size >= 2}
+        isBusy={isTripBusy}
+        onStart={handleStartTrip}
+        onEnd={handleEndTrip}
+      />
 
       <View style={styles.addBlock}>
         <View style={styles.composer}>

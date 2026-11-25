@@ -13,6 +13,10 @@ test("notificationTarget lit le repas envoyé par notify-meal", () => {
   assert.deepEqual(notificationTarget({ soireeId: ID }), { kind: "soiree", id: ID });
 });
 
+test("notificationTarget lit la liste de courses envoyée par notify-shopping", () => {
+  assert.deepEqual(notificationTarget({ coursesGroupId: ID }), { kind: "courses", id: ID });
+});
+
 test("notificationTarget refuse ce qui n'est pas un identifiant", () => {
   assert.equal(notificationTarget(undefined), null);
   assert.equal(notificationTarget({}), null);
