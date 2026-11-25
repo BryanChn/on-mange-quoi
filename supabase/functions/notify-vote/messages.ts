@@ -92,6 +92,8 @@ type MessageInput = {
   // null pour un foyer.
   mealMode: MealMode | null;
   topic: VoteTopic;
+  // Midi ou soir pour un foyer (migration vote_moment) ; null pour un repas.
+  moment: "midi" | "soir" | null;
   organizerId: string | null;
   organizerName: string | null;
   winnerName: string | null;
@@ -145,8 +147,12 @@ function closedBody(input: MessageInput): string {
 
 function bodyFor(input: MessageInput): string {
   if (input.event === "opened") {
-    // Pas de « ce soir » : un vote se lance aussi le midi.
-    return `${input.organizerName ?? "Quelqu'un"} lance le vote : ${QUESTION[input.topic]}`;
+    // Un foyer dit pour quel repas (« on mange quoi ce midi ? »), un repas a sa date.
+    const question =
+      input.topic === "plat" && input.moment
+        ? `on mange quoi ${input.moment === "midi" ? "ce midi" : "ce soir"} ?`
+        : QUESTION[input.topic];
+    return `${input.organizerName ?? "Quelqu'un"} lance le vote : ${question}`;
   }
   if (input.event === "reminder") {
     // Un repas « maison » n'a qu'un rappel pour tous ses votes : il parle du menu.

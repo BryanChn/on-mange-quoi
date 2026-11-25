@@ -18,6 +18,7 @@ const base: Omit<Parameters<typeof buildMessages>[0], "event"> = {
   groupName: "Famille",
   mealMode: null,
   topic: "plat",
+  moment: null,
   menu: null,
   organizerId: BRYAN,
   organizerName: "Bryan",
@@ -219,4 +220,15 @@ test("réglages : un foyer obéit à « Votes », un repas à « Repas à plusie
   assert.equal(notificationCategory("commande"), "meals");
   assert.equal(notificationCategory("resto"), "meals");
   assert.equal(notificationCategory("maison"), "meals");
+});
+
+test("foyer : le lancement dit pour quel repas", () => {
+  assert.equal(
+    buildMessages({ ...base, event: "opened", moment: "midi" })[0].body,
+    "Bryan lance le vote : on mange quoi ce midi ?",
+  );
+  assert.equal(
+    buildMessages({ ...base, event: "opened", moment: "soir" })[0].body,
+    "Bryan lance le vote : on mange quoi ce soir ?",
+  );
 });
