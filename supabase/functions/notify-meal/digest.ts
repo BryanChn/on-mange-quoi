@@ -3,9 +3,18 @@
 
 import type { ExpoMessage } from "../_shared/expo-push.ts";
 
-// Envoyé par send_meal_digests (pg_cron) : le repas et la fenêtre du résumé.
+// À qui s'adresse le résumé (migration meal_digest_audiences) : l'organisateur, prévenu en
+// 1 min environ, ou les autres participants, au plus toutes les 30 min.
+export type DigestAudience = "owner" | "others";
+
+// Envoyé par send_meal_digests (pg_cron) : le repas, à qui, et la fenêtre du résumé.
 // since = null : premier résumé du repas, tout ce qui précède until.
-export type DigestRequest = { groupId: string; since: string | null; until: string };
+export type DigestRequest = {
+  groupId: string;
+  audience: DigestAudience;
+  since: string | null;
+  until: string;
+};
 
 // Quelqu'un qui a rejoint le repas pendant la fenêtre.
 export type Arrival = { profileId: string; name: string };
@@ -24,11 +33,23 @@ function isInstant(value: unknown): value is string {
 // Le corps vient de la base, mais l'URL de la fonction est publique : on valide tout.
 export function parseDigestRequest(body: unknown): DigestRequest | null {
   if (typeof body !== "object" || body === null) return null;
-  const { group_id: groupId, since, until } = body as Record<string, unknown>;
+  const { group_id: groupId, audience, since, until } = body as Record<string, unknown>;
   if (typeof groupId !== "string" || !UUID.test(groupId)) return null;
+  if (audience !== "owner" && audience !== "others") return null;
   if (!isInstant(until)) return null;
   if (since !== null && !isInstant(since)) return null;
-  return { groupId, since, until };
+  return { groupId, audience, since, until };
+}
+
+// L'organisateur a son propre résumé, plus rapide : il ne reçoit pas celui des autres.
+export function recipientsFor(
+  audience: DigestAudience,
+  ownerId: string,
+  recipients: Recipient[],
+): Recipient[] {
+  return recipients.filter((recipient) =>
+    audience === "owner" ? recipient.profileId === ownerId : recipient.profileId !== ownerId,
+  );
 }
 
 // Au-delà de 3 personnes, on compte au lieu de nommer : une notification se lit d'un coup
