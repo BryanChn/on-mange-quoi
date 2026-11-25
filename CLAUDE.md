@@ -119,8 +119,9 @@ Retour d'usage : savoir qui rejoint et qui apporte quoi, sans être noyé de not
 1. Les votes d'un repas parlent de leur sujet (« où on mange ? », « quel dessert ? »). Repas chez quelqu'un : une seule notification quand tout le menu est décidé, avec tous les plats ; le rappel unique parle du menu.
 2. **Réglages dans Mon compte** : deux interrupteurs, « Votes » et « Repas à plusieurs », activés par défaut (une notification à activer soi-même, personne ne l'active). Le serveur ne prévient pas qui a coupé. **Par repas** (2026-11-25) : un interrupteur « Me tenir au courant » sur l'écran du repas, activé par défaut, coupe tout ce repas (ses votes, qui rejoint, qui apporte quoi) ; un seul interrupteur, pas une liste de cases.
 3. **Résumé du repas** (« Léa et Tom ont rejoint. Léa apporte : le pain. »), arrivées et apports seulement, pas la commande, jamais ses propres actions ni entre 22 h et 8 h. En deux vitesses (retour d'usage du 2026-11-25) : **l'organisateur** environ 1 min après un changement (il doit savoir qui vient et ce qui est couvert ; la minute regroupe une rafale) ; **les autres** qui ont l'app, au plus un résumé toutes les 30 min, 10 min après le premier changement et à partir de 2 nouveautés (une info en plus : la liste en direct évite déjà d'apporter deux fois la même chose).
-4. **Partager sur WhatsApp** aux moments clés (menu décidé, resto décidé, commande passée) : c'est le canal des invités.
-5. Haptique : un ajout réussi (apport, ligne de commande, article) vibre comme cocher un plat.
+4. **« C'est commandé »** (2026-11-25) : quand le responsable marque la commande passée, les participants qui ont l'app sont prévenus. **Le jour d'un repas chez quelqu'un** : un rappel à 10 h (« C'est aujourd'hui ! Tu apportes : le vin. »), seulement si le repas a été créé avant ce jour-là.
+5. **Partager sur WhatsApp** aux moments clés (menu décidé, resto décidé, commande passée) : c'est le canal des invités.
+6. Haptique : un ajout réussi (apport, ligne de commande, article) vibre comme cocher un plat.
 
 Écarté : une notification par ajout ou par arrivée (du bruit à 20) ; les notifications aux invités sans l'app (Web Push : une page ouverte une fois, souvent refusée, et sur iPhone seulement si le site est sur l'écran d'accueil).
 
