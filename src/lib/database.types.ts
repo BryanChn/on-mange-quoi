@@ -257,14 +257,14 @@ isOneToOne: false
                   ]
                 },"recipes": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"group_id": string | null,"id": string,"photo_path": string | null,"servings": number,"source_recipe_id": string | null,"steps": (string)[],"title": string,"updated_at": string
+                    "budget": number | null,"created_at": string,"created_by": string | null,"diets": (Database["public"]['Enums']["recipe_diet"])[],"group_id": string | null,"id": string,"photo_path": string | null,"servings": number,"source_recipe_id": string | null,"steps": (string)[],"title": string,"total_minutes": number | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title": string,"updated_at"?: string
+                    "budget"?: number | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title": string,"total_minutes"?: number | null,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title"?: string,"updated_at"?: string
+                    "budget"?: number | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title"?: string,"total_minutes"?: number | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -680,7 +680,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
+            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","recipe_diet": "vegetarien"|"vegan"|"sans_porc"|"sans_gluten"|"sans_lactose","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -800,7 +800,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
+            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"recipe_diet": ["vegetarien", "vegan", "sans_porc", "sans_gluten", "sans_lactose"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
           }
         }
 } as const

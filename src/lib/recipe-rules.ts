@@ -282,8 +282,9 @@ export type Macros = {
   proteinG: number;
   carbsG: number;
   fatG: number;
-  // Ingrédients comptés et laissés de côté (sans aliment, sans quantité, pièce sans poids) :
-  // l'écran dit « estimation » et, s'il en manque, combien.
+  // Ingrédients comptés, et ceux laissés de côté alors qu'ils ont une quantité (sans aliment, ou
+  // pièce sans poids) : l'écran dit « estimation » et, s'il en manque, combien. Un assaisonnement
+  // « au goût », sans quantité, ne pèse rien : il n'est pas signalé.
   counted: number;
   uncounted: number;
 };
@@ -294,9 +295,13 @@ export function macrosPerServing(ingredients: MacroIngredient[], servings: numbe
   if (!(servings > 0)) return null;
   const total = { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 };
   let counted = 0;
+  let uncounted = 0;
   for (const { quantity, unit, food } of ingredients) {
     const grams = food ? ingredientGrams(quantity, unit, food.unitWeightG) : null;
-    if (food === null || grams === null) continue;
+    if (food === null || grams === null) {
+      if (quantity !== null) uncounted += 1;
+      continue;
+    }
     const ratio = grams / 100;
     total.kcal += (food.kcal ?? 0) * ratio;
     total.proteinG += (food.proteinG ?? 0) * ratio;
@@ -311,7 +316,7 @@ export function macrosPerServing(ingredients: MacroIngredient[], servings: numbe
     carbsG: Math.round(total.carbsG / servings),
     fatG: Math.round(total.fatG / servings),
     counted,
-    uncounted: ingredients.length - counted,
+    uncounted,
   };
 }
 
@@ -560,4 +565,49 @@ export function carnetSuggestions<T extends CarnetEntry>(
 export function recipeByTitle<T extends CarnetEntry>(recipes: T[], name: string): T | null {
   const wanted = foldText(name).replace(/\s+/g, " ");
   return recipes.find((recipe) => foldText(recipe.title).replace(/\s+/g, " ") === wanted) ?? null;
+}
+
+// ─── étiquettes ──────────────────────────────────────────
+
+export type RecipeDiet = "vegetarien" | "vegan" | "sans_porc" | "sans_gluten" | "sans_lactose";
+
+const DIET_LABELS: Record<RecipeDiet, string> = {
+  vegetarien: "Végétarien",
+  vegan: "Vegan",
+  sans_porc: "Sans porc",
+  sans_gluten: "Sans gluten",
+  sans_lactose: "Sans lactose",
+};
+
+// « 35 min », « 1 h », « 1 h 30 ».
+export function durationLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const rest = minutes % 60;
+  return rest === 0
+    ? `${Math.floor(minutes / 60)} h`
+    : `${Math.floor(minutes / 60)} h ${String(rest).padStart(2, "0")}`;
+}
+
+// La ligne sous le titre d'une recette : « 35 min · € · Vegan, sans gluten ». Vegan suffit (il
+// dit végétarien) ; sans porc ne se dit que d'un plat qui pourrait en contenir (pas végétarien).
+export function recipeMeta(
+  totalMinutes: number | null,
+  budget: number | null,
+  diets: RecipeDiet[],
+): string | null {
+  const shown = diets.filter(
+    (diet) =>
+      !(diet === "vegetarien" && diets.includes("vegan")) &&
+      !(diet === "sans_porc" && (diets.includes("vegetarien") || diets.includes("vegan"))),
+  );
+  const parts = [
+    totalMinutes ? durationLabel(totalMinutes) : null,
+    budget ? "€".repeat(budget) : null,
+    shown.length > 0
+      ? shown
+          .map((diet, index) => (index === 0 ? DIET_LABELS[diet] : DIET_LABELS[diet].toLowerCase()))
+          .join(", ")
+      : null,
+  ].filter((part): part is string => part !== null);
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
