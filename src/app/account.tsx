@@ -26,7 +26,7 @@ import type { AvatarId } from "@/lib/avatar";
 import { signOut } from "@/lib/notifications";
 import { openPrivacyPolicy } from "@/lib/privacy";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
-import { pickProfilePhoto, type PhotoSource } from "@/lib/profile-photo-picker";
+import { pickProfilePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { canCheckForUpdates, fetchLatestUpdate, restartOnLatestUpdate } from "@/lib/updates";
 import { useTheme, type Theme } from "@/theme";
 

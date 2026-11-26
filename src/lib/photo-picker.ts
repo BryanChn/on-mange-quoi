@@ -1,20 +1,24 @@
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 
-// Choisir une photo de profil, comme dans les autres apps : prendre une photo, ou en choisir
-// une dans la galerie. Recadrage carré par le système, puis réduction à 512 px en JPEG
-// (environ 100 Ko). Réencoder l'image efface ses métadonnées, dont la position GPS.
+// Choisir une photo, comme dans les autres apps : prendre une photo, ou en choisir une dans la
+// galerie. Recadrage par le système, puis réduction en JPEG : profil carré de 512 px (environ
+// 100 Ko), plat en 4:3 de 1200 × 900 px (environ 200 Ko, sous la limite de 1 Mo du stockage).
+// Réencoder l'image efface ses métadonnées, dont la position GPS.
 
 export type PhotoSource = "camera" | "library";
 
 export type PickedPhoto =
-  | { kind: "picked"; bytes: Uint8Array }
+  // uri : le fichier réduit sur le téléphone, pour l'aperçu avant l'envoi.
+  | { kind: "picked"; bytes: Uint8Array; uri: string }
   | { kind: "canceled" }
   // Appareil photo refusé : seuls les réglages du téléphone peuvent le rouvrir.
   | { kind: "denied" };
 
-const PHOTO_SIZE = 512;
-const JPEG_QUALITY = 0.8;
+type PhotoFormat = { width: number; height: number; quality: number };
+
+const PROFILE_FORMAT: PhotoFormat = { width: 512, height: 512, quality: 0.8 };
+const RECIPE_FORMAT: PhotoFormat = { width: 1200, height: 900, quality: 0.75 };
 
 function base64ToBytes(base64: string): Uint8Array {
   const binary = atob(base64);
@@ -23,11 +27,19 @@ function base64ToBytes(base64: string): Uint8Array {
   return bytes;
 }
 
-export async function pickProfilePhoto(source: PhotoSource): Promise<PickedPhoto> {
+export function pickProfilePhoto(source: PhotoSource): Promise<PickedPhoto> {
+  return pickPhoto(source, PROFILE_FORMAT);
+}
+
+export function pickRecipePhoto(source: PhotoSource): Promise<PickedPhoto> {
+  return pickPhoto(source, RECIPE_FORMAT);
+}
+
+async function pickPhoto(source: PhotoSource, format: PhotoFormat): Promise<PickedPhoto> {
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ["images"],
     allowsEditing: true,
-    aspect: [1, 1],
+    aspect: [format.width, format.height],
     quality: 1,
   };
 
@@ -45,14 +57,14 @@ export async function pickProfilePhoto(source: PhotoSource): Promise<PickedPhoto
   if (!asset) return { kind: "canceled" };
 
   // Décodée directement à la bonne taille : une photo de 12 Mpx n'est jamais chargée entière.
-  const context = ImageManipulator.manipulate(asset.uri, { maxWidth: PHOTO_SIZE * 2 });
-  context.resize({ width: PHOTO_SIZE, height: PHOTO_SIZE });
+  const context = ImageManipulator.manipulate(asset.uri, { maxWidth: format.width * 2 });
+  context.resize({ width: format.width, height: format.height });
   const image = await context.renderAsync();
   const saved = await image.saveAsync({
     format: SaveFormat.JPEG,
-    compress: JPEG_QUALITY,
+    compress: format.quality,
     base64: true,
   });
   if (!saved.base64) throw new Error("Photo non encodée.");
-  return { kind: "picked", bytes: base64ToBytes(saved.base64) };
+  return { kind: "picked", bytes: base64ToBytes(saved.base64), uri: saved.uri };
 }

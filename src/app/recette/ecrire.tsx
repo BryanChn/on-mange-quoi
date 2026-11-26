@@ -20,7 +20,10 @@ import { ServingsStepper } from "@/components/servings-stepper";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
+import { RecipeBanner } from "@/components/recipe-tile";
 import { hapticAdded, hapticReject } from "@/lib/haptics";
+import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
+import { removeRecipePhoto, removeRecipePhotoFile, uploadRecipePhoto } from "@/lib/photo-storage";
 import {
   buildRecipeDraft,
   fieldsFromIngredient,
@@ -71,6 +74,15 @@ export default function WriteRecipeScreen() {
   const insets = useSafeAreaInsets();
   const isEditing = Boolean(id);
 
+  // La recette enregistrée : son id, et sa photo en ligne. Après un premier enregistrement dont
+  // la photo a échoué, réessayer met à jour cette recette au lieu d'en créer une deuxième.
+  const [savedId, setSavedId] = useState<string | null>(id ?? null);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  // Une photo choisie, pas encore envoyée (aperçu), ou la photo en ligne à retirer.
+  const [pendingPhoto, setPendingPhoto] = useState<{ bytes: Uint8Array; uri: string } | null>(null);
+  const [isPhotoRemoved, setIsPhotoRemoved] = useState(false);
+  const [isPicking, setIsPicking] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [form, setForm] = useState<Form | null>(
     isEditing ? null : { title: "", servings: 4, ingredients: [], steps: [] },
   );
@@ -105,6 +117,7 @@ export default function WriteRecipeScreen() {
     if (!id) return;
     fetchRecipe(id).then(
       (recipe) => {
+        setPhotoPath(recipe.photoPath);
         setForm({
           title: recipe.title,
           servings: recipe.servings,
@@ -286,6 +299,33 @@ export default function WriteRecipeScreen() {
 
   // ─── enregistrer, retirer ───
 
+  // ─── photo ───
+
+  async function handlePickPhoto(source: PhotoSource) {
+    setPhotoError(null);
+    setIsPicking(true);
+    try {
+      const picked = await pickRecipePhoto(source);
+      if (picked.kind === "denied") {
+        setPhotoError("L’appareil photo est refusé : autorise-le dans les réglages du téléphone.");
+      } else if (picked.kind === "picked") {
+        setPendingPhoto({ bytes: picked.bytes, uri: picked.uri });
+        setIsPhotoRemoved(false);
+        setIsDirty(true);
+      }
+    } catch {
+      setPhotoError("La photo n’a pas pu être préparée. Réessaie avec une autre.");
+    } finally {
+      setIsPicking(false);
+    }
+  }
+
+  function handleRemovePhoto() {
+    setPendingPhoto(null);
+    setIsPhotoRemoved(photoPath !== null);
+    setIsDirty(true);
+  }
+
   async function handleSave() {
     if (!form || isSaving) return;
     // Ce qui reste dans les champs d'ajout compte : on ne perd pas le dernier ingrédient tapé
@@ -308,17 +348,38 @@ export default function WriteRecipeScreen() {
     }
     setErrors({});
     setIsSaving(true);
+    let recipeId: string;
     try {
-      const savedId = await saveRecipe(groupId, id ?? null, result.draft);
-      hapticAdded();
-      disablePrevention();
-      if (isEditing) router.back();
-      else router.replace({ pathname: "/recette/[id]", params: { id: savedId, groupId } });
+      recipeId = await saveRecipe(groupId, savedId, result.draft);
+      setSavedId(recipeId);
     } catch {
       hapticReject();
       setErrors({ save: "La recette n’a pas été enregistrée. Vérifie ta connexion et réessaie." });
       setIsSaving(false);
+      return;
     }
+    // La photo après la recette : son chemin s'enregistre sur une recette qui existe.
+    try {
+      if (pendingPhoto) {
+        setPhotoPath(await uploadRecipePhoto(groupId, recipeId, pendingPhoto.bytes, photoPath));
+        setPendingPhoto(null);
+      } else if (isPhotoRemoved && photoPath) {
+        await removeRecipePhoto(recipeId, photoPath);
+        setPhotoPath(null);
+        setIsPhotoRemoved(false);
+      }
+    } catch {
+      hapticReject();
+      setErrors({
+        save: "La recette est enregistrée, mais pas la photo. Vérifie ta connexion et réessaie.",
+      });
+      setIsSaving(false);
+      return;
+    }
+    hapticAdded();
+    disablePrevention();
+    if (isEditing) router.back();
+    else router.replace({ pathname: "/recette/[id]", params: { id: recipeId, groupId } });
   }
 
   async function handleDelete() {
@@ -326,6 +387,8 @@ export default function WriteRecipeScreen() {
     setDeleteStep("deleting");
     try {
       await deleteRecipe(id);
+      // Le fichier ne sert plus. Un échec laisse un fichier orphelin, sans gêner personne.
+      if (photoPath) await removeRecipePhotoFile(photoPath).catch(() => undefined);
       disablePrevention();
       // La recette n'existe plus : retour au carnet, l'écran de la recette dépilé aussi.
       router.dismissTo({ pathname: "/recettes/[groupId]", params: { groupId } });
@@ -347,6 +410,13 @@ export default function WriteRecipeScreen() {
       <Text style={styles.title} accessibilityRole="header">
         {isEditing ? "Modifier la recette" : "Écrire une recette"}
       </Text>
+
+      {/* L'encart du plat : la photo choisie, sinon le livre par défaut. */}
+      <RecipeBanner
+        recipeId={savedId ?? "nouvelle-recette"}
+        photoPath={isPhotoRemoved ? null : photoPath}
+        uri={pendingPhoto?.uri}
+      />
 
       <TextField
         label="Nom de la recette"
@@ -593,6 +663,41 @@ export default function WriteRecipeScreen() {
         {errors.steps ? <Text style={styles.error}>{errors.steps}</Text> : null}
       </View>
 
+      {/* ─── photo, facultative ─── */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          Photo <Text style={styles.count}>· facultative</Text>
+        </Text>
+        <Text style={styles.muted}>
+          Elle illustre le plat en haut de la recette. Tu pourras aussi l’ajouter plus tard.
+        </Text>
+        <View style={styles.photoActions}>
+          <TextButton
+            label={isPicking ? "Ouverture…" : "Prendre une photo"}
+            onPress={() => handlePickPhoto("camera")}
+            isDisabled={isPicking || isSaving}
+          />
+          <TextButton
+            label="Choisir dans la galerie"
+            onPress={() => handlePickPhoto("library")}
+            isDisabled={isPicking || isSaving}
+          />
+          {pendingPhoto || (photoPath && !isPhotoRemoved) ? (
+            <TextButton
+              label="Retirer la photo"
+              variant="danger"
+              onPress={handleRemovePhoto}
+              isDisabled={isPicking || isSaving}
+            />
+          ) : null}
+        </View>
+        {photoError ? (
+          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            {photoError}
+          </Text>
+        ) : null}
+      </View>
+
       {errors.save ? (
         <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
           {errors.save}
@@ -709,6 +814,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     rowName: { flex: 1, color: colors.text, fontSize: fontSize.body },
     rowQuantity: { color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
     editRow: { gap: spacing.sm, padding: spacing.md },
+    photoActions: { flexDirection: "row", flexWrap: "wrap", columnGap: spacing.lg },
     suggestion: { gap: 2, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
     suggestionName: { color: colors.text, fontSize: fontSize.body },
     suggestionGroup: { color: colors.textMuted, fontSize: fontSize.caption },
