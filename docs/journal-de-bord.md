@@ -31,6 +31,8 @@ Tout est mergé et en ligne (#122 à #140) : migrations jusqu'à `base_recipes_l
 | 4 | Audit de sécurité (RLS, fonctions serveur, `npm audit`) | Claude |
 | 5 | Retirer les données de test du foyer Maison | Moi ou Claude |
 
+Noté le 26/11 au soir : **des étiquettes plus sympas** (pastilles plutôt qu'une ligne de texte, un **code couleur** pour végétarien et vegan, à décider avec la refonte du design et contrastes vérifiés en clair et en sombre) ; **trier et chercher par étiquette et par budget** dans le carnet (les filtres de la V2, déjà prévus).
+
 Plus tard : filtres (régime, temps, budget, peu calorique, protéines) en **V2**, les étiquettes sont déjà posées ; « spaghetti » propose d'abord « Courge spaghetti » (autocomplétion) ; minuteur dans le mode cuisine ; « Retirer de la liste les articles d'une recette » ; une galerie de photos par recette (non décidé).
 
 **Données de test dans le vrai foyer Maison** (ajoutées le 26/11, à retirer quand je veux) : 5 recettes (Pot-au-feu, Gratin dauphinois, Quiche lorraine, Soupe de légumes, Chili con carne) reliées à Ciqual, leurs photos et celle de ma Bolognaise (Wikimedia Commons : Quiche, Chili, Bolognaise en CC0 ; Pot-au-feu CC BY-SA 4.0 Tsaag Valren, Gratin CC BY-SA 3.0 Ludovic Péron, Soupe CC BY-SA 2.0 Scott Teresi : ne jamais les reprendre dans les recettes de base ni sur les stores), et 5 votes clos datés du 16 au 22/11 (insérés déclencheurs coupés : aucune notification). Retrait : supprimer les recettes depuis l'app ; les votes : `delete from vote_sessions where group_id = '3e055308-…' and created_at < '2026-11-23'` (après accord).
