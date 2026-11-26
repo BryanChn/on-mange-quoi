@@ -142,3 +142,7 @@ Chaque version a un objectif et un indicateur mesurable. L'indicateur du MVP se 
 | V4 · Dépenses | Analyse des dépenses et des habitudes | À définir |
 
 Les décisions produit viennent de l'usage réel : le tirage au sort a remplacé le choix de l'organisateur (vécu comme un passage en force), le rappel unique est né d'un membre qui travaille tard, et le récap reste en texte plutôt qu'en image parce qu'une image ne garde pas le lien cliquable. Le [journal de bord](docs/journal-de-bord.md) retrace ces décisions, les bugs rencontrés et leurs corrections.
+
+## Données
+
+Les calories et les macros des recettes sont estimées à partir de la **table de composition nutritionnelle des aliments Ciqual 2025** de l'Anses (version 1.0 du 19/11/2025, [doi:10.57745/RDMHWY](https://doi.org/10.57745/RDMHWY)), sous [Licence Ouverte Etalab 2.0](https://www.etalab.gouv.fr/licence-ouverte-open-licence/). Import reproductible : `node scripts/ciqual-to-sql.mjs <dossier des XML>` génère la migration `supabase/migrations/20261202120000_foods_ciqual.sql`.

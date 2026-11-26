@@ -630,6 +630,11 @@ isOneToOne: false
 "save_recipe":
 { Args: { "ingredients": Json,"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
                            },
+"search_foods":
+{ Args: { "query": string }; Returns: {
+              "group_name": string | null,"id": number,"name": string
+            }[]
+                           },
 "send_meal_day_reminders":
 { Args: { "reference_time"?: string }; Returns: number
                            },

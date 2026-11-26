@@ -14,6 +14,7 @@ import {
   fetchCarnets,
   fetchRecipe,
   saveRecipe,
+  searchFoods,
   type RecipeDraft,
 } from "../../src/lib/recipes.ts";
 import { fetchHome } from "../../src/lib/home.ts";
@@ -358,5 +359,48 @@ describe("ce que lisent les écrans", () => {
     await signInAs(dan);
     assert.equal((await fetchHome()).recipesByGroup.get(groupId), undefined);
     assert.ok(!(await fetchCarnets()).some((summary) => summary.groupId === groupId));
+  });
+});
+
+describe("les aliments Ciqual", () => {
+  test("la table est importée : la carotte crue a ses valeurs pour 100 g", async () => {
+    await signInAs(alice);
+    const { data, error } = await supabase
+      .from("foods")
+      .select("name, kcal, protein_g, carbs_g, fat_g")
+      .eq("id", 20009)
+      .single();
+    assert.equal(error, null);
+    assert.deepEqual(data, {
+      name: "Carotte, crue",
+      kcal: 30.2,
+      protein_g: 0.78,
+      carbs_g: 5.16,
+      fat_g: 0,
+    });
+  });
+
+  test("chercher sans accents ni majuscules, ce qui commence par le texte d'abord", async () => {
+    await signInAs(alice);
+    const carrots = await searchFoods("CAROTTE");
+    assert.ok(carrots.length > 0 && carrots.length <= 8);
+    assert.ok(carrots[0].name.toLowerCase().startsWith("carotte"), carrots[0].name);
+    assert.ok(carrots.every((food) => food.name.toLowerCase().includes("carotte")));
+
+    // Ciqual écrit « Oeuf » ; un téléphone propose « Œuf ».
+    const eggs = await searchFoods("Œuf");
+    assert.ok(
+      eggs.some((food) => food.name.startsWith("Oeuf")),
+      "« Œuf » trouve « Oeuf »",
+    );
+    const creams = await searchFoods("creme");
+    assert.ok(
+      creams.some((food) => food.name.includes("Crème")),
+      "« creme » trouve « Crème »",
+    );
+
+    // Trop court, ou des jokers tapés : rien d'inattendu.
+    assert.deepEqual(await searchFoods("c"), []);
+    assert.deepEqual(await searchFoods("%%"), []);
   });
 });
