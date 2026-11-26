@@ -120,6 +120,8 @@ function RootNavigator() {
         <Stack.Screen name="recette/[id]" options={{ title: "" }} />
         <Stack.Screen name="recette/ecrire" options={{ title: "" }} />
         <Stack.Screen name="recette/courses" options={{ title: "" }} />
+        {/* Plein écran : les étapes en grand, le quitter est dans l'écran lui-même. */}
+        <Stack.Screen name="recette/cuisine" options={{ headerShown: false }} />
         {/* L'écran porte son grand titre (« C'est quoi le plan ? ») : l'en-tête garde le retour. */}
         <Stack.Screen name="soiree/new" options={{ title: "" }} />
         <Stack.Screen name="account" options={{ title: "Profil" }} />

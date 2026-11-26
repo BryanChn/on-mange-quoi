@@ -238,6 +238,19 @@ export default function RecipeScreen() {
         </View>
       ) : null}
 
+      {recipe.steps.length > 0 ? (
+        <PrimaryButton
+          label="Cuisiner, étape par étape"
+          variant="secondary"
+          onPress={() =>
+            router.push({
+              pathname: "/recette/cuisine",
+              params: { id: recipe.id, servings: String(servings) },
+            })
+          }
+        />
+      ) : null}
+
       {isBase ? null : (
         <PrimaryButton
           label="Ajouter aux courses"
