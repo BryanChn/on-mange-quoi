@@ -4,7 +4,8 @@ import { test } from "node:test";
 import {
   buildRecipeDraft,
   formatAmount,
-  ingredientPreview,
+  fieldsFromIngredient,
+  ingredientFromFields,
   ingredientGrams,
   macrosPerServing,
   matchesRecipeSearch,
@@ -276,27 +277,27 @@ test("écrans : une vignette garde sa couleur", () => {
 });
 
 const form = {
-  title: "  Bolognaise   maison ",
-  servings: 4,
+  title: "  Pot-au-feu ",
+  servings: 6,
   ingredients: [
-    { raw: " 500 g de bœuf haché ", foodId: 42 },
-    { raw: "   ", foodId: null },
-    { raw: "sel", foodId: null },
+    { name: " Plat de côte ", quantity: "1 kg", foodId: 42 },
+    { name: "   ", quantity: "3", foodId: null },
+    { name: "Gros sel", quantity: "", foodId: null },
   ],
-  steps: ["  Faire revenir\nl'oignon  ", "", "Servir"],
+  steps: ["  Écumer\nle bouillon  ", "", "Servir"],
 };
 
 test("écrire : le brouillon envoyé à la base", () => {
   assert.deepEqual(buildRecipeDraft(form), {
     ok: true,
     draft: {
-      title: "Bolognaise maison",
-      servings: 4,
+      title: "Pot-au-feu",
+      servings: 6,
       ingredients: [
-        { raw: "500 g de bœuf haché", label: "bœuf haché", quantity: 500, unit: "g", foodId: 42 },
-        { raw: "sel", label: "sel", quantity: null, unit: null, foodId: null },
+        { raw: "1 kg Plat de côte", label: "Plat de côte", quantity: 1, unit: "kg", foodId: 42 },
+        { raw: "Gros sel", label: "Gros sel", quantity: null, unit: null, foodId: null },
       ],
-      steps: ["Faire revenir l'oignon", "Servir"],
+      steps: ["Écumer le bouillon", "Servir"],
     },
   });
 });
@@ -310,11 +311,10 @@ test("écrire : un message clair pour chaque limite", () => {
   assert.deepEqual(errorsOf({ title: "a".repeat(81) }), {
     title: "Le nom fait 80 caractères au plus.",
   });
-  assert.deepEqual(errorsOf({ ingredients: [{ raw: "a".repeat(121), foodId: null }] }), {
-    ingredients: "Une ligne fait 120 caractères au plus.",
-  });
   assert.deepEqual(
-    errorsOf({ ingredients: Array.from({ length: 61 }, () => ({ raw: "sel", foodId: null })) }),
+    errorsOf({
+      ingredients: Array.from({ length: 61 }, () => ({ name: "sel", quantity: "", foodId: null })),
+    }),
     { ingredients: "60 ingrédients au plus." },
   );
   assert.deepEqual(errorsOf({ steps: ["a".repeat(501)] }), {
@@ -327,10 +327,66 @@ test("écrire : un message clair pour chaque limite", () => {
   assert.equal(buildRecipeDraft({ ...form, ingredients: [], steps: [] }).ok, true);
 });
 
-test("écrire : ce que l'app a compris d'une ligne", () => {
-  assert.equal(ingredientPreview("500 g de bœuf haché"), "500 g · bœuf haché");
-  assert.equal(ingredientPreview("2 c. à s. d'huile"), "2 c. à soupe · huile");
-  assert.equal(ingredientPreview("2 œufs"), "2 · œufs");
-  assert.equal(ingredientPreview("sel"), "Sans quantité");
-  assert.equal(ingredientPreview("  "), null);
+test("écrire : un nom et une quantité deviennent une ligne", () => {
+  assert.deepEqual(ingredientFromFields("Plat de côte", "1 kg"), {
+    raw: "1 kg Plat de côte",
+    label: "Plat de côte",
+    quantity: 1,
+    unit: "kg",
+  });
+  assert.deepEqual(ingredientFromFields("Huile d'olive", "2 c. à s."), {
+    raw: "2 c. à s. Huile d'olive",
+    label: "Huile d'olive",
+    quantity: 2,
+    unit: "cuillere_soupe",
+  });
+  assert.deepEqual(ingredientFromFields("Carottes", "6"), {
+    raw: "6 Carottes",
+    label: "Carottes",
+    quantity: 6,
+    unit: null,
+  });
+  // Ce que la quantité dit de plus reste lisible à côté du nom.
+  assert.deepEqual(ingredientFromFields("Ail", "3 gousses"), {
+    raw: "3 gousses Ail",
+    label: "Ail (gousses)",
+    quantity: 3,
+    unit: null,
+  });
+  assert.deepEqual(ingredientFromFields("Sel", "au goût"), {
+    raw: "au goût Sel",
+    label: "Sel (au goût)",
+    quantity: null,
+    unit: null,
+  });
+  assert.deepEqual(ingredientFromFields(" Gros   sel ", ""), {
+    raw: "Gros sel",
+    label: "Gros sel",
+    quantity: null,
+    unit: null,
+  });
+});
+
+test("écrire : modifier rend les deux champs, et les réenregistrer ne change rien", () => {
+  for (const [name, quantity] of [
+    ["Plat de côte", "1 kg"],
+    ["Huile d'olive", "2 c. à soupe"],
+    ["Ail", "3 gousses"],
+    ["Sel", "au goût"],
+    ["Gros sel", ""],
+    ["Lait", "1,5 l"],
+  ]) {
+    const saved = ingredientFromFields(name, quantity);
+    const fields = fieldsFromIngredient(saved);
+    const again = ingredientFromFields(fields.name, fields.quantity);
+    assert.deepEqual(
+      [again.label, again.quantity, again.unit],
+      [saved.label, saved.quantity, saved.unit],
+      `${name} / ${quantity}`,
+    );
+  }
+  assert.deepEqual(fieldsFromIngredient({ label: "Plat de côte", quantity: 1, unit: "kg" }), {
+    name: "Plat de côte",
+    quantity: "1 kg",
+  });
 });
