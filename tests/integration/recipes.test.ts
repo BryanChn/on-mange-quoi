@@ -25,6 +25,12 @@ import {
   uploadRecipePhoto,
 } from "../../src/lib/photo-storage.ts";
 import { macrosPerServing } from "../../src/lib/recipe-rules.ts";
+import {
+  addRecipeToShopping,
+  fetchShoppingList,
+  setShoppingItemChecked,
+} from "../../src/lib/shopping.ts";
+import { planShoppingAdditions } from "../../src/lib/shopping-rules.ts";
 import { createSoiree } from "../../src/lib/soirees.ts";
 import { closeSession, startSession } from "../../src/lib/votes.ts";
 import {
@@ -487,5 +493,47 @@ describe("la photo d'une recette, par l'app", () => {
     await removeRecipePhoto(recipeId, second);
     assert.equal((await fetchRecipe(recipeId)).photoPath, null);
     assert.equal(await exists(second), false);
+  });
+});
+
+describe("ajouter une recette aux courses", () => {
+  test("les nouveaux arrivent avec leur recette, le pris revient, le déjà à acheter n'est pas doublé", async () => {
+    const groupId = await createGroup(alice, [bea]);
+    await signInAs(alice);
+    const recipeId = await saveRecipe(groupId, null, { ...bolo, title: "Courses (test)" });
+    // Comme l'app : on ajoute, puis on coche (checked_at n'est pas modifiable à l'insertion,
+    // l'heure et l'auteur d'une coche viennent du serveur).
+    const taken = await supabase
+      .from("shopping_items")
+      .insert({ group_id: groupId, label: "Oignon" })
+      .select("id")
+      .single();
+    assert.equal(taken.error, null);
+    await setShoppingItemChecked(taken.data?.id ?? "", true);
+    await supabase.from("shopping_items").insert({ group_id: groupId, label: "Sel" });
+
+    await signInAs(bea);
+    const plan = planShoppingAdditions(
+      [
+        { label: "Bœuf haché", quantity: "250 g" },
+        { label: "oignon", quantity: "1" },
+        { label: "Sel", quantity: null },
+      ],
+      await fetchShoppingList(groupId),
+    );
+    assert.equal(await addRecipeToShopping(groupId, recipeId, plan), 2);
+
+    const list = await fetchShoppingList(groupId);
+    const beef = list.find((item) => item.label === "Bœuf haché");
+    assert.equal(beef?.quantity, "250 g");
+    assert.equal(list.filter((item) => item.label === "Sel").length, 1);
+    assert.equal(list.find((item) => item.id === taken.data?.id)?.checkedAt, null);
+    const origin = await supabase
+      .from("shopping_items")
+      .select("recipe_id")
+      .eq("group_id", groupId)
+      .eq("label", "Bœuf haché")
+      .single();
+    assert.equal(origin.data?.recipe_id, recipeId);
   });
 });
