@@ -119,6 +119,7 @@ function RootNavigator() {
         <Stack.Screen name="recettes/[groupId]" options={{ title: "" }} />
         <Stack.Screen name="recette/[id]" options={{ title: "" }} />
         <Stack.Screen name="recette/ecrire" options={{ title: "" }} />
+        <Stack.Screen name="recette/courses" options={{ title: "" }} />
         {/* L'écran porte son grand titre (« C'est quoi le plan ? ») : l'en-tête garde le retour. */}
         <Stack.Screen name="soiree/new" options={{ title: "" }} />
         <Stack.Screen name="account" options={{ title: "Profil" }} />

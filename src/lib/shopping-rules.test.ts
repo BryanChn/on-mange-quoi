@@ -7,6 +7,7 @@ import {
   clockLabel,
   findDuplicate,
   normalizeLabel,
+  planShoppingAdditions,
   shoppingShortcut,
   sortShoppingList,
   tripToShow,
@@ -129,4 +130,35 @@ test("tripToShow : le mien d'abord, sinon le plus récent des autres, sinon rien
   assert.deepEqual(tripToShow([lea, me], "me"), { trip: me, isMine: true });
   assert.deepEqual(tripToShow([lea], "me"), { trip: lea, isMine: false });
   assert.equal(tripToShow([], "me"), null);
+});
+
+test("ajouter une recette aux courses : sans doublon, ce qui est pris revient", () => {
+  const item = (id: string, label: string, checkedAt: string | null = null): ShoppingItem => ({
+    id,
+    label,
+    quantity: null,
+    addedBy: null,
+    checkedAt,
+    checkedBy: null,
+    createdAt: "2026-11-26T10:00:00Z",
+  });
+  const plan = planShoppingAdditions(
+    [
+      { label: "Plat de côte", quantity: "350 g" },
+      { label: "Carottes", quantity: "2" },
+      { label: "carottes", quantity: "1" },
+      { label: "Bouquet garni", quantity: "1" },
+      { label: "Poireaux", quantity: "1" },
+      { label: "  ", quantity: null },
+    ],
+    [item("a", "Bouquet garni"), item("b", "Poireaux", "2026-11-25T18:00:00Z")],
+  );
+  assert.deepEqual(plan, {
+    toInsert: [
+      { label: "Plat de côte", quantity: "350 g" },
+      { label: "Carottes", quantity: "2" },
+    ],
+    toUncheck: ["b"],
+    alreadyToBuy: ["Bouquet garni"],
+  });
 });

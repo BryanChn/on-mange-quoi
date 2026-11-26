@@ -6,6 +6,7 @@ import {
   sortShoppingList,
   type ShoppingHistoryEntry,
   type ShoppingItem,
+  type ShoppingPlan,
 } from "./shopping-rules";
 import { supabase } from "./supabase";
 
@@ -76,6 +77,35 @@ export async function addShoppingItem(
     .single();
   if (error) throw error;
   return toItem(data);
+}
+
+// « Ajouter aux courses » depuis une recette : les nouveaux articles en un seul envoi, avec la
+// recette d'où ils viennent, puis ceux déjà pris remis dans « À acheter ». Renvoie le nombre
+// d'articles ajoutés ou remis.
+export async function addRecipeToShopping(
+  groupId: string,
+  recipeId: string,
+  plan: ShoppingPlan,
+): Promise<number> {
+  if (plan.toInsert.length > 0) {
+    const { error } = await supabase.from("shopping_items").insert(
+      plan.toInsert.map((addition) => ({
+        group_id: groupId,
+        label: addition.label,
+        quantity: addition.quantity,
+        recipe_id: recipeId,
+      })),
+    );
+    if (error) throw error;
+  }
+  if (plan.toUncheck.length > 0) {
+    const { error } = await supabase
+      .from("shopping_items")
+      .update({ checked_at: null })
+      .in("id", plan.toUncheck);
+    if (error) throw error;
+  }
+  return plan.toInsert.length + plan.toUncheck.length;
 }
 
 // Corriger un article (« Lait · 2 » → « Lait · 3 ») sans le retirer puis le rajouter.

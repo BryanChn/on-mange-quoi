@@ -145,3 +145,42 @@ export function tripToShow<T extends { shopperId: string }>(
   if (mine) return { trip: mine, isMine: true };
   return trips[0] ? { trip: trips[0], isMine: false } : null;
 }
+
+// ─── ajouter une recette aux courses ─────────────────────
+
+export type ShoppingAddition = { label: string; quantity: string | null };
+
+export type ShoppingPlan = {
+  // Les nouveaux articles.
+  toInsert: ShoppingAddition[];
+  // Déjà pris (cochés) : ils reviennent dans « À acheter », comme un ajout à la main.
+  toUncheck: string[];
+  // Déjà à acheter : rien à faire, l'écran le dit.
+  alreadyToBuy: string[];
+};
+
+// Les ingrédients cochés d'une recette → ce qu'il faut faire sur la liste, sans doublon : même
+// règle que l'ajout à la main (le nom, sans accents ni majuscules). Deux lignes de la recette
+// au même nom n'en font qu'une.
+export function planShoppingAdditions(
+  additions: ShoppingAddition[],
+  items: ShoppingItem[],
+): ShoppingPlan {
+  const plan: ShoppingPlan = { toInsert: [], toUncheck: [], alreadyToBuy: [] };
+  const seen = new Set<string>();
+  for (const addition of additions) {
+    const { label, quantity } = cleanShoppingInput(addition.label, addition.quantity ?? "");
+    const key = normalizeLabel(label);
+    if (key === "" || seen.has(key)) continue;
+    seen.add(key);
+    const existing = findDuplicate(items, label);
+    if (!existing)
+      plan.toInsert.push({
+        label: label.slice(0, SHOPPING_LABEL_MAX_LENGTH),
+        quantity: quantity?.slice(0, SHOPPING_QUANTITY_MAX_LENGTH) ?? null,
+      });
+    else if (existing.checkedAt !== null) plan.toUncheck.push(existing.id);
+    else plan.alreadyToBuy.push(existing.label);
+  }
+  return plan;
+}

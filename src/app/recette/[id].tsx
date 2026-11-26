@@ -238,6 +238,13 @@ export default function RecipeScreen() {
         </View>
       ) : null}
 
+      {isBase ? null : (
+        <PrimaryButton
+          label="Ajouter aux courses"
+          onPress={() => router.push({ pathname: "/recette/courses", params: { id: recipe.id } })}
+        />
+      )}
+
       {isBase && groupId ? (
         <View style={styles.section}>
           {copyError ? (
