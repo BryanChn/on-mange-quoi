@@ -347,7 +347,8 @@ describe("ce que lisent les écrans", () => {
       carbsG: 0,
       fatG: 23,
       counted: 1,
-      uncounted: 2,
+      // L'oignon (une pièce sans aliment) ; le sel, sans quantité, ne compte pas.
+      uncounted: 1,
     });
   });
 
@@ -558,5 +559,37 @@ describe("le carnet dans le vote", () => {
     const gratin = session.proposals.find((proposal) => proposal.name === "Gratin (vote test)");
     assert.equal(gratin?.recipeId, recipeId);
     assert.equal(session.proposals.find((proposal) => proposal.name === "Pizza")?.recipeId, null);
+  });
+});
+
+describe("les recettes de base, lot 1", () => {
+  test("lisibles avec leurs étiquettes, et la copie dans un carnet les garde", async () => {
+    await signInAs(alice);
+    const base = await fetchBaseRecipes();
+    const dahl = base.find((recipe) => recipe.title === "Dahl de lentilles corail");
+    assert.ok(dahl, "le dahl est une recette de base");
+    assert.ok(base.filter((recipe) => recipe.id.startsWith("00000000-")).length >= 10);
+
+    const recipe = await fetchRecipe(dahl.id);
+    assert.deepEqual(recipe.diets.slice().sort(), [
+      "sans_gluten",
+      "sans_lactose",
+      "sans_porc",
+      "vegan",
+      "vegetarien",
+    ]);
+    assert.equal(recipe.totalMinutes, 35);
+    assert.equal(recipe.budget, 1);
+    assert.ok(
+      recipe.ingredients.every((line) => line.food !== null),
+      "chaque ligne a son aliment",
+    );
+
+    const groupId = await createGroup(alice, [bea]);
+    await signInAs(alice);
+    const copy = await fetchRecipe(await copyBaseRecipe(dahl.id, groupId));
+    assert.deepEqual(copy.diets, recipe.diets);
+    assert.equal(copy.totalMinutes, 35);
+    assert.equal(copy.ingredients.length, recipe.ingredients.length);
   });
 });

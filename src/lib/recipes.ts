@@ -1,7 +1,7 @@
 // Recettes (migration recipes) : le carnet d'un foyer, les recettes de base, une recette et
 // ses ingrédients, enregistrer, copier, retirer, suivre en direct. Les règles d'accès sont
 // dans la base (RLS : membres du foyer ; recettes de base en lecture seule).
-import type { FoodNutrients, IngredientUnit } from "./recipe-rules";
+import type { FoodNutrients, IngredientUnit, RecipeDiet } from "./recipe-rules";
 import { supabase } from "./supabase";
 
 export type { IngredientUnit };
@@ -39,6 +39,10 @@ export type Recipe = RecipeSummary & {
   groupId: string | null;
   steps: string[];
   ingredients: RecipeIngredientView[];
+  // Étiquettes posées à l'écriture (les recettes de base en ont ; les filtres viendront en V2).
+  diets: RecipeDiet[];
+  totalMinutes: number | null;
+  budget: number | null;
 };
 
 // Ce que l'écran « Écrire une recette » envoie : tout d'un coup.
@@ -103,7 +107,7 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
   const { data, error } = await supabase
     .from("recipes")
     .select(
-      `${RECIPE_COLUMNS}, group_id, steps,
+      `${RECIPE_COLUMNS}, group_id, steps, diets, total_minutes, budget,
       recipe_ingredients(position, raw, label, quantity, unit, food_id,
         food:foods(kcal, protein_g, carbs_g, fat_g, unit_weight_g))`,
     )
@@ -115,6 +119,9 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
     ...toSummary(data, data.recipe_ingredients.length),
     groupId: data.group_id,
     steps: data.steps,
+    diets: data.diets,
+    totalMinutes: data.total_minutes,
+    budget: data.budget,
     ingredients: data.recipe_ingredients.map((row) => ({
       raw: row.raw,
       label: row.label,

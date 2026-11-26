@@ -11,7 +11,7 @@ import { TextButton } from "@/components/text-button";
 import { hapticAdded, hapticReject } from "@/lib/haptics";
 import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { uploadRecipePhoto } from "@/lib/photo-storage";
-import { formatAmount, macrosPerServing, scaleAmount } from "@/lib/recipe-rules";
+import { formatAmount, macrosPerServing, recipeMeta, scaleAmount } from "@/lib/recipe-rules";
 import { copyBaseRecipe, fetchRecipe, subscribeToCarnet, type Recipe } from "@/lib/recipes";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
@@ -176,6 +176,11 @@ export default function RecipeScreen() {
         <Text style={styles.title} accessibilityRole="header">
           {recipe.title}
         </Text>
+        {recipeMeta(recipe.totalMinutes, recipe.budget, recipe.diets) ? (
+          <Text style={styles.meta}>
+            {recipeMeta(recipe.totalMinutes, recipe.budget, recipe.diets)}
+          </Text>
+        ) : null}
         {isBase ? (
           <Text style={styles.muted}>Une idée écrite pour l’app. Ajoute-la pour la modifier.</Text>
         ) : null}
@@ -292,6 +297,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
       lineHeight: 36,
     },
     muted: { color: colors.textMuted, fontSize: fontSize.small, lineHeight: 20 },
+    meta: { color: colors.chipText, fontSize: fontSize.small, fontWeight: "700" },
     caption: { color: colors.textMuted, fontSize: fontSize.caption, lineHeight: 18 },
     macros: {
       gap: spacing.xs,

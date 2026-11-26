@@ -3,6 +3,8 @@ import { test } from "node:test";
 
 import {
   buildRecipeDraft,
+  durationLabel,
+  recipeMeta,
   carnetSuggestions,
   cookedLabel,
   formatAmount,
@@ -211,7 +213,8 @@ test("macros par part : ce qui ne se compte pas est laissé de côté, et dit", 
     carbsG: 0,
     fatG: 38,
     counted: 1,
-    uncounted: 3,
+    // Sans quantité (« au goût ») : pas signalé ; texte libre et pièce sans poids : signalés.
+    uncounted: 2,
   });
 });
 
@@ -435,4 +438,17 @@ test("le carnet dans le vote : un nom identique est relié, un nom proche non", 
   assert.equal(recipeByTitle(carnet, "  pot-au-feu ")?.id, "3");
   assert.equal(recipeByTitle(carnet, "Creme   brulee")?.id, "4");
   assert.equal(recipeByTitle(carnet, "Pot au feu de mamie"), null);
+});
+
+test("étiquettes : durée, budget et régimes sous le titre", () => {
+  assert.equal(durationLabel(35), "35 min");
+  assert.equal(durationLabel(60), "1 h");
+  assert.equal(durationLabel(90), "1 h 30");
+  assert.equal(
+    recipeMeta(35, 1, ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"]),
+    "35 min · € · Vegan, sans gluten, sans lactose",
+  );
+  assert.equal(recipeMeta(120, 3, ["sans_porc"]), "2 h · €€€ · Sans porc");
+  assert.equal(recipeMeta(20, 1, []), "20 min · €");
+  assert.equal(recipeMeta(null, null, []), null);
 });
