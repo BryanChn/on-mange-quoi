@@ -11,7 +11,7 @@
 
 Tout est mergé et en ligne (#109 à #121) : migrations jusqu'à `recipes`, Edge Functions `notify-vote`, `notify-meal` et `notify-shopping` déployées, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit), site en production. **Décidé le 2026-11-25 : la V1 se termine avec les recettes, les stores viennent après** (audit, design, notifications, modèle économique, coûts, version anglaise : backlog). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande (autorisation donnée le 2026-11-25).
 
-**1. Tout de suite : tester sur les deux téléphones**
+**1. Tout de suite : tester sur les deux téléphones** (26/11 : notifications et midi ou soir validés ; restent courses, réglages, vibrations et partage)
 
 | # | Tâche | Détail |
 | --- | --- | --- |
@@ -47,7 +47,7 @@ Tout est mergé et en ligne (#109 à #121) : migrations jusqu'à `recipes`, Edge
 
 « Ce soir, c'est … ! » le matin : réglé par midi ou soir (#120).
 
-**4. Avant les stores** (backlog) : audit complet, design clair et sombre, revue des notifications, modèle économique, coûts et hébergement, **version entièrement en anglais**, signaler ou bloquer quelqu'un, purge des photos orphelines (profils et recettes), politique de confidentialité hébergée avec le nom du responsable, page web de suppression de compte, service d'envoi des codes (SMTP), CAPTCHA sur la connexion anonyme, limite des essais de `join_group`, demande de permission des notifications expliquée, build de production.
+**4. Avant les stores** (backlog) : audit complet, **refonte du design à la fin de la V1** (épurer, boutons modernes avec des effets travaillés), revue des notifications, modèle économique, coûts et hébergement, **version entièrement en anglais**, signaler ou bloquer quelqu'un, purge des photos orphelines (profils et recettes), politique de confidentialité hébergée avec le nom du responsable, page web de suppression de compte, service d'envoi des codes (SMTP), CAPTCHA sur la connexion anonyme, limite des essais de `join_group`, demande de permission des notifications expliquée, build de production.
 
 **5. Indicateur** : feu vert (ne bloque plus rien), requête `private.feu_vert` le lundi 30/11.
 
