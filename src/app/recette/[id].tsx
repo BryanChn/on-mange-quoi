@@ -130,7 +130,7 @@ export default function RecipeScreen() {
             Protéines {macros.proteinG} g · Glucides {macros.carbsG} g · Lipides {macros.fatG} g
           </Text>
           <Text style={styles.caption}>
-            Estimation d’après la table Ciqual (Anses), pas un conseil de santé.
+            Estimation d’après la table Ciqual 2025 de l’Anses, pas un conseil de santé.
             {macros.uncounted > 0
               ? ` ${macros.uncounted} ingrédient${macros.uncounted > 1 ? "s" : ""} non compté${macros.uncounted > 1 ? "s" : ""}.`
               : ""}

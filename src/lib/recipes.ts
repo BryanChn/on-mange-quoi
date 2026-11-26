@@ -134,6 +134,18 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
   };
 }
 
+// Un aliment Ciqual proposé pendant qu'on tape un ingrédient.
+export type FoodSuggestion = { id: number; name: string; groupName: string | null };
+
+// Les 8 aliments dont le nom contient ce qu'on tape, sans accents ni majuscules (search_foods).
+// Moins de 2 lettres : rien, sans appel au serveur.
+export async function searchFoods(query: string): Promise<FoodSuggestion[]> {
+  if (query.trim().length < 2) return [];
+  const { data, error } = await supabase.rpc("search_foods", { query });
+  if (error) throw error;
+  return data.map((food) => ({ id: food.id, name: food.name, groupName: food.group_name }));
+}
+
 // Un carnet par foyer, avec son nombre de recettes : l'écran de choix, quand on a plusieurs
 // foyers (la RLS ne montre que les siens).
 export type CarnetSummary = { groupId: string; name: string; recipeCount: number };
