@@ -31,6 +31,7 @@ import {
   type Tonight,
 } from "@/lib/tonight";
 import { useProfile } from "@/lib/profile";
+import { classifyError, errorMessage, withRetry, type ErrorKind } from "@/lib/network-errors";
 import { recipesShortcut } from "@/lib/recipe-rules";
 import { shoppingShortcut } from "@/lib/shopping-rules";
 import { capitalize } from "@/lib/vote-topic";
@@ -58,7 +59,8 @@ export default function Index() {
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
   const [home, setHome] = useState<LoadedHome | null>(null);
-  const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le dernier chargement a échoué ; null : pas d'échec.
+  const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   // Midi ou soir touché par l'utilisateur ; null : la présélection selon l'heure du chargement.
   const [chosenMoment, setChosenMoment] = useState<MealMoment | null>(null);
@@ -72,15 +74,16 @@ export default function Index() {
     latestRequestRef.current += 1;
     const requestId = latestRequestRef.current;
 
-    fetchHome().then(
+    // Une coupure courte est réessayée en silence (1 s, 2 s, 4 s) avant d'afficher l'erreur.
+    withRetry(fetchHome).then(
       (loadedHome) => {
         if (latestRequestRef.current !== requestId) return;
         setHome({ ...loadedHome, loadedAt: new Date() });
-        setHasFailed(false);
+        setErrorKind(null);
       },
-      () => {
+      (error: unknown) => {
         if (latestRequestRef.current !== requestId) return;
-        setHasFailed(true);
+        setErrorKind(classifyError(error));
       },
     );
   }, []);
@@ -95,7 +98,7 @@ export default function Index() {
   );
 
   function retry() {
-    setHasFailed(false);
+    setErrorKind(null);
     loadHome();
   }
 
@@ -119,10 +122,10 @@ export default function Index() {
   // Un rechargement raté alors que l'écran est déjà affiché ne le remplace pas par une
   // erreur : on garde les dernières données, le prochain changement réessaiera.
   if (!home) {
-    return hasFailed ? (
+    return errorKind ? (
       <ErrorScreen
         title="On n’arrive pas à charger l’accueil"
-        message="Vérifie ta connexion et réessaie."
+        message={errorMessage(errorKind)}
         onRetry={retry}
         canSignOut
       />
