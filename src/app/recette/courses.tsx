@@ -15,6 +15,7 @@ import { formatAmount, scaleAmount } from "@/lib/recipe-rules";
 import { fetchRecipe, type Recipe } from "@/lib/recipes";
 import { addRecipeToShopping, fetchShoppingList } from "@/lib/shopping";
 import { findDuplicate, planShoppingAdditions, type ShoppingItem } from "@/lib/shopping-rules";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 type Loaded = { recipe: Recipe; groupName: string; memberCount: number; items: ShoppingItem[] };
@@ -31,6 +32,8 @@ export default function RecipeToShoppingScreen() {
 
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   // null : une part par membre du foyer.
   const [chosenServings, setChosenServings] = useState<number | null>(null);
   // Les lignes décochées (« je l'ai déjà »), par position dans la recette.
@@ -51,7 +54,10 @@ export default function RecipeToShoppingScreen() {
         setLoaded({ recipe, groupName: group.name, memberCount: group.members.length, items });
         setHasFailed(false);
       })
-      .catch(() => setHasFailed(true));
+      .catch((error: unknown) => {
+        setLoadError(error);
+        setHasFailed(true);
+      });
   }, [id]);
 
   // La recette, le foyer et sa liste viennent du serveur (un système extérieur) : une fois.
@@ -63,7 +69,7 @@ export default function RecipeToShoppingScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à préparer les courses"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={load}
       />
     );
@@ -118,9 +124,9 @@ export default function RecipeToShoppingScreen() {
     try {
       setAddedCount(await addRecipeToShopping(groupId, recipe.id, plan));
       hapticAdded();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("Les articles ne sont pas partis. Vérifie ta connexion et réessaie.");
+      setError(failureMessage("Les articles ne sont pas partis", error));
     } finally {
       setIsAdding(false);
     }

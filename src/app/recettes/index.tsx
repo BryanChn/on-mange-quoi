@@ -7,6 +7,7 @@ import { InitialTile, ListCard, ListRow } from "@/components/list";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { getInitial } from "@/lib/avatar";
 import { fetchCarnets, type CarnetSummary } from "@/lib/recipes";
+import { loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // Le choix du carnet, quand on a plusieurs foyers : l'accueil garde une seule ligne
@@ -17,12 +18,15 @@ export default function CarnetsScreen() {
   const insets = useSafeAreaInsets();
   const [carnets, setCarnets] = useState<CarnetSummary[] | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   const load = useCallback(async () => {
     try {
       setCarnets(await fetchCarnets());
       setHasFailed(false);
-    } catch {
+    } catch (error) {
+      setLoadError(error);
       setHasFailed(true);
     }
   }, []);
@@ -38,7 +42,7 @@ export default function CarnetsScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir tes carnets"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={load}
       />
     );

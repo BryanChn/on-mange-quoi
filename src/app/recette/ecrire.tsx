@@ -24,6 +24,7 @@ import { RecipeBanner } from "@/components/recipe-tile";
 import { hapticAdded, hapticReject } from "@/lib/haptics";
 import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { removeRecipePhoto, removeRecipePhotoFile, uploadRecipePhoto } from "@/lib/photo-storage";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import {
   buildRecipeDraft,
   fieldsFromIngredient,
@@ -87,6 +88,8 @@ export default function WriteRecipeScreen() {
     isEditing ? null : { title: "", servings: 4, ingredients: [], steps: [] },
   );
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
@@ -130,7 +133,10 @@ export default function WriteRecipeScreen() {
         });
         setHasFailed(false);
       },
-      () => setHasFailed(true),
+      (error: unknown) => {
+        setLoadError(error);
+        setHasFailed(true);
+      },
     );
   }, [id]);
 
@@ -160,7 +166,7 @@ export default function WriteRecipeScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir la recette"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={load}
       />
     );
@@ -352,9 +358,9 @@ export default function WriteRecipeScreen() {
     try {
       recipeId = await saveRecipe(groupId, savedId, result.draft);
       setSavedId(recipeId);
-    } catch {
+    } catch (error) {
       hapticReject();
-      setErrors({ save: "La recette n’a pas été enregistrée. Vérifie ta connexion et réessaie." });
+      setErrors({ save: failureMessage("La recette n’a pas été enregistrée", error) });
       setIsSaving(false);
       return;
     }
@@ -368,10 +374,10 @@ export default function WriteRecipeScreen() {
         setPhotoPath(null);
         setIsPhotoRemoved(false);
       }
-    } catch {
+    } catch (error) {
       hapticReject();
       setErrors({
-        save: "La recette est enregistrée, mais pas la photo. Vérifie ta connexion et réessaie.",
+        save: failureMessage("La recette est enregistrée, mais pas la photo", error),
       });
       setIsSaving(false);
       return;
@@ -392,9 +398,9 @@ export default function WriteRecipeScreen() {
       disablePrevention();
       // La recette n'existe plus : retour au carnet, l'écran de la recette dépilé aussi.
       router.dismissTo({ pathname: "/recettes/[groupId]", params: { groupId } });
-    } catch {
+    } catch (error) {
       setDeleteStep("confirm");
-      setErrors({ save: "La recette n’a pas été retirée. Vérifie ta connexion et réessaie." });
+      setErrors({ save: failureMessage("La recette n’a pas été retirée", error) });
     }
   }
 

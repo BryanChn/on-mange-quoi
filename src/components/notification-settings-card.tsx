@@ -11,6 +11,7 @@ import {
   type NotificationSettings,
 } from "@/lib/notification-settings";
 import { createSerialQueue } from "@/lib/serial-queue";
+import { failureMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // Mon compte : les deux interrupteurs des notifications (CLAUDE.md, « Notifications d'un
@@ -32,8 +33,8 @@ export function NotificationSettingsCard() {
       .then((loaded) => {
         if (isCurrent) setSettings(loaded);
       })
-      .catch(() => {
-        if (isCurrent) setError("Tes réglages ne se chargent pas : vérifie ta connexion.");
+      .catch((loadError: unknown) => {
+        if (isCurrent) setError(failureMessage("Tes réglages ne se chargent pas", loadError));
       });
     return () => {
       isCurrent = false;
@@ -45,9 +46,9 @@ export function NotificationSettingsCard() {
     hapticToggle(isOn);
     setError(null);
     setSettings((current) => (current ? { ...current, [category]: isOn } : current));
-    enqueue(() => saveNotificationSetting(category, isOn)).catch(() => {
+    enqueue(() => saveNotificationSetting(category, isOn)).catch((saveError: unknown) => {
       setSettings((current) => (current ? { ...current, [category]: !isOn } : current));
-      setError("Ton réglage n’est pas enregistré : vérifie ta connexion et réessaie.");
+      setError(failureMessage("Ton réglage n’est pas enregistré", saveError));
     });
   }
 

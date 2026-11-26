@@ -10,6 +10,7 @@ import { RecipeTile } from "@/components/recipe-tile";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextField } from "@/components/text-field";
 import { fetchGroup } from "@/lib/groups";
+import { loadErrorMessage } from "@/lib/network-errors";
 import {
   cookedLabel,
   matchesRecipeSearch,
@@ -46,6 +47,8 @@ export default function CarnetScreen() {
   const insets = useSafeAreaInsets();
   const [carnet, setCarnet] = useState<CarnetState | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [query, setQuery] = useState("");
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran.
@@ -66,8 +69,9 @@ export default function CarnetScreen() {
         setCarnet({ groupName: group.name, recipes, baseRecipes, cooked: oftenCooked(winners) });
         setHasFailed(false);
       },
-      () => {
+      (error: unknown) => {
         if (latestRequestRef.current !== requestId) return;
+        setLoadError(error);
         setHasFailed(true);
       },
     );
@@ -84,7 +88,7 @@ export default function CarnetScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir le carnet"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={load}
       />
     );

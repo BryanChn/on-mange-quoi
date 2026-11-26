@@ -31,7 +31,13 @@ import {
   type Tonight,
 } from "@/lib/tonight";
 import { useProfile } from "@/lib/profile";
-import { classifyError, errorMessage, withRetry, type ErrorKind } from "@/lib/network-errors";
+import {
+  classifyError,
+  errorMessage,
+  withRetry,
+  type ErrorKind,
+  failureMessage,
+} from "@/lib/network-errors";
 import { recipesShortcut } from "@/lib/recipe-rules";
 import { shoppingShortcut } from "@/lib/shopping-rules";
 import { capitalize } from "@/lib/vote-topic";
@@ -112,8 +118,8 @@ export default function Index() {
     try {
       openSession(await startSession(group.id, moment));
       setChosenMoment(null);
-    } catch {
-      setStartError("Le vote n’a pas démarré : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setStartError(failureMessage("Le vote n’a pas démarré", error));
     } finally {
       setIsStarting(false);
     }

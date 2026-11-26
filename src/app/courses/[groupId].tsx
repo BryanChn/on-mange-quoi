@@ -30,6 +30,7 @@ import {
   dishLayout,
 } from "@/lib/motion";
 import { useSession } from "@/lib/session";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import {
   addShoppingItem,
   clearCheckedItems,
@@ -79,6 +80,8 @@ export default function ShoppingListScreen() {
 
   const [list, setList] = useState<ListState | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [label, setLabel] = useState("");
   const [quantity, setQuantity] = useState("");
   const [labelError, setLabelError] = useState<string | null>(null);
@@ -123,8 +126,9 @@ export default function ShoppingListScreen() {
         });
         setHasFailed(false);
       },
-      () => {
+      (error: unknown) => {
         if (latestRequestRef.current !== requestId) return;
+        setLoadError(error);
         setHasFailed(true);
       },
     );
@@ -141,7 +145,7 @@ export default function ShoppingListScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir la liste"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={loadList}
       />
     );
@@ -191,9 +195,9 @@ export default function ShoppingListScreen() {
           : "Ce que le foyer ajoute t’arrive pendant 1 h.",
       );
       loadList();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("Le départ n’est pas passé : vérifie ta connexion et réessaie.");
+      setError(failureMessage("Le départ n’est pas passé", error));
     } finally {
       setIsTripBusy(false);
     }
@@ -206,9 +210,9 @@ export default function ShoppingListScreen() {
     try {
       await endShoppingTrip(groupId);
       loadList();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("Ce n’est pas passé : vérifie ta connexion et réessaie.");
+      setError(failureMessage("Ce n’est pas passé", error));
     } finally {
       setIsTripBusy(false);
     }
@@ -243,9 +247,9 @@ export default function ShoppingListScreen() {
       setLabel("");
       setQuantity("");
       loadList();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("L’article n’a pas été ajouté : vérifie ta connexion et réessaie.");
+      setError(failureMessage("L’article n’a pas été ajouté", error));
     } finally {
       setIsAdding(false);
     }
@@ -263,9 +267,9 @@ export default function ShoppingListScreen() {
       });
       hapticAdded();
       loadList();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("L’article n’a pas été ajouté : vérifie ta connexion et réessaie.");
+      setError(failureMessage("L’article n’a pas été ajouté", error));
     } finally {
       setAddingSuggestion(null);
     }
@@ -279,9 +283,9 @@ export default function ShoppingListScreen() {
     try {
       await setShoppingItemChecked(item.id, checked);
       loadList();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("La coche n’est pas passée : vérifie ta connexion et réessaie.");
+      setError(failureMessage("La coche n’est pas passée", error));
     } finally {
       // Le rechargement (ou l'échec) fait foi : la coche en attente n'a plus lieu d'être.
       setPendingChecks((current) => {
@@ -315,9 +319,9 @@ export default function ShoppingListScreen() {
       await updateShoppingItem(item.id, { label: editLabel, quantity: editQuantity });
       setEditingId(null);
       loadList();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setEditError("L’article n’a pas été modifié : vérifie ta connexion et réessaie.");
+      setEditError(failureMessage("L’article n’a pas été modifié", error));
     } finally {
       setIsSavingEdit(false);
     }
@@ -329,9 +333,9 @@ export default function ShoppingListScreen() {
       await removeShoppingItem(item.id);
       setEditingId(null);
       loadList();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setEditError("L’article n’a pas été retiré : vérifie ta connexion et réessaie.");
+      setEditError(failureMessage("L’article n’a pas été retiré", error));
     }
   }
 
@@ -341,9 +345,9 @@ export default function ShoppingListScreen() {
     try {
       await clearCheckedItems(groupId);
       loadList();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("Les achetés n’ont pas été retirés : vérifie ta connexion et réessaie.");
+      setError(failureMessage("Les achetés n’ont pas été retirés", error));
     } finally {
       setIsClearing(false);
     }

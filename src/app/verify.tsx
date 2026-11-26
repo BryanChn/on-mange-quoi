@@ -7,6 +7,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { supabase } from "@/lib/supabase";
+import { failureMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 const RESEND_DELAY_MS = 60_000;
@@ -91,8 +92,8 @@ export default function Verify() {
         );
         return;
       }
-    } catch {
-      setError("La connexion n’a pas marché : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("La connexion n’a pas marché", error));
     } finally {
       setIsVerifying(false);
     }

@@ -10,6 +10,7 @@ import { TextField } from "@/components/text-field";
 import { hapticAdded, hapticConfirm, hapticReject } from "@/lib/haptics";
 import { shareOrderText } from "@/lib/share-soiree";
 import { namesWithoutOrder, orderText, recapPeople, summarizeOrder } from "@/lib/soiree-rules";
+import { failureMessage } from "@/lib/network-errors";
 import {
   addOrderItem,
   isOrderingClosedError,
@@ -58,12 +59,13 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
   const total = soiree.items.reduce((sum, item) => sum + item.quantity, 0);
 
   // Commande figée entre-temps (« Commande passée ») : pas une panne, on recharge.
-  function fail(writeError: unknown, message: string) {
+  // what : ce qui n'a pas marché ; la cause est ajoutée.
+  function fail(writeError: unknown, what: string) {
     hapticReject();
     if (isOrderingClosedError(writeError)) {
       onChanged();
     } else {
-      setError(message);
+      setError(failureMessage(what, writeError));
     }
   }
 
@@ -82,7 +84,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       setNote("");
       onChanged();
     } catch (addError) {
-      fail(addError, "Ta ligne n’a pas été ajoutée : vérifie ta connexion et réessaie.");
+      fail(addError, "Ta ligne n’a pas été ajoutée");
     } finally {
       setIsAdding(false);
     }
@@ -99,7 +101,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       }
       onChanged();
     } catch (writeError) {
-      fail(writeError, "Ta ligne n’a pas été modifiée : vérifie ta connexion et réessaie.");
+      fail(writeError, "Ta ligne n’a pas été modifiée");
     } finally {
       setBusyItemId(null);
     }
@@ -136,8 +138,8 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
       hapticConfirm();
       setIsConfirmingOrder(false);
       onChanged();
-    } catch {
-      setError("La commande n’est pas marquée comme passée : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("La commande n’est pas marquée comme passée", error));
     } finally {
       setIsOrdering(false);
     }

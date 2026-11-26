@@ -61,6 +61,7 @@ import {
 } from "@/lib/votes";
 import { hapticAdded, hapticConfirm, hapticReject, hapticToggle } from "@/lib/haptics";
 import { capitalize, topicWords, type TopicWords } from "@/lib/vote-topic";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
@@ -136,6 +137,8 @@ export default function SessionScreen() {
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [dishName, setDishName] = useState("");
   // Proposer, retirer, clôturer : une action à la fois (un double appui n'ajoute pas deux plats).
   // Les votes n'en font pas partie : ils sont optimistes (voir plus bas).
@@ -188,8 +191,9 @@ export default function SessionScreen() {
           setLoadedAt(new Date());
           setHasFailed(false);
         },
-        () => {
+        (error: unknown) => {
           if (latestRequestRef.current !== requestId) return;
+          setLoadError(error);
           setHasFailed(true);
         },
       )
@@ -233,7 +237,8 @@ export default function SessionScreen() {
 
   // Proposer, retirer, clôturer : l'écran ne change qu'après confirmation du serveur, on
   // recharge plutôt que de supposer (un nom peut être refusé, un plat déjà voté reste).
-  async function runAction(action: () => Promise<void>, failureMessage: string) {
+  // what : ce qui n'a pas marché (« Le plat n'a pas été ajouté ») ; la cause est ajoutée.
+  async function runAction(action: () => Promise<void>, what: string) {
     setNameError(null);
     setActionError(null);
     setIsBusy(true);
@@ -247,7 +252,7 @@ export default function SessionScreen() {
       if (isSessionClosedError(error)) {
         await loadSession();
       } else {
-        setActionError(failureMessage);
+        setActionError(failureMessage(what, error));
       }
     } finally {
       setIsBusy(false);
@@ -273,7 +278,7 @@ export default function SessionScreen() {
         hapticReject();
         setNameError(`${This} est déjà proposé${words.agree} : coche-le dans la liste.`);
       }
-    }, `${This} n’a pas été ajouté${words.agree} : vérifie ta connexion et réessaie.`);
+    }, `${This} n’a pas été ajouté${words.agree}`);
   }
 
   // Une recette du carnet, proposée d'un toucher.
@@ -287,7 +292,7 @@ export default function SessionScreen() {
         hapticReject();
         setNameError(`${recipe.title} est déjà proposé : coche-le dans la liste.`);
       }
-    }, `${This} n’a pas été ajouté${words.agree} : vérifie ta connexion et réessaie.`);
+    }, `${This} n’a pas été ajouté${words.agree}`);
   }
 
   // proposal est le plat affiché, vote provisoire compris : un second toucher décoche.
@@ -309,7 +314,7 @@ export default function SessionScreen() {
         if (isSessionClosedError(error)) {
           await loadSession();
         } else {
-          setActionError("Ton vote n’est pas passé : vérifie ta connexion et réessaie.");
+          setActionError(failureMessage("Ton vote n’est pas passé", error));
         }
       }
     });
@@ -322,7 +327,7 @@ export default function SessionScreen() {
         hapticReject();
         setActionError(`${This} a déjà des votes : ${words.it} reste dans la liste.`);
       }
-    }, `${This} n’a pas été retiré${words.agree} : vérifie ta connexion et réessaie.`);
+    }, `${This} n’a pas été retiré${words.agree}`);
   }
 
   // La roulette se lance ensuite d'elle-même : le rechargement voit la session passer à
@@ -331,7 +336,7 @@ export default function SessionScreen() {
     runAction(async () => {
       await closeSession(id);
       setCloseStep("idle");
-    }, "Le vote n’est pas terminé : vérifie ta connexion et réessaie.");
+    }, "Le vote n’est pas terminé");
   }
 
   if (isLoading) {
@@ -341,7 +346,7 @@ export default function SessionScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir le vote"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={retry}
       />
     );

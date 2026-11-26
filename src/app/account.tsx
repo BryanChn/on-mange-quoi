@@ -28,6 +28,7 @@ import { openPrivacyPolicy } from "@/lib/privacy";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
 import { pickProfilePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { canCheckForUpdates, fetchLatestUpdate, restartOnLatestUpdate } from "@/lib/updates";
+import { failureMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // idle → loading (calcul des conséquences) → confirm → deleting. Une suppression réussie
@@ -72,8 +73,8 @@ export default function AccountScreen() {
     setIsSavingAvatar(true);
     try {
       await saveAvatar(avatar);
-    } catch {
-      setAvatarError("Ton avatar n’est pas enregistré : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setAvatarError(failureMessage("Ton avatar n’est pas enregistré", error));
     } finally {
       setIsSavingAvatar(false);
     }
@@ -91,8 +92,8 @@ export default function AccountScreen() {
       } else if (picked.kind === "picked") {
         await savePhoto(picked.bytes);
       }
-    } catch {
-      setAvatarError("Ta photo n’est pas enregistrée : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setAvatarError(failureMessage("Ta photo n’est pas enregistrée", error));
     } finally {
       setIsSavingAvatar(false);
     }
@@ -103,8 +104,8 @@ export default function AccountScreen() {
     setIsSavingAvatar(true);
     try {
       await savePhoto(null);
-    } catch {
-      setAvatarError("Ta photo n’a pas été retirée : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setAvatarError(failureMessage("Ta photo n’a pas été retirée", error));
     } finally {
       setIsSavingAvatar(false);
     }
@@ -133,8 +134,8 @@ export default function AccountScreen() {
     try {
       await saveDisplayName(cleanName);
       setIsRenaming(false);
-    } catch {
-      setNameError("Ton prénom n’est pas enregistré : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setNameError(failureMessage("Ton prénom n’est pas enregistré", error));
     } finally {
       setIsSavingName(false);
     }
@@ -147,9 +148,9 @@ export default function AccountScreen() {
     try {
       setImpact(await fetchDeletionImpact());
       setStep("confirm");
-    } catch {
+    } catch (error) {
       setStep("idle");
-      setError("On n’arrive pas à préparer la suppression : vérifie ta connexion et réessaie.");
+      setError(failureMessage("On n’arrive pas à préparer la suppression", error));
     }
   }
 
@@ -159,10 +160,10 @@ export default function AccountScreen() {
 
     try {
       await deleteAccount();
-    } catch {
+    } catch (error) {
       // Rien n'a été supprimé : delete_account est une seule transaction.
       setStep("confirm");
-      setError("Ton compte n’a pas été supprimé : vérifie ta connexion et réessaie.");
+      setError(failureMessage("Ton compte n’a pas été supprimé", error));
     }
   }
 
