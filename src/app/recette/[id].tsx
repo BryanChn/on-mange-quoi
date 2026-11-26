@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "@/components/primary-button";
+import { RecipePhoto } from "@/components/recipe-tile";
 import { ServingsStepper } from "@/components/servings-stepper";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
@@ -112,6 +113,7 @@ export default function RecipeScreen() {
               ),
         }}
       />
+      <RecipePhoto photoPath={recipe.photoPath} />
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">
           {recipe.title}

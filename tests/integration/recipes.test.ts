@@ -19,6 +19,11 @@ import {
   type RecipeDraft,
 } from "../../src/lib/recipes.ts";
 import { fetchHome } from "../../src/lib/home.ts";
+import {
+  RECIPE_BUCKET,
+  removeRecipePhoto,
+  uploadRecipePhoto,
+} from "../../src/lib/photo-storage.ts";
 import { macrosPerServing } from "../../src/lib/recipe-rules.ts";
 import { createSoiree } from "../../src/lib/soirees.ts";
 import { closeSession, startSession } from "../../src/lib/votes.ts";
@@ -453,5 +458,34 @@ describe("souvent cuisiné", () => {
 
     await signInAs(dan);
     assert.deepEqual(await fetchCookedWinners(groupId), []);
+  });
+});
+
+describe("la photo d'une recette, par l'app", () => {
+  const jpeg = () => new Uint8Array(2048).fill(9);
+  const exists = async (path: string) => {
+    const [folder, file] = path.split("/");
+    const { data } = await supabase.storage.from(RECIPE_BUCKET).list(folder, { search: file });
+    return (data ?? []).some((entry) => entry.name === file);
+  };
+
+  test("envoyer, remplacer (l'ancienne disparaît), retirer", async () => {
+    await signInAs(alice);
+    const recipeId = await saveRecipe(foyerId, null, { ...bolo, title: "Photo (test)" });
+
+    const first = await uploadRecipePhoto(foyerId, recipeId, jpeg(), null);
+    assert.ok(first.startsWith(`${foyerId}/`));
+    assert.equal((await fetchRecipe(recipeId)).photoPath, first);
+
+    const second = await uploadRecipePhoto(foyerId, recipeId, jpeg(), first);
+    assert.equal((await fetchRecipe(recipeId)).photoPath, second);
+    assert.equal(await exists(first), false, "l'ancienne photo est supprimée");
+
+    await signInAs(bea);
+    assert.equal(await exists(second), true, "le foyer voit la photo");
+
+    await removeRecipePhoto(recipeId, second);
+    assert.equal((await fetchRecipe(recipeId)).photoPath, null);
+    assert.equal(await exists(second), false);
   });
 });

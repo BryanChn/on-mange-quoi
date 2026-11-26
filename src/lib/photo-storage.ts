@@ -2,9 +2,11 @@ import { getUserId, supabase } from "./supabase";
 
 // Photo de profil (migration profile_photo) : bucket privé « avatars », un dossier par
 // personne, un nouveau fichier à chaque envoi. Sans React Native (testé avec node) : le choix
-// et la réduction de la photo sont dans profile-photo-picker.ts.
+// et la réduction de la photo sont dans photo-picker.ts.
 
 const BUCKET = "avatars";
+// Photos des recettes (migration recipes) : <foyer>/<uuid>.jpg, visibles par le foyer.
+export const RECIPE_BUCKET = "recipe-photos";
 
 // Lien temporaire : valable 1 h, redemandé 5 min avant la fin.
 const URL_LIFETIME_S = 60 * 60;
@@ -82,22 +84,65 @@ export function clearPhotoUrlCache(): void {
 
 // Lien temporaire vers une photo, mis en cache : un écran avec 8 avatars ne fait pas 8
 // demandes à chaque rechargement. null : photo inaccessible (supprimée, plus de groupe commun).
-export function getPhotoUrl(path: string): Promise<string | null> {
-  const cached = urlCache.get(path);
+export function getPhotoUrl(path: string, bucket: string = BUCKET): Promise<string | null> {
+  const key = `${bucket}/${path}`;
+  const cached = urlCache.get(key);
   if (cached && cached.expiresAt - URL_MARGIN_MS > Date.now()) return Promise.resolve(cached.url);
 
-  const inFlight = pending.get(path);
+  const inFlight = pending.get(key);
   if (inFlight) return inFlight;
 
   const request = supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .createSignedUrl(path, URL_LIFETIME_S)
     .then(({ data, error }) => {
       if (error || !data) return null;
-      urlCache.set(path, { url: data.signedUrl, expiresAt: Date.now() + URL_LIFETIME_S * 1000 });
+      urlCache.set(key, { url: data.signedUrl, expiresAt: Date.now() + URL_LIFETIME_S * 1000 });
       return data.signedUrl;
     })
-    .finally(() => pending.delete(path));
-  pending.set(path, request);
+    .finally(() => pending.delete(key));
+  pending.set(key, request);
   return request;
+}
+
+// La photo d'une recette (JPEG déjà réduit) : envoyée dans le dossier du foyer, enregistrée
+// sur la recette, puis l'ancienne supprimée. Renvoie le chemin de la nouvelle.
+export async function uploadRecipePhoto(
+  groupId: string,
+  recipeId: string,
+  bytes: Uint8Array,
+  previousPath: string | null,
+): Promise<string> {
+  const path = `${groupId}/${randomId()}.jpg`;
+  const { error: uploadError } = await supabase.storage
+    .from(RECIPE_BUCKET)
+    .upload(path, bytes, { contentType: "image/jpeg", upsert: false });
+  if (uploadError) throw uploadError;
+
+  const { error: recipeError } = await supabase
+    .from("recipes")
+    .update({ photo_path: path })
+    .eq("id", recipeId);
+  if (recipeError) {
+    // La recette n'a pas changé : on ne laisse pas un fichier que rien ne référence.
+    await supabase.storage.from(RECIPE_BUCKET).remove([path]);
+    throw recipeError;
+  }
+
+  // L'ancienne photo ne sert plus. Un échec ici ne change rien pour l'utilisateur.
+  if (previousPath) await supabase.storage.from(RECIPE_BUCKET).remove([previousPath]);
+  return path;
+}
+
+// Retirer la photo d'une recette : la recette d'abord, puis le fichier.
+export async function removeRecipePhoto(recipeId: string, path: string): Promise<void> {
+  const { error } = await supabase.from("recipes").update({ photo_path: null }).eq("id", recipeId);
+  if (error) throw error;
+  await supabase.storage.from(RECIPE_BUCKET).remove([path]);
+}
+
+// Après le retrait d'une recette : son fichier ne sert plus (Supabase interdit de l'effacer
+// en SQL). Un échec laisse un fichier orphelin, sans gêner personne (purge prévue au backlog).
+export async function removeRecipePhotoFile(path: string): Promise<void> {
+  await supabase.storage.from(RECIPE_BUCKET).remove([path]);
 }

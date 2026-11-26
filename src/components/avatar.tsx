@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { StyleSheet, Text } from "react-native";
 import Animated from "react-native-reanimated";
 
@@ -11,7 +11,7 @@ import {
   type AvatarId,
 } from "@/lib/avatar";
 import { colorTransition } from "@/lib/motion";
-import { getPhotoUrl } from "@/lib/photo-storage";
+import { usePhotoUrl } from "@/lib/use-photo-url";
 import { useTheme, type Theme } from "@/theme";
 
 // require statiques : Metro doit voir chaque fichier pour l'embarquer dans la mise à jour.
@@ -35,26 +35,6 @@ type AvatarProps = {
   // Photo perso (chemin dans le stockage) : prioritaire sur l'avatar dessiné et l'initiale.
   photoPath?: string | null;
 };
-
-// Lien temporaire vers la photo. Effet justifié : on se branche sur un système extérieur
-// (le stockage) ; le résultat est mis en cache dans photo-storage.ts.
-function usePhotoUrl(photoPath: string | null | undefined): string | null {
-  const [loaded, setLoaded] = useState<{ path: string; url: string | null } | null>(null);
-
-  useEffect(() => {
-    if (!photoPath) return;
-    let isStale = false;
-    getPhotoUrl(photoPath).then((url) => {
-      if (!isStale) setLoaded({ path: photoPath, url });
-    });
-    return () => {
-      isStale = true;
-    };
-  }, [photoPath]);
-
-  // Une réponse pour une ancienne photo ne vaut rien pour la nouvelle.
-  return photoPath && loaded?.path === photoPath ? loaded.url : null;
-}
 
 // Décoratif : le nom est toujours écrit à côté, un lecteur d'écran n'a rien à lire ici.
 export function Avatar({ name, avatar, size = 32, isPending = false, photoPath }: AvatarProps) {

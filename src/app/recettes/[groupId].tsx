@@ -155,7 +155,7 @@ export default function CarnetScreen() {
                 accessibilityLabel={`${recipe.title}, ${cookedLabel(count)}`}
                 style={({ pressed }) => [styles.cookedCard, pressed && styles.pressed]}
               >
-                <RecipeTile recipeId={recipe.id} size={48} />
+                <RecipeTile recipeId={recipe.id} photoPath={recipe.photoPath} size={48} />
                 <Text style={styles.cookedTitle} numberOfLines={2}>
                   {recipe.title}
                 </Text>
@@ -187,7 +187,7 @@ export default function CarnetScreen() {
                   key={recipe.id}
                   label={recipe.title}
                   subtitle={recipeSubtitle(recipe.servings, recipe.ingredientCount)}
-                  leading={<RecipeTile recipeId={recipe.id} />}
+                  leading={<RecipeTile recipeId={recipe.id} photoPath={recipe.photoPath} />}
                   hasChevron
                   onPress={() => openRecipe(recipe.id)}
                 />
