@@ -43,6 +43,8 @@ import {
   dishExiting,
   dishLayout,
 } from "@/lib/motion";
+import { carnetSuggestions, recipeByTitle } from "@/lib/recipe-rules";
+import { fetchCarnet, type RecipeSummary } from "@/lib/recipes";
 import { createSerialQueue } from "@/lib/serial-queue";
 import {
   addProposal,
@@ -57,7 +59,7 @@ import {
   type Proposal,
   type VoteSession,
 } from "@/lib/votes";
-import { hapticConfirm, hapticReject, hapticToggle } from "@/lib/haptics";
+import { hapticAdded, hapticConfirm, hapticReject, hapticToggle } from "@/lib/haptics";
 import { capitalize, topicWords, type TopicWords } from "@/lib/vote-topic";
 import { useTheme, type Theme } from "@/theme";
 
@@ -145,6 +147,9 @@ export default function SessionScreen() {
   // Le champ « Proposer un plat » n'apparaît qu'à la demande : la zone basse reste à l'action.
   const [isProposing, setIsProposing] = useState(false);
   const [spin, setSpin] = useState<Spin | null>(null);
+  // Le carnet du foyer, pour proposer une recette d'un toucher ; null : pas chargé (ou un repas
+  // à plusieurs, qui n'a pas de carnet).
+  const [carnet, setCarnet] = useState<RecipeSummary[] | null>(null);
 
   // Vote optimiste : la case se coche dès le toucher. Tant qu'un envoi est en cours, React
   // affiche la liste du serveur avec les votes provisoires par-dessus ; à la fin, il revient
@@ -202,6 +207,23 @@ export default function SessionScreen() {
     return unsubscribe;
   }, [id, loadSession]);
 
+  // Le carnet vient du serveur (un système extérieur) : chargé une fois par foyer, tant que le
+  // vote est ouvert. Sans carnet (erreur réseau), on propose comme avant, en tapant.
+  const carnetGroupId = session && !session.isSoiree && session.isOpen ? session.groupId : null;
+  useEffect(() => {
+    if (!carnetGroupId) return;
+    let isStale = false;
+    fetchCarnet(carnetGroupId).then(
+      (recipes) => {
+        if (!isStale) setCarnet(recipes);
+      },
+      () => undefined,
+    );
+    return () => {
+      isStale = true;
+    };
+  }, [carnetGroupId]);
+
   const handleSpinDone = useCallback(() => setSpin(null), []);
 
   function retry() {
@@ -243,12 +265,27 @@ export default function SessionScreen() {
     }
 
     runAction(async () => {
-      const isAdded = await addProposal(id, cleanName);
+      // Le nom exact d'une recette du carnet : le plat y est relié (« Voir la recette » au résultat).
+      const isAdded = await addProposal(id, cleanName, recipeByTitle(carnet ?? [], cleanName)?.id);
       if (isAdded) {
         setDishName("");
       } else {
         hapticReject();
         setNameError(`${This} est déjà proposé${words.agree} : coche-le dans la liste.`);
+      }
+    }, `${This} n’a pas été ajouté${words.agree} : vérifie ta connexion et réessaie.`);
+  }
+
+  // Une recette du carnet, proposée d'un toucher.
+  function handleProposeRecipe(recipe: RecipeSummary) {
+    runAction(async () => {
+      const isAdded = await addProposal(id, recipe.title, recipe.id);
+      if (isAdded) {
+        hapticAdded();
+        setDishName("");
+      } else {
+        hapticReject();
+        setNameError(`${recipe.title} est déjà proposé : coche-le dans la liste.`);
       }
     }, `${This} n’a pas été ajouté${words.agree} : vérifie ta connexion et réessaie.`);
   }
@@ -344,6 +381,16 @@ export default function SessionScreen() {
 
   // Sans aucun plat, il n'y a rien d'autre à faire que proposer : le champ est déjà ouvert.
   const showField = isProposing || proposals.length === 0;
+  // Le carnet dans le vote d'un foyer : quelques recettes, filtrées pendant la frappe.
+  const suggestions =
+    session && !session.isSoiree && session.topic === "plat"
+      ? carnetSuggestions(
+          carnet ?? [],
+          dishName,
+          proposals.map((proposal) => proposal.name),
+          4,
+        )
+      : [];
 
   function stopProposing() {
     setIsProposing(false);
@@ -509,6 +556,29 @@ export default function SessionScreen() {
                 onSubmitEditing={handlePropose}
                 submitBehavior="submit"
               />
+              {suggestions.length > 0 ? (
+                <View style={styles.suggestions}>
+                  <Text style={styles.suggestionsTitle}>Du carnet</Text>
+                  <View style={styles.suggestionList}>
+                    {suggestions.map((recipe) => (
+                      <Pressable
+                        key={recipe.id}
+                        onPress={() => handleProposeRecipe(recipe)}
+                        disabled={isBusy}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Proposer ${recipe.title}, du carnet`}
+                        style={({ pressed }) => [
+                          styles.suggestion,
+                          (pressed || isBusy) && styles.pressed,
+                        ]}
+                      >
+                        <Feather name="book-open" size={16} color={theme.colors.primary} />
+                        <Text style={styles.suggestionText}>{recipe.title}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
               <PrimaryButton
                 label={`Ajouter ${words.this}`}
                 onPress={handlePropose}
@@ -633,6 +703,29 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
           <Text style={styles.heroLabel}>Bon appétit !</Text>
         </SignatureCard>
 
+        {/* Le gagnant vient du carnet : de la décision à la cuisine, sans chercher la recette. */}
+        {winner?.recipeId && !session.isSoiree ? (
+          <Card style={styles.recipeLinks}>
+            <PrimaryButton
+              label="Voir la recette"
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: "/recette/[id]",
+                  params: { id: winner.recipeId ?? "", groupId: session.groupId },
+                })
+              }
+            />
+            <PrimaryButton
+              label="Ajouter aux courses"
+              variant="secondary"
+              onPress={() =>
+                router.push({ pathname: "/recette/courses", params: { id: winner.recipeId ?? "" } })
+              }
+            />
+          </Card>
+        ) : null}
+
         <Card>
           {session.proposals.map((proposal) => {
             const isWinner = proposal.id === winner?.id;
@@ -731,6 +824,20 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     // 44 : taille minimale d'une zone tactile.
     remove: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
     pressed: { opacity: 0.6 },
+    suggestions: { gap: spacing.sm },
+    suggestionsTitle: { color: colors.textMuted, fontSize: fontSize.caption, fontWeight: "700" },
+    suggestionList: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+    suggestion: {
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface2,
+    },
+    suggestionText: { color: colors.text, fontSize: fontSize.small, fontWeight: "600" },
+    recipeLinks: { gap: spacing.sm },
     dishText: { flex: 1, gap: spacing.xs },
     dishLine: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm },
     dish: { flexShrink: 1, color: colors.text, fontFamily: fonts.displayBold, fontSize: 19 },
