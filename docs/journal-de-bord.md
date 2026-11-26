@@ -1,6 +1,6 @@
 # Journal de bord
 
-État du projet au **2026-11-25** (soir), pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-26**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
@@ -9,47 +9,76 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne (#109 à #121) : migrations jusqu'à `recipes`, Edge Functions `notify-vote`, `notify-meal` et `notify-shopping` déployées, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit), site en production. **Décidé le 2026-11-25 : la V1 se termine avec les recettes, les stores viennent après** (audit, design, notifications, modèle économique, coûts, version anglaise : backlog). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande (autorisation donnée le 2026-11-25).
+Tout est mergé et en ligne (#122 à #132) : migrations jusqu'à `foods_search_words`, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande.
 
-**1. Tout de suite : tester sur les deux téléphones** (26/11 : notifications et midi ou soir validés ; restent courses, réglages, vibrations et partage)
+**1. Tout de suite : tester sur le téléphone (en 5G, voir le piège du Wi-Fi)**
 
 | # | Tâche | Détail |
 | --- | --- | --- |
-| 1 | Midi ou soir | Avant 15 h : « on mange quoi ce midi ? », pastille « Ce midi » choisie ; décidé à midi, l'accueil repropose le soir après 15 h. **La pastille crème ressemble-t-elle trop au bouton « Lancer le vote » ?** Sinon : contour seul |
-| 2 | Notifications d'un repas | Résumé : l'organisateur en ~1 min, les autres au plus toutes les 30 min dès 2 nouveautés ; « C'est commandé » ; le rappel du jour à 10 h (repas chez quelqu'un créé la veille) |
-| 3 | « Je pars faire les courses » | L'autre téléphone reçoit l'annonce, ajoute un article, ~30 s plus tard « À prendre aussi : … » ; « J'ai fini » |
-| 4 | Réglages | Mon compte : « Votes du foyer », « Repas à plusieurs », « Liste de courses » ; dans un repas : « Me tenir au courant » |
-| 5 | Vibrations et partage | Un ajout réussi vibre (sinon vérifier « Vibration au toucher » d'Android) ; « Partager le resto » / « Partager le menu » |
-| 6 | « Noël à Soultz » (24/12) | Disparaîtra le 26/12. Changer sa date seulement si je le demande |
+| 1 | Écrire une recette | `Ingrédient \| Qté \| +`, Entrée pour enchaîner ; autocomplétion (« Carot » → « Carotte, crue », ✓ vert) ; corriger, retirer une ligne ; étapes en cartes |
+| 2 | Une recette | Parts − / + (2 œufs pour 4 → 1,5 pour 3) ; « ≈ … kcal par part » ; Pot-au-feu : « 3 ingrédients non comptés » |
+| 3 | Le carnet | « Souvent cuisiné » (Pot-au-feu 3 fois, Gratin 2 fois), recherche (6 recettes et plus), ligne « Recettes » de l'écran du groupe |
+| 4 | Erreurs réseau | Wi-Fi du travail : ~7 s puis « Le serveur ne répond pas sur ce réseau… données mobiles » ; retour en 5G : l'app repart seule au premier plan |
+| 5 | Wi-Fi de la maison | Confirmer que tout marche (sinon : filtrage de la box, DNS privé) |
 
-**2. Recettes (la fin de la V1)** : étude validée, https://claude.ai/artifact/SbaydwqqNZ36yrqnLn2yH2
+**2. Recettes, la suite de la V1**
 
 | PR | Contenu | État |
 | --- | --- | --- |
-| 1 | Base : `recipes`, `recipe_ingredients`, `foods` (vide), `save_recipe`, `copy_base_recipe`, liens, photos | **Faite (#121), en ligne** |
-| 2 | Aliments Ciqual : import (**vérifier la licence avant**), recherche pour l'autocomplétion, poids moyens des pièces | Prochaine |
-| 3 | Lecture d'une ligne d'ingrédient, quantités selon les parts, macros par part (fonctions pures) | |
-| 4 | Carnet, recette, écrire une recette, photo, « Souvent cuisiné », la ligne sur l'accueil | |
-| 5 | La boucle : proposer au vote, « Voir la recette » au résultat, « Ajouter aux courses » | |
-| 6 | Mode cuisine, écran allumé (`expo-keep-awake` : vérifier qu'il est dans l'APK sans changer l'empreinte), « Prendre le plat en photo » | |
+| 1 à 4b, saisie, Ciqual, poids, souvent cuisiné, autocomplétion | #121, #124 à #130, #132 | **Faites, en ligne** |
+| 4c | Photo d'une recette (galerie), vignette dans le carnet ; `getPhotoUrl` à rendre générique (bucket en paramètre) | Prochaine |
+| 5 | La boucle : proposer une recette au vote (`proposals.recipe_id`), « Voir la recette » au résultat, « Ajouter aux courses » (parts = membres, on décoche ce qu'on a, pas de doublon) | |
+| 6 | Mode cuisine, écran allumé (`expo-keep-awake` absent : vérifier l'empreinte avant), « Prendre le plat en photo » | |
+| Erreurs | Les 55 messages « vérifie ta connexion » restants (22 fichiers) : un outil commun avec `classifyError` / `errorMessage` | |
+| Recherche | La correction d'une ligne déjà ajoutée ne propose pas d'aliments ; synonymes courants (« crème liquide » → « fluide ») | Plus tard |
 
-**Recettes de base** : je les prépare avec mon assistant cuisine et je les envoie (titre, parts, ingrédients avec quantités, étapes) ; Claude en fait une migration, chaque ingrédient relié à Ciqual, après la PR 2.
+**Recettes de base** : je les prépare avec mon assistant cuisine ; Claude en fait une migration, chaque ingrédient relié à Ciqual (`search_foods`) et les pièces au poids moyen (compléter `20261202130000_foods_unit_weights.sql` par une nouvelle migration).
 
-**3. À voir à la fin de la V1** (avant de la déclarer livrée)
+**Données de test dans le vrai foyer Maison** (ajoutées le 26/11, à retirer quand je veux) : 5 recettes (Pot-au-feu, Gratin dauphinois, Quiche lorraine, Soupe de légumes, Chili con carne) reliées à Ciqual, et 5 votes clos datés du 16 au 22/11 (insérés déclencheurs coupés : aucune notification). Retrait : supprimer les recettes depuis l'app ; les votes : `delete from vote_sessions where group_id = '3e055308-…' and created_at < '2026-11-23'` (après accord).
 
-| Tâche | Détail |
+**3. À voir à la fin de la V1** : refonte de la présentation et du design (backlog : accueil surchargé, carnet), captures du README, vérification complète d'un invité, seul dans un repas, les 3 repas « commande » à 1 personne.
+
+**4. Avant les stores** (backlog) : inchangé, voir la session du 25/11.
+
+**5. Indicateur** : requête `private.feu_vert` le lundi 30/11.
+
+#### 🗓️ Session du 2026-11-26 : les recettes à l'écran, Ciqual, le réseau
+
+| PR | Contenu |
 | --- | --- |
-| Captures du README | Page web d'un invité, récap WhatsApp, les trois façons de faire un repas, les courses, les recettes. Pseudo « SuperNono » : accord à demander, ou pseudos inventés. Jamais la photo de ma compagne sans son accord (floutée) |
-| Vérification complète d'un invité | Un vrai proche, sans l'app : lien → pseudo → commande ou menu → direct → fin. Puis avec l'app (le lien l'ouvre) et avec le code |
-| Seul dans un repas | Deux cartes fortes se suivent (« Invite tes amis », « Où on mange ? ») : à revoir si ça paraît chargé |
-| Les 3 repas « commande » à 1 personne | Repas de test sur mon compte : à supprimer quand je veux |
-| Plus tard, à valider explicitement | Catalogue des enseignes, partage de la note |
+| #122 | Journal du 25/11, design à la fin de la V1 au backlog |
+| #123 | `CLAUDE.md` à jour (audit de configuration : photo, App Links et APK livrés, purge cohérente) ; ce projet : Claude code, la règle globale d'apprentissage reste pour les autres |
+| #124 | Fonctions pures : lire une ligne d'ingrédient, adapter aux parts (arrondis mesurables, pièce entière pour les courses), macros par part |
+| #125 | Carnet, une recette (parts, macros), ligne « Recettes » de l'accueil, écran de choix |
+| #126 | Écrire, modifier, retirer une recette ; quitter sans enregistrer demande confirmation (`usePreventRemove`) |
+| #127 | Refonte de la saisie après le premier test (critique de design, maquette écran 5) : ingrédients comme les courses (nom, quantité, +), liste aérée, étapes en cartes ; ligne « Recettes » sur l'écran du groupe |
+| #128 | Ciqual 2025 (Licence Ouverte Etalab 2.0 vérifiée, source citée) : 3 484 aliments, `scripts/ciqual-to-sql.mjs`, `search_foods` |
+| #129 | Poids moyen de 13 pièces courantes (œuf 50 g, carotte 100 g…) |
+| #130 | « Souvent cuisiné » : une recette qui gagne au moins 2 votes du foyer |
+| #131 | Réseau : réessai 1 s, 2 s, 4 s au démarrage (profil, accueil), relance au premier plan, message selon la cause (`network-errors.ts`) |
+| #132 | Autocomplétion des ingrédients ; recherche mot par mot et classée (mots entiers, début du nom, débuts de mots) |
 
-« Ce soir, c'est … ! » le matin : réglé par midi ou soir (#120).
+Maquette des recettes : https://claude.ai/artifact/8Ei7qPU2mWkKyABtFjBNRw
 
-**4. Avant les stores** (backlog) : audit complet, **refonte du design à la fin de la V1** (épurer, boutons modernes avec des effets travaillés), revue des notifications, modèle économique, coûts et hébergement, **version entièrement en anglais**, signaler ou bloquer quelqu'un, purge des photos orphelines (profils et recettes), politique de confidentialité hébergée avec le nom du responsable, page web de suppression de compte, service d'envoi des codes (SMTP), CAPTCHA sur la connexion anonyme, limite des essais de `join_group`, demande de permission des notifications expliquée, build de production.
+**Décisions du jour**
+- **Un carnet par foyer** confirmé (question du test) : il sert la boucle du foyer (vote, courses).
+- **Saisie d'un ingrédient = le geste des courses** : nom, quantité libre (« 1 kg », « 3 gousses »), +. La quantité est lue (nombre et unité) ; ce qu'elle dit de plus reste lisible à côté du nom (« Ail (gousses) »). Pas de changement en base.
+- **Ciqual** : « traces » et « < x » comptent pour 0, non mesuré → null. Les poids des pièces sont des ordres de grandeur, toujours « ≈ … estimation ».
+- **Pas de choix automatique d'aliment** : sans suggestion touchée, l'ingrédient reste en texte libre (pas de calories fausses à l'insu de l'utilisateur).
+- **Souvent cuisiné** = gagner un vote du foyer, au moins 2 fois : la seule trace fiable sans rien demander.
+- **Un réseau qui filtre le serveur ne se contourne pas** : l'app le dit (« essaie en données mobiles »).
 
-**5. Indicateur** : feu vert (ne bloque plus rien), requête `private.feu_vert` le lundi 30/11.
+**Pièges trouvés le 2026-11-26**
+- **Le Wi-Fi de l'entreprise bloque `supabase.co`** (et sans doute `expo.dev`) : l'app ne charge plus et les mises à jour n'arrivent pas. Tester en 5G au travail ; une mise à jour publiée ne se récupère qu'avec un réseau qui laisse passer Expo.
+- **Un `count` embarqué et un tri sur la même table** (`recipe_ingredients(count)` + `.order(..., { referencedTable })`) : Postgres refuse (42803). Le compte reste dans les listes, `fetchRecipe` le déduit des lignes lues. Trouvé par les tests d'intégration en CI, pas par le typage.
+- **Docker éteint** : pas de base locale ; la CI lance les tests d'intégration. `database.types.ts` complété à la main pour `search_foods` : **à régénérer avec `npm run db:types`** (il manque aussi `foods.search_text`).
+- **Types des refs avec React Native 0.88** : `useRef<ScrollViewInstance>` et `useRef<TextInputInstance>`, pas `useRef<ScrollView>`.
+- **`usePreventRemove`** : dans son rappel, `setIsDirty(false)` puis `repeat()` (la fonction renvoyée ne peut pas servir dans son propre rappel, règle du linter) ; `disablePrevention()` avant de quitter après un enregistrement.
+- **`gh pr update-branch` n'existe pas dans cette version de `gh`** : `gh api -X PUT repos/BryanChn/on-mange-quoi/pulls/N/update-branch`.
+- **`tidy_text` remplace aussi les retours à la ligne** (`\s+`) : une étape s'enregistre sur une ligne.
+- **Ciqual écrit « Oeuf », pas « Œuf »** ; `unaccent` change « œ » en « oe ». « boeuf » contient « oeuf » : classer les mots entiers d'abord.
+- **Données de test en ligne sans notification** : `set local session_replication_role = replica;` dans la transaction (coupe déclencheurs et clés étrangères), et poser à la main ce que les déclencheurs posaient (`moment`, `topic`).
+- **Prospection automatique** : un robot lit les PR du dépôt public et envoie des e-mails « personnalisés ». Rien à faire ; rappel : rien de privé dans le dépôt.
 
 #### 🗓️ Session du 2026-11-25 : notifications, midi ou soir, recettes
 
