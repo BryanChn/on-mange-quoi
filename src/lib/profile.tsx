@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
+import { AppState } from "react-native";
 
 import { updateMyAvatar } from "./account";
 import { removeProfilePhoto, uploadProfilePhoto } from "./photo-storage";
 import type { AvatarId } from "./avatar";
 import type { Tables } from "./database.types";
+import { classifyError, withRetry, type ErrorKind } from "./network-errors";
 import { useSession } from "./session";
 import { supabase } from "./supabase";
 
@@ -15,17 +17,19 @@ const PROFILE_COLUMNS = "id, display_name, avatar, photo_path";
 export const DISPLAY_NAME_MAX_LENGTH = 30;
 
 // Le résultat d'un chargement, rattaché à son compte : `profile: null` veut dire
-// « ce compte n'a pas de profil », à ne pas confondre avec un chargement raté.
+// « ce compte n'a pas de profil », à ne pas confondre avec un chargement raté (errorKind).
 type LoadedProfile = {
   userId: string;
   profile: Profile | null;
-  hasFailed: boolean;
+  errorKind: ErrorKind | null;
 };
 
 type ProfileState = {
   profile: Profile | null;
   isLoading: boolean;
   hasFailed: boolean;
+  // Pourquoi le chargement a échoué : l'écran d'erreur dit la vraie cause.
+  errorKind: ErrorKind | null;
   retry: () => void;
   // Relit le profil sans repasser par l'état « chargement » : après join_soiree, qui crée
   // le profil d'un invité sur le serveur.
@@ -63,12 +67,13 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     // Si le compte change pendant l'appel, sa réponse arrive trop tard : on l'ignore.
     let isStale = false;
 
-    fetchProfile(userId).then(
+    // Une coupure courte au démarrage (5G → Wi-Fi) est réessayée en silence : 1 s, 2 s, 4 s.
+    withRetry(() => fetchProfile(userId)).then(
       (profile) => {
-        if (!isStale) setLoaded({ userId, profile, hasFailed: false });
+        if (!isStale) setLoaded({ userId, profile, errorKind: null });
       },
-      () => {
-        if (!isStale) setLoaded({ userId, profile: null, hasFailed: true });
+      (error: unknown) => {
+        if (!isStale) setLoaded({ userId, profile: null, errorKind: classifyError(error) });
       },
     );
 
@@ -79,6 +84,19 @@ export function ProfileProvider({ children }: PropsWithChildren) {
 
   // Un résultat chargé pour un autre compte ne vaut rien pour celui-ci.
   const current = loaded?.userId === userId ? loaded : null;
+  const hasFailed = current?.errorKind != null;
+
+  // En échec, on réessaie quand l'app revient au premier plan (le réseau est souvent revenu
+  // entre-temps) : l'état de l'app est un système extérieur à React, d'où l'abonnement.
+  useEffect(() => {
+    if (!hasFailed) return;
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      setLoaded(null);
+      setAttempt((count) => count + 1);
+    });
+    return () => subscription.remove();
+  }, [hasFailed]);
 
   function retry() {
     setLoaded(null);
@@ -92,7 +110,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     const currentUserId = data.session?.user.id;
     if (!currentUserId) throw new Error("Aucun compte connecté.");
     const profile = await fetchProfile(currentUserId);
-    setLoaded({ userId: currentUserId, profile, hasFailed: false });
+    setLoaded({ userId: currentUserId, profile, errorKind: null });
   }
 
   async function saveDisplayName(displayName: string) {
@@ -107,7 +125,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       .single();
 
     if (error) throw error;
-    setLoaded({ userId, profile: data, hasFailed: false });
+    setLoaded({ userId, profile: data, errorKind: null });
   }
 
   async function saveAvatar(avatar: AvatarId | null) {
@@ -116,7 +134,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     if (current.profile.photo_path) await removeProfilePhoto(current.profile.photo_path);
     await updateMyAvatar(avatar);
     const updated = { ...current.profile, avatar, photo_path: null };
-    setLoaded({ userId, profile: updated, hasFailed: false });
+    setLoaded({ userId, profile: updated, errorKind: null });
   }
 
   async function savePhoto(bytes: Uint8Array | null) {
@@ -128,13 +146,14 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     } else if (previous) {
       await removeProfilePhoto(previous);
     }
-    setLoaded({ userId, profile: { ...current.profile, photo_path }, hasFailed: false });
+    setLoaded({ userId, profile: { ...current.profile, photo_path }, errorKind: null });
   }
 
   const value: ProfileState = {
     profile: current?.profile ?? null,
     isLoading: userId !== null && current === null,
-    hasFailed: current?.hasFailed ?? false,
+    hasFailed,
+    errorKind: current?.errorKind ?? null,
     retry,
     reload,
     saveDisplayName,

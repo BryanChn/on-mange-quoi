@@ -6,6 +6,7 @@ import {
 import { Stack, useSegments } from "expo-router";
 
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
+import { errorMessage } from "@/lib/network-errors";
 import { useNotificationRedirect, usePushRegistration } from "@/lib/notifications";
 import { ProfileProvider, useProfile } from "@/lib/profile";
 import { SessionProvider, useSession } from "@/lib/session";
@@ -30,7 +31,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { session, isLoading } = useSession();
-  const { profile, isLoading: isProfileLoading, hasFailed, retry } = useProfile();
+  const { profile, isLoading: isProfileLoading, hasFailed, errorKind, retry } = useProfile();
   const [fontsLoaded] = useFonts({ BricolageGrotesque_700Bold, BricolageGrotesque_800ExtraBold });
   const { colors, fonts } = useTheme();
   const segments = useSegments();
@@ -72,7 +73,7 @@ function RootNavigator() {
     return (
       <ErrorScreen
         title="On n’arrive pas à charger ton profil"
-        message="Vérifie ta connexion et réessaie."
+        message={errorMessage(errorKind ?? "other")}
         onRetry={retry}
         canSignOut
       />
