@@ -104,7 +104,8 @@ const lines = rows.map(
     `${sqlNumber(food.kcal)}, ${sqlNumber(food.protein_g)}, ${sqlNumber(food.carbs_g)}, ${sqlNumber(food.fat_g)})`,
 );
 
-process.stdout.write(`-- Aliments de la table Ciqual 2025 (Anses), générés par scripts/ciqual-to-sql.mjs.
+process.stdout
+  .write(`-- Aliments de la table Ciqual 2025 (Anses), générés par scripts/ciqual-to-sql.mjs.
 -- Source : https://doi.org/10.57745/RDMHWY, version 1.0 du 2025-11-19, Licence Ouverte Etalab 2.0.
 -- Valeurs pour 100 g. « traces » et « < x » → 0 ; non mesuré → null. Ne pas modifier à la main :
 -- relancer le script sur une nouvelle version de la table.
