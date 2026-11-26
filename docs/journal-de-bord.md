@@ -9,39 +9,39 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne (#122 à #134) : migrations jusqu'à `foods_search_words`, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande.
+Tout est mergé et en ligne (#122 à #140) : migrations jusqu'à `base_recipes_lot1`, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande. Au travail : 5G (le Wi-Fi bloque le serveur).
 
-**1. Tout de suite : tester sur le téléphone (en 5G, voir le piège du Wi-Fi)**
+**0. En premier : des photos pour les recettes de base** (demandé le 26/11, une PR propre) : la contrainte `recipes_photo_path_check` et le stockage n'acceptent une photo que dans le dossier d'un foyer. À faire : un dossier `base/` lisible par les comptes (pas les invités anonymes), la contrainte assouplie, une copie qui garde la photo sans pouvoir effacer l'originale ; tests d'intégration. Photos **CC0 ou domaine public seulement** (montrées à tous les foyers et sur les stores), vérifiées une par une.
+
+**1. Tout de suite : mes retours**
 
 | # | Tâche | Détail |
 | --- | --- | --- |
-| 1 | Écrire une recette | `Ingrédient \| Qté \| +`, Entrée pour enchaîner ; autocomplétion (« Carot » → « Carotte, crue », ✓ vert) ; corriger, retirer une ligne ; étapes en cartes |
-| 2 | Une recette | Parts − / + (2 œufs pour 4 → 1,5 pour 3) ; « ≈ … kcal par part » ; Pot-au-feu : « 3 ingrédients non comptés » |
-| 3 | Le carnet | « Souvent cuisiné » (Pot-au-feu 3 fois, Gratin 2 fois), recherche (6 recettes et plus), ligne « Recettes » de l'écran du groupe |
-| 4 | Erreurs réseau | Wi-Fi du travail : ~7 s puis « Le serveur ne répond pas sur ce réseau… données mobiles » ; retour en 5G : l'app repart seule au premier plan |
+| 1 | Relire le lot 1 dans l'app | Carnet → « Des idées pour commencer » : cuisson, quantité, ordre des étapes, étiquettes (« 35 min · € · Vegan… »), calories. Corrections dans le lot suivant (ids fixes : mise à jour sans doublon) |
+| 2 | Tester le mode cuisine en vrai | Ingrédients à cocher, une étape par écran, écran qui reste allumé, photo du plat à la fin |
+| 3 | La boucle avec le carnet | Au prochain vote : « Du carnet » sous « Proposer un plat » → résultat → « Voir la recette », « Ajouter aux courses » |
 
-**2. Recettes, la suite de la V1**
+**2. Avant de déclarer la V1 livrée** (audit du 26/11 : https://claude.ai/artifact/GzYDvY54jnoo6ow8DsKoAu)
 
-| PR | Contenu | État |
+| # | Tâche | Qui |
 | --- | --- | --- |
-| 1 à 4b, saisie, Ciqual, poids, souvent cuisiné, autocomplétion | #121, #124 à #130, #132 | **Faites, en ligne** |
-| 4c | Photo d'une recette (galerie), vignette dans le carnet ; `getPhotoUrl` à rendre générique (bucket en paramètre) | Prochaine |
-| 5 | La boucle : proposer une recette au vote (`proposals.recipe_id`), « Voir la recette » au résultat, « Ajouter aux courses » (parts = membres, on décoche ce qu'on a, pas de doublon) | |
-| 6 | Mode cuisine, écran allumé (`expo-keep-awake` absent : vérifier l'empreinte avant), « Prendre le plat en photo » | |
-| Erreurs | Les 55 messages « vérifie ta connexion » restants (22 fichiers) : un outil commun avec `classifyError` / `errorMessage` | |
-| Recherche | La correction d'une ligne déjà ajoutée ne propose pas d'aliments ; synonymes courants (« crème liquide » → « fluide ») | Plus tard |
+| 1 | Recettes de base, lots 2 à 5 (~40 de plus, tous régimes ; lot 1 : https://claude.ai/artifact/EXMqD4m1bLf2voLjzVynh1) | Claude rédige, je relis dans l'app |
+| 2 | Refonte de l'accueil et du carnet, composant de bouton partagé (maquette d'abord) | Claude, je valide |
+| 3 | Test réel avec des invités sans l'app, test des 5 secondes sur l'accueil | Moi, avec des proches |
+| 4 | Audit de sécurité (RLS, fonctions serveur, `npm audit`) | Claude |
+| 5 | Retirer les données de test du foyer Maison | Moi ou Claude |
 
-**Recettes de base** : je les prépare avec mon assistant cuisine ; Claude en fait une migration, chaque ingrédient relié à Ciqual (`search_foods`) et les pièces au poids moyen (compléter `20261202130000_foods_unit_weights.sql` par une nouvelle migration).
+Noté le 26/11 au soir : **des étiquettes plus sympas** (pastilles plutôt qu'une ligne de texte, un **code couleur** pour végétarien et vegan, à décider avec la refonte du design et contrastes vérifiés en clair et en sombre) ; **trier et chercher par étiquette et par budget** dans le carnet (les filtres de la V2, déjà prévus).
 
-**Données de test dans le vrai foyer Maison** (ajoutées le 26/11, à retirer quand je veux) : 5 recettes (Pot-au-feu, Gratin dauphinois, Quiche lorraine, Soupe de légumes, Chili con carne) reliées à Ciqual, et 5 votes clos datés du 16 au 22/11 (insérés déclencheurs coupés : aucune notification). Retrait : supprimer les recettes depuis l'app ; les votes : `delete from vote_sessions where group_id = '3e055308-…' and created_at < '2026-11-23'` (après accord).
+Plus tard : filtres (régime, temps, budget, peu calorique, protéines) en **V2**, les étiquettes sont déjà posées ; « spaghetti » propose d'abord « Courge spaghetti » (autocomplétion) ; minuteur dans le mode cuisine ; « Retirer de la liste les articles d'une recette » ; une galerie de photos par recette (non décidé).
 
-**3. À voir à la fin de la V1** : refonte de la présentation et du design (backlog : accueil surchargé, carnet), captures du README, vérification complète d'un invité, seul dans un repas, les 3 repas « commande » à 1 personne.
+**Données de test dans le vrai foyer Maison** (ajoutées le 26/11, à retirer quand je veux) : 5 recettes (Pot-au-feu, Gratin dauphinois, Quiche lorraine, Soupe de légumes, Chili con carne) reliées à Ciqual, leurs photos et celle de ma Bolognaise (Wikimedia Commons : Quiche, Chili, Bolognaise en CC0 ; Pot-au-feu CC BY-SA 4.0 Tsaag Valren, Gratin CC BY-SA 3.0 Ludovic Péron, Soupe CC BY-SA 2.0 Scott Teresi : ne jamais les reprendre dans les recettes de base ni sur les stores), et 5 votes clos datés du 16 au 22/11 (insérés déclencheurs coupés : aucune notification). Retrait : supprimer les recettes depuis l'app ; les votes : `delete from vote_sessions where group_id = '3e055308-…' and created_at < '2026-11-23'` (après accord).
 
-**4. Avant les stores** (backlog) : inchangé, voir la session du 25/11.
+**3. Avant les stores** (backlog) : inchangé, voir la session du 25/11.
 
-**5. Indicateur** : requête `private.feu_vert` le lundi 30/11.
+**4. Indicateur** : requête `private.feu_vert` le lundi 30/11.
 
-#### 🗓️ Session du 2026-11-26 : les recettes à l'écran, Ciqual, le réseau
+#### 🗓️ Session du 2026-11-26 : les recettes de bout en bout, Ciqual, le réseau
 
 | PR | Contenu |
 | --- | --- |
@@ -57,6 +57,12 @@ Tout est mergé et en ligne (#122 à #134) : migrations jusqu'à `foods_search_w
 | #131 | Réseau : réessai 1 s, 2 s, 4 s au démarrage (profil, accueil), relance au premier plan, message selon la cause (`network-errors.ts`) |
 | #132 | Autocomplétion des ingrédients ; recherche mot par mot et classée (mots entiers, début du nom, débuts de mots) |
 | #134 | Types de la base régénérés (Docker relancé le soir) ; tests d'intégration en local : 171 réussis |
+| #135 | Photo d'une recette : encart en tête (le livre par défaut), ajout en bas de l'écriture et après coup depuis la recette, vignettes ; `getPhotoUrl` générique, `usePhotoUrl` partagé, `photo-picker.ts` |
+| #136 | « Ajouter aux courses » : parts du foyer, on décoche ce qu'on a, sans doublon, le pris revient ; la liste du foyer de la recette |
+| #137 | Le carnet dans le vote (« Du carnet » sous « Proposer un plat », nom exact relié) ; « Voir la recette » et « Ajouter aux courses » au résultat |
+| #138 | Mode cuisine : ingrédients à cocher, une étape par écran, écran allumé (`expo-keep-awake`, déjà dans l'APK), photo du plat à la fin |
+| #139 | Les 62 messages « vérifie ta connexion » disent la vraie cause (`failureMessage`, `loadErrorMessage`) |
+| #140 | Recettes de base lot 1 (10, reliées à Ciqual) ; étiquettes `diets`, `total_minutes`, `budget` ; « non comptés » ignore le « au goût » |
 
 Maquette des recettes : https://claude.ai/artifact/8Ei7qPU2mWkKyABtFjBNRw
 
@@ -67,6 +73,10 @@ Maquette des recettes : https://claude.ai/artifact/8Ei7qPU2mWkKyABtFjBNRw
 - **Pas de choix automatique d'aliment** : sans suggestion touchée, l'ingrédient reste en texte libre (pas de calories fausses à l'insu de l'utilisateur).
 - **Souvent cuisiné** = gagner un vote du foyer, au moins 2 fois : la seule trace fiable sans rien demander.
 - **Un réseau qui filtre le serveur ne se contourne pas** : l'app le dit (« essaie en données mobiles »).
+- **Une étude du marché avant de trancher** : la boucle carnet → vote → courses vient des apps de vote familial ; pas de planning à la semaine (notre promesse est la décision du soir, à plusieurs). Le vrai concurrent est le sondage WhatsApp.
+- **Recettes de base rédigées par Claude, relues par moi dans l'app** ; 10 pour la fin de la V1, ~50 par lots de 10, tous régimes. Étiquettes posées à l'écriture, filtres en V2.
+- **Une recette a une seule photo** (galerie : plus tard, non décidé) ; sans photo, le livre sur la couleur de la recette.
+- **Remote Control plutôt que le cloud** pour ce projet : base locale, mises à jour EAS, mémoire et règles globales restent sur le PC ; pas de jetons Supabase ou Expo dans un environnement cloud.
 
 **Pièges trouvés le 2026-11-26**
 - **Le Wi-Fi de l'entreprise bloque `supabase.co`** (et sans doute `expo.dev`), **confirmé le soir : le Wi-Fi de la maison marche** : l'app ne charge plus et les mises à jour n'arrivent pas. Tester en 5G au travail ; une mise à jour publiée ne se récupère qu'avec un réseau qui laisse passer Expo.
@@ -79,6 +89,12 @@ Maquette des recettes : https://claude.ai/artifact/8Ei7qPU2mWkKyABtFjBNRw
 - **Ciqual écrit « Oeuf », pas « Œuf »** ; `unaccent` change « œ » en « oe ». « boeuf » contient « oeuf » : classer les mots entiers d'abord.
 - **Données de test en ligne sans notification** : `set local session_replication_role = replica;` dans la transaction (coupe déclencheurs et clés étrangères), et poser à la main ce que les déclencheurs posaient (`moment`, `topic`).
 - **Prospection automatique** : un robot lit les PR du dépôt public et envoie des e-mails « personnalisés ». Rien à faire ; rappel : rien de privé dans le dépôt.
+- **Un module natif déjà apporté par `expo`** (`expo-keep-awake`) : `npx expo-modules-autolinking resolve --platform android` le montre ; le déclarer ne change pas l'empreinte (vérifié par `scripts/check-fingerprint.sh`). Toujours vérifier avant de conclure à un nouvel APK.
+- **Droits par colonne** : `checked_at` ne s'écrit pas à l'insertion (« permission denied ») ; un test ajoute puis coche, comme l'app.
+- **`gh pr edit` échoue** (GraphQL, Projects classic retiré) : `gh api -X PATCH repos/BryanChn/on-mange-quoi/pulls/N -F body=@fichier`.
+- **Ordre de mise en ligne** : quand l'app lit de nouvelles colonnes, `db:push` avant `npm run update` (#140).
+- **Recette de base par migration** : ids fixes `00000000-0000-4000-8000-…` + `on conflict do update`, les lignes passent par `ingredientFromFields` (enregistrées comme tapées) ; vérifier les calories par part avec `macrosPerServing` avant de livrer.
+- **Remplacement par script sur 22 fichiers** : script pour les cas simples, à la main pour les cas particuliers, puis relire le diff ; un type strict signale les objets écrits à la main à mettre à jour (`Proposal` dans `votes.test.ts`).
 
 #### 🗓️ Session du 2026-11-25 : notifications, midi ou soir, recettes
 
