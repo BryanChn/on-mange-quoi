@@ -6,7 +6,7 @@ Cahier des charges complet : page Notion « On mange quoi ? — Cahier des charg
 
 ## Mode de travail
 
-- Les règles globales (`~/.claude/CLAUDE.md`) s'appliquent : posture mentor, le développeur écrit la logique principale (`TODO(human)`), Claude relit comme une PR.
+- Les règles globales (`~/.claude/CLAUDE.md`) s'appliquent (posture mentor), sauf sur un point : dans ce projet, Claude écrit tout le code et le développeur relit et valide les PR (pas de `TODO(human)`).
 - Toujours passer par une branche + PR, jamais de commit sur `main`.
 - **Périmètre strict** : toute fonctionnalité hors de la version en cours est refusée et signalée, sauf validation explicite.
 
@@ -65,7 +65,7 @@ Le feu vert mesure l'usage réel, **sans bloquer la suite** (décidé le 2026-11
 5. En cas d'égalité : tirage au sort automatique parmi les ex æquo, à la clôture. Personne ne choisit à la main (2026-11-19 : le choix de l'organisateur était vécu comme un passage en force).
 6. Votes visibles en temps réel par tout le groupe.
 7. **Notifications push** aux membres du groupe : au **lancement** d'un vote (les autres membres ; l'appui ouvre le vote) et au **résultat** (« C'est décidé : Pizza. Bon appétit ! » ; l'appui ouvre le résultat) (ajouté le 2026-11-13 : un membre absent, qui travaille tard, doit pouvoir proposer, voter et savoir ce qu'on mange, sinon la décision n'est plus collective). **Rappel unique** (ajouté le 2026-11-20) : 1 h après le lancement, une seule relance aux membres qui n'ont ni proposé ni voté (hors organisateur), entre 10 h et 21 h (Paris), au plus tard 3 h après le lancement, rien si le vote est clos. Jamais répété. Pas de notification pour les plats proposés (décidé le 2026-11-20).
-8. **Avatar** (ajouté le 2026-11-20) : chacun choisit un avatar prédéfini (le chat, spaghetti, pizza, burger, avocat, ramen) ou garde son initiale, dans Mon compte ; le même sur tous les écrans, identique en clair et en sombre. La photo perso suivra avec un prochain APK (`expo-image-picker`, natif).
+8. **Avatar** (ajouté le 2026-11-20) : chacun choisit un avatar prédéfini (le chat, spaghetti, pizza, burger, avocat, ramen) ou garde son initiale, dans Mon compte ; le même sur tous les écrans, identique en clair et en sombre. On peut aussi choisir une photo perso (`expo-image-picker`).
 
 9. **Midi ou soir** (ajouté le 2026-11-25) : au lancement d'un vote de foyer, une pastille « Ce midi » / « Ce soir », présélectionnée selon l'heure (avant 15 h : midi). L'accueil, le résultat et la notification de lancement en parlent (« Ce midi, c'est Pizza ! ») ; un repas de midi décidé n'est plus « c'est réglé » après 15 h, l'accueil propose le vote du soir. Deux moments seulement : les repas à plusieurs ont leur date et leurs sujets.
 
@@ -91,10 +91,10 @@ Nom affiché « repas » depuis le 2026-11-24 (« soirée » était trop étroit
 
 Étude : https://claude.ai/artifact/7GqZQEu78cCoVNV2refUQ7. Une soirée remplace les commandes notées sur papier ou envoyées par WhatsApp.
 
-1. Tout compte réel crée une soirée, puis invite quand il veut (pas de partage imposé à la création, retour d'usage du 2026-11-23) : un lien (WhatsApp, SMS), qu'on ouvre dans un navigateur avec un pseudo, même sans l'app ; ou le code de la soirée, que quelqu'un qui a l'app tape dans « Rejoindre avec un code » (mêmes règles que le lien). Le lien ouvrira directement l'app avec le prochain APK (App Links).
+1. Tout compte réel crée une soirée, puis invite quand il veut (pas de partage imposé à la création, retour d'usage du 2026-11-23) : un lien (WhatsApp, SMS), qu'on ouvre dans un navigateur avec un pseudo, même sans l'app ; ou le code de la soirée, que quelqu'un qui a l'app tape dans « Rejoindre avec un code » (mêmes règles que le lien). Si l'app est installée, le lien l'ouvre directement (App Links).
 2. « Où on mange ? » : vote existant avec des restaurants, ou resto fixé directement par le responsable (vote facultatif).
 3. Puis la liste de commande : chacun ajoute ses lignes (texte libre, quantité, remarque) et voit celles des autres, en direct. Le responsable a le récapitulatif (regroupé pour le comptoir, et par personne).
-4. Le responsable marque « Commande passée » : tout se fige, historique de 24 h, puis la soirée et les comptes invités sont effacés (soirée abandonnée : 7 jours).
+4. Le responsable marque « Commande passée » : tout se fige. La soirée et les comptes invités sont effacés 24 h après le jour du repas.
 5. Le responsable peut retirer une ligne ou une personne. 20 participants au plus. Une carte sur l'accueil tant que la soirée existe.
 
 Plus tard, volontairement : paiement et partage de la note (chacun paie sa part), catalogue des enseignes, notifications aux invités, transformer un invité en compte.
@@ -103,9 +103,9 @@ Plus tard, volontairement : paiement et partage de la note (chacun paie sa part)
 
 Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette : https://claude.ai/artifact/Y3YUASnGDVfdk6pqzDvk4p. Règle d'or : rapide et sans réfléchir pour chaque cas, une question par écran, un toucher fait avancer, une valeur par défaut seulement quand un choix est obligatoire (la date : aujourd'hui), ton de pote.
 
-1. « C'est quoi le plan ? » : **On se commande un truc** (vote ou choix du resto, puis la commande groupée, comme avant), **On va au resto** (le vote du resto s'ouvre, puis c'est décidé), **On mange chez quelqu'un**.
+1. « C'est quoi le plan ? » : **On se commande un truc** (vote ou choix du resto, puis la commande groupée), **On va au resto** (le vote du resto s'ouvre, puis c'est décidé), **On mange chez quelqu'un**.
 2. Chez quelqu'un : « On décide quoi ? » (apéro, entrée, plat, dessert ; rien de coché d'office, le bouton annonce « Lancer 2 votes » ou « C'est parti, sans vote » ; 2026-11-24, retour d'usage : décocher le plat pour un dessert était un piège), un vote par sujet, **ouverts en même temps** ; le menu est décidé quand le dernier vote se termine. **Qui apporte quoi** dès le début : chacun écrit ce qu'il apporte, visible en direct.
-3. « Quand ? » (ce soir par défaut, demain, une date jusqu'à 6 mois) : le repas est effacé 24 h après son jour (avant : 7 jours après sa création).
+3. « Quand ? » (ce soir par défaut, demain, une date jusqu'à 6 mois) : le repas est effacé 24 h après son jour.
 
 ### Liste de courses (tranché le 2026-11-24)
 
@@ -158,7 +158,7 @@ npm run update -- --message "…"  # publier le JavaScript sur les APK installé
 
 1. Schéma SQL + politiques RLS (migrations versionnées), testés avant tout écran.
 2. Logique de décision (comptage, égalité, tirage) en fonctions SQL côté serveur (`get_session_result`, `close_session`), testées par scénarios : le tirage doit être unique et infalsifiable, donc jamais calculé sur le téléphone.
-3. Écrans un par un, chaque parcours testé sur un vrai téléphone via Expo Go.
+3. Écrans un par un, chaque parcours testé sur un vrai téléphone : Expo Go pendant le dev, l'APK preview pour le natif (notifications, photos, App Links).
 
 ## Reprendre le travail
 
