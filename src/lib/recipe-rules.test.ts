@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  buildRecipeDraft,
   formatAmount,
+  ingredientPreview,
   ingredientGrams,
   macrosPerServing,
   matchesRecipeSearch,
@@ -271,4 +273,64 @@ test("écrans : une vignette garde sa couleur", () => {
   const index = recipeTileIndex("3f2a9c1e-0000-4000-8000-000000000000", 3);
   assert.ok(index >= 0 && index < 3);
   assert.equal(recipeTileIndex("3f2a9c1e-0000-4000-8000-000000000000", 3), index);
+});
+
+const form = {
+  title: "  Bolognaise   maison ",
+  servings: 4,
+  ingredients: [
+    { raw: " 500 g de bœuf haché ", foodId: 42 },
+    { raw: "   ", foodId: null },
+    { raw: "sel", foodId: null },
+  ],
+  steps: ["  Faire revenir\nl'oignon  ", "", "Servir"],
+};
+
+test("écrire : le brouillon envoyé à la base", () => {
+  assert.deepEqual(buildRecipeDraft(form), {
+    ok: true,
+    draft: {
+      title: "Bolognaise maison",
+      servings: 4,
+      ingredients: [
+        { raw: "500 g de bœuf haché", label: "bœuf haché", quantity: 500, unit: "g", foodId: 42 },
+        { raw: "sel", label: "sel", quantity: null, unit: null, foodId: null },
+      ],
+      steps: ["Faire revenir l'oignon", "Servir"],
+    },
+  });
+});
+
+test("écrire : un message clair pour chaque limite", () => {
+  const errorsOf = (changes: Partial<typeof form>) => {
+    const result = buildRecipeDraft({ ...form, ...changes });
+    return result.ok ? null : result.errors;
+  };
+  assert.deepEqual(errorsOf({ title: "  " }), { title: "Donne un nom à la recette." });
+  assert.deepEqual(errorsOf({ title: "a".repeat(81) }), {
+    title: "Le nom fait 80 caractères au plus.",
+  });
+  assert.deepEqual(errorsOf({ ingredients: [{ raw: "a".repeat(121), foodId: null }] }), {
+    ingredients: "Une ligne fait 120 caractères au plus.",
+  });
+  assert.deepEqual(
+    errorsOf({ ingredients: Array.from({ length: 61 }, () => ({ raw: "sel", foodId: null })) }),
+    { ingredients: "60 ingrédients au plus." },
+  );
+  assert.deepEqual(errorsOf({ steps: ["a".repeat(501)] }), {
+    steps: "Une étape fait 500 caractères au plus.",
+  });
+  assert.deepEqual(errorsOf({ steps: Array.from({ length: 41 }, () => "Remuer") }), {
+    steps: "40 étapes au plus.",
+  });
+  // Sans ingrédient ni étape : permis (on peut noter une idée et la compléter plus tard).
+  assert.equal(buildRecipeDraft({ ...form, ingredients: [], steps: [] }).ok, true);
+});
+
+test("écrire : ce que l'app a compris d'une ligne", () => {
+  assert.equal(ingredientPreview("500 g de bœuf haché"), "500 g · bœuf haché");
+  assert.equal(ingredientPreview("2 c. à s. d'huile"), "2 c. à soupe · huile");
+  assert.equal(ingredientPreview("2 œufs"), "2 · œufs");
+  assert.equal(ingredientPreview("sel"), "Sans quantité");
+  assert.equal(ingredientPreview("  "), null);
 });

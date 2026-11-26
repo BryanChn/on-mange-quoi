@@ -1,4 +1,4 @@
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/primary-button";
 import { ServingsStepper } from "@/components/servings-stepper";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
+import { TextButton } from "@/components/text-button";
 import { hapticAdded, hapticReject } from "@/lib/haptics";
 import { formatAmount, macrosPerServing, scaleAmount } from "@/lib/recipe-rules";
 import { copyBaseRecipe, fetchRecipe, subscribeToCarnet, type Recipe } from "@/lib/recipes";
@@ -93,6 +94,24 @@ export default function RecipeScreen() {
         { paddingBottom: insets.bottom + theme.spacing.xl },
       ]}
     >
+      {/* Une recette du carnet se modifie ; une recette de base, jamais (on la copie). */}
+      <Stack.Screen
+        options={{
+          headerRight: isBase
+            ? undefined
+            : () => (
+                <TextButton
+                  label="Modifier"
+                  onPress={() =>
+                    router.push({
+                      pathname: "/recette/ecrire",
+                      params: { groupId: recipe.groupId ?? "", id: recipe.id },
+                    })
+                  }
+                />
+              ),
+        }}
+      />
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">
           {recipe.title}

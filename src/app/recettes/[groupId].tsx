@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "@/components/card";
 import { ListCard, ListRow } from "@/components/list";
+import { PrimaryButton } from "@/components/primary-button";
 import { RecipeTile } from "@/components/recipe-tile";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextField } from "@/components/text-field";
@@ -103,6 +104,11 @@ export default function CarnetScreen() {
         </Text>
         <Text style={styles.subtitle}>Le carnet de {carnet.groupName}</Text>
       </View>
+
+      <PrimaryButton
+        label="Écrire une recette"
+        onPress={() => router.push({ pathname: "/recette/ecrire", params: { groupId } })}
+      />
 
       {carnet.recipes.length >= SEARCH_FROM ? (
         <TextField
