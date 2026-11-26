@@ -9,7 +9,7 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne (#122 à #132) : migrations jusqu'à `foods_search_words`, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande.
+Tout est mergé et en ligne (#122 à #134) : migrations jusqu'à `foods_search_words`, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande.
 
 **1. Tout de suite : tester sur le téléphone (en 5G, voir le piège du Wi-Fi)**
 
@@ -19,7 +19,6 @@ Tout est mergé et en ligne (#122 à #132) : migrations jusqu'à `foods_search_w
 | 2 | Une recette | Parts − / + (2 œufs pour 4 → 1,5 pour 3) ; « ≈ … kcal par part » ; Pot-au-feu : « 3 ingrédients non comptés » |
 | 3 | Le carnet | « Souvent cuisiné » (Pot-au-feu 3 fois, Gratin 2 fois), recherche (6 recettes et plus), ligne « Recettes » de l'écran du groupe |
 | 4 | Erreurs réseau | Wi-Fi du travail : ~7 s puis « Le serveur ne répond pas sur ce réseau… données mobiles » ; retour en 5G : l'app repart seule au premier plan |
-| 5 | Wi-Fi de la maison | Confirmer que tout marche (sinon : filtrage de la box, DNS privé) |
 
 **2. Recettes, la suite de la V1**
 
@@ -57,6 +56,7 @@ Tout est mergé et en ligne (#122 à #132) : migrations jusqu'à `foods_search_w
 | #130 | « Souvent cuisiné » : une recette qui gagne au moins 2 votes du foyer |
 | #131 | Réseau : réessai 1 s, 2 s, 4 s au démarrage (profil, accueil), relance au premier plan, message selon la cause (`network-errors.ts`) |
 | #132 | Autocomplétion des ingrédients ; recherche mot par mot et classée (mots entiers, début du nom, débuts de mots) |
+| #134 | Types de la base régénérés (Docker relancé le soir) ; tests d'intégration en local : 171 réussis |
 
 Maquette des recettes : https://claude.ai/artifact/8Ei7qPU2mWkKyABtFjBNRw
 
@@ -69,9 +69,9 @@ Maquette des recettes : https://claude.ai/artifact/8Ei7qPU2mWkKyABtFjBNRw
 - **Un réseau qui filtre le serveur ne se contourne pas** : l'app le dit (« essaie en données mobiles »).
 
 **Pièges trouvés le 2026-11-26**
-- **Le Wi-Fi de l'entreprise bloque `supabase.co`** (et sans doute `expo.dev`) : l'app ne charge plus et les mises à jour n'arrivent pas. Tester en 5G au travail ; une mise à jour publiée ne se récupère qu'avec un réseau qui laisse passer Expo.
+- **Le Wi-Fi de l'entreprise bloque `supabase.co`** (et sans doute `expo.dev`), **confirmé le soir : le Wi-Fi de la maison marche** : l'app ne charge plus et les mises à jour n'arrivent pas. Tester en 5G au travail ; une mise à jour publiée ne se récupère qu'avec un réseau qui laisse passer Expo.
 - **Un `count` embarqué et un tri sur la même table** (`recipe_ingredients(count)` + `.order(..., { referencedTable })`) : Postgres refuse (42803). Le compte reste dans les listes, `fetchRecipe` le déduit des lignes lues. Trouvé par les tests d'intégration en CI, pas par le typage.
-- **Docker éteint** : pas de base locale ; la CI lance les tests d'intégration. `database.types.ts` complété à la main pour `search_foods` : **à régénérer avec `npm run db:types`** (il manque aussi `foods.search_text`).
+- **Docker éteint** : pas de base locale ; la CI lance les tests d'intégration. `database.types.ts` complété à la main pour `search_foods`, puis régénéré le soir (#134). Base locale en retard : `npx supabase migration up --local` applique les migrations manquantes sans rien effacer.
 - **Types des refs avec React Native 0.88** : `useRef<ScrollViewInstance>` et `useRef<TextInputInstance>`, pas `useRef<ScrollView>`.
 - **`usePreventRemove`** : dans son rappel, `setIsDirty(false)` puis `repeat()` (la fonction renvoyée ne peut pas servir dans son propre rappel, règle du linter) ; `disablePrevention()` avant de quitter après un enregistrement.
 - **`gh pr update-branch` n'existe pas dans cette version de `gh`** : `gh api -X PUT repos/BryanChn/on-mange-quoi/pulls/N/update-branch`.
