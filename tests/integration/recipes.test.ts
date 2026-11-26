@@ -32,7 +32,7 @@ import {
 } from "../../src/lib/shopping.ts";
 import { planShoppingAdditions } from "../../src/lib/shopping-rules.ts";
 import { createSoiree } from "../../src/lib/soirees.ts";
-import { closeSession, startSession } from "../../src/lib/votes.ts";
+import { addProposal, closeSession, fetchSession, startSession } from "../../src/lib/votes.ts";
 import {
   cleanUp,
   createBaseRecipe,
@@ -535,5 +535,28 @@ describe("ajouter une recette aux courses", () => {
       .eq("label", "Bœuf haché")
       .single();
     assert.equal(origin.data?.recipe_id, recipeId);
+  });
+});
+
+describe("le carnet dans le vote", () => {
+  test("une recette proposée garde son lien jusqu'au résultat ; celle d'un autre foyer est refusée", async () => {
+    await signInAs(dan);
+    const danRecipeId = await saveRecipe(danFoyerId, null, { ...bolo, title: "Chez Dan (test)" });
+
+    const groupId = await createGroup(alice, [bea]);
+    await signInAs(alice);
+    const recipeId = await saveRecipe(groupId, null, { ...bolo, title: "Gratin (vote test)" });
+    const sessionId = await startSession(groupId, "soir");
+    assert.equal(await addProposal(sessionId, "Gratin (vote test)", recipeId), true);
+    await assert.rejects(addProposal(sessionId, "Chez Dan", danRecipeId));
+    // Un plat tapé sans recette reste possible.
+    assert.equal(await addProposal(sessionId, "Pizza"), true);
+
+    await closeSession(sessionId);
+    await signInAs(bea);
+    const session = await fetchSession(sessionId);
+    const gratin = session.proposals.find((proposal) => proposal.name === "Gratin (vote test)");
+    assert.equal(gratin?.recipeId, recipeId);
+    assert.equal(session.proposals.find((proposal) => proposal.name === "Pizza")?.recipeId, null);
   });
 });

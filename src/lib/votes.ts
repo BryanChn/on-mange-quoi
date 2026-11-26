@@ -21,6 +21,8 @@ export type Proposal = {
   isMine: boolean;
   // Qui a coché ce plat, « toi » en premier.
   voterNames: string[];
+  // La recette du carnet d'où vient ce plat, null sinon (ou recette retirée depuis).
+  recipeId: string | null;
 };
 
 export type VoteSession = {
@@ -178,7 +180,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
     .select(
       `group_id, status, organizer_id, winner_proposal_id, decided_by, created_at, closed_at, topic, moment,
       groups(owner_id, name, kind, soiree_mode, ${MEMBER_COLUMNS}),
-      proposals!proposals_session_id_fkey(id, name, proposed_by, votes(profile_id))`,
+      proposals!proposals_session_id_fkey(id, name, proposed_by, recipe_id, votes(profile_id))`,
     )
     .eq("id", sessionId)
     .order("created_at", { referencedTable: "proposals", ascending: true })
@@ -217,6 +219,7 @@ export async function fetchSession(sessionId: string): Promise<VoteSession> {
       voteCount: proposal.votes.length,
       hasMyVote: proposal.votes.some((vote) => vote.profile_id === userId),
       isMine: proposal.proposed_by === userId,
+      recipeId: proposal.recipe_id,
       voterNames: proposal.votes
         .map((vote) =>
           vote.profile_id === userId
@@ -250,11 +253,16 @@ export function isSessionClosedError(error: unknown): boolean {
 }
 
 // false = ce plat est déjà proposé dans la session (« Pizza » et « pizza » comptent pareil).
-export async function addProposal(sessionId: string, name: string): Promise<boolean> {
+// recipeId : la recette du carnet proposée (la base vérifie qu'elle est du même foyer).
+export async function addProposal(
+  sessionId: string,
+  name: string,
+  recipeId: string | null = null,
+): Promise<boolean> {
   const userId = await getUserId();
   const { error } = await supabase
     .from("proposals")
-    .insert({ session_id: sessionId, name, proposed_by: userId });
+    .insert({ session_id: sessionId, name, proposed_by: userId, recipe_id: recipeId });
 
   if (error?.code === UNIQUE_VIOLATION) return false;
   if (error) throw error;

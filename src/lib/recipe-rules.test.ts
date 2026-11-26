@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   buildRecipeDraft,
+  carnetSuggestions,
   cookedLabel,
   formatAmount,
   fieldsFromIngredient,
@@ -12,6 +13,7 @@ import {
   matchesRecipeSearch,
   oftenCooked,
   parseIngredientLine,
+  recipeByTitle,
   recipeSubtitle,
   recipesShortcut,
   recipeTileIndex,
@@ -408,4 +410,29 @@ test("souvent cuisiné : au moins 2 fois, les plus cuisinées d'abord", () => {
   ]);
   assert.equal(oftenCooked(["a", "a", "b", "b", "c", "c"], 3).length, 3);
   assert.equal(cookedLabel(3), "Cuisinée 3 fois");
+});
+
+const carnet = [
+  { id: "1", title: "Chili con carne" },
+  { id: "2", title: "Gratin dauphinois" },
+  { id: "3", title: "Pot-au-feu" },
+  { id: "4", title: "Crème brûlée" },
+];
+
+test("le carnet dans le vote : suggestions, sans les plats déjà proposés", () => {
+  assert.deepEqual(
+    carnetSuggestions(carnet, "", ["pot-au-feu"]).map((recipe) => recipe.id),
+    ["1", "2", "4"],
+  );
+  assert.deepEqual(
+    carnetSuggestions(carnet, "creme", []).map((recipe) => recipe.id),
+    ["4"],
+  );
+  assert.equal(carnetSuggestions(carnet, "", [], 2).length, 2);
+});
+
+test("le carnet dans le vote : un nom identique est relié, un nom proche non", () => {
+  assert.equal(recipeByTitle(carnet, "  pot-au-feu ")?.id, "3");
+  assert.equal(recipeByTitle(carnet, "Creme   brulee")?.id, "4");
+  assert.equal(recipeByTitle(carnet, "Pot au feu de mamie"), null);
 });

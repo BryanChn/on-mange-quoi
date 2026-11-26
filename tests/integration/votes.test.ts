@@ -365,6 +365,7 @@ describe("getLeadingProposals (logique pure)", () => {
     hasMyVote: false,
     isMine: false,
     voterNames: [],
+    recipeId: null,
   });
 
   test("garde le plat qui a le plus de votes", () => {

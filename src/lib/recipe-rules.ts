@@ -534,3 +534,30 @@ export function oftenCooked(
 export function cookedLabel(count: number): string {
   return `Cuisinée ${count} fois`;
 }
+
+// ─── le carnet dans le vote ──────────────────────────────
+
+type CarnetEntry = { id: string; title: string };
+
+// Les recettes du carnet proposées sous « Proposer un plat » : sans rien taper, les premières
+// du carnet ; en tapant, celles dont le nom contient le texte (sans accents ni majuscules).
+// Jamais un plat déjà proposé dans ce vote.
+export function carnetSuggestions<T extends CarnetEntry>(
+  recipes: T[],
+  typed: string,
+  proposedNames: string[],
+  limit = 5,
+): T[] {
+  const proposed = new Set(proposedNames.map(foldText));
+  return recipes
+    .filter((recipe) => !proposed.has(foldText(recipe.title)))
+    .filter((recipe) => matchesRecipeSearch(recipe.title, typed))
+    .slice(0, limit);
+}
+
+// Un plat tapé à la main qui porte exactement le nom d'une recette du carnet y est relié : le
+// résultat pourra montrer la recette. Un nom seulement proche ne l'est pas (on ne devine pas).
+export function recipeByTitle<T extends CarnetEntry>(recipes: T[], name: string): T | null {
+  const wanted = foldText(name).replace(/\s+/g, " ");
+  return recipes.find((recipe) => foldText(recipe.title).replace(/\s+/g, " ") === wanted) ?? null;
+}
