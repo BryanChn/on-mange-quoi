@@ -381,3 +381,90 @@ export function recipeTileIndex(recipeId: string, count: number): number {
   for (const char of recipeId) hash = (hash * 31 + char.charCodeAt(0)) % 997;
   return hash % count;
 }
+
+// ─── écrire une recette ──────────────────────────────────
+
+// Mêmes limites que la base (recipes, recipe_ingredients, save_recipe).
+export const RECIPE_TITLE_MAX_LENGTH = 80;
+export const RECIPE_MAX_INGREDIENTS = 60;
+export const RECIPE_MAX_STEPS = 40;
+export const RECIPE_STEP_MAX_LENGTH = 500;
+
+// Une ligne du formulaire : le texte tapé, et l'aliment Ciqual choisi pour ce texte (perdu dès
+// que le texte change : l'écran remet null).
+export type IngredientLineInput = { raw: string; foodId: number | null };
+
+export type RecipeFormInput = {
+  title: string;
+  servings: number;
+  ingredients: IngredientLineInput[];
+  steps: string[];
+};
+
+export type RecipeIngredientDraft = ParsedIngredient & { raw: string; foodId: number | null };
+
+export type RecipeFormResult =
+  | {
+      ok: true;
+      draft: {
+        title: string;
+        servings: number;
+        ingredients: RecipeIngredientDraft[];
+        steps: string[];
+      };
+    }
+  | { ok: false; errors: { title?: string; ingredients?: string; steps?: string } };
+
+function tidy(text: string): string {
+  return text.trim().replace(/\s+/g, " ");
+}
+
+// Ce que l'écran envoie à save_recipe : texte rangé, lignes et étapes vides retirées, chaque
+// ingrédient lu. Les limites sont vérifiées ici pour un message clair ; la base les vérifie
+// aussi (le serveur ne fait jamais confiance à l'app).
+export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
+  const errors: { title?: string; ingredients?: string; steps?: string } = {};
+
+  const title = tidy(form.title);
+  if (title === "") errors.title = "Donne un nom à la recette.";
+  else if (title.length > RECIPE_TITLE_MAX_LENGTH)
+    errors.title = `Le nom fait ${RECIPE_TITLE_MAX_LENGTH} caractères au plus.`;
+
+  const lines = form.ingredients
+    .map((line) => ({ raw: tidy(line.raw), foodId: line.foodId }))
+    .filter((line) => line.raw !== "");
+  if (lines.length > RECIPE_MAX_INGREDIENTS)
+    errors.ingredients = `${RECIPE_MAX_INGREDIENTS} ingrédients au plus.`;
+  else if (lines.some((line) => line.raw.length > INGREDIENT_RAW_MAX_LENGTH))
+    errors.ingredients = `Une ligne fait ${INGREDIENT_RAW_MAX_LENGTH} caractères au plus.`;
+
+  // Rangées comme la base les range (tidy_text) : un seul espace, retours à la ligne compris.
+  const steps = form.steps.map(tidy).filter((step) => step !== "");
+  if (steps.length > RECIPE_MAX_STEPS) errors.steps = `${RECIPE_MAX_STEPS} étapes au plus.`;
+  else if (steps.some((step) => step.length > RECIPE_STEP_MAX_LENGTH))
+    errors.steps = `Une étape fait ${RECIPE_STEP_MAX_LENGTH} caractères au plus.`;
+
+  if (errors.title || errors.ingredients || errors.steps) return { ok: false, errors };
+  return {
+    ok: true,
+    draft: {
+      title,
+      servings: form.servings,
+      ingredients: lines.map((line) => ({
+        ...parseIngredientLine(line.raw),
+        raw: line.raw,
+        foodId: line.foodId,
+      })),
+      steps,
+    },
+  };
+}
+
+// Sous une ligne qu'on tape, ce que l'app en a compris : « 500 g · bœuf haché », ou que la
+// ligne reste sans quantité. null : ligne vide, rien à montrer.
+export function ingredientPreview(raw: string): string | null {
+  if (raw.trim() === "") return null;
+  const parsed = parseIngredientLine(raw);
+  if (parsed.quantity === null) return "Sans quantité";
+  return `${formatAmount({ quantity: parsed.quantity, unit: parsed.unit })} · ${parsed.label}`;
+}
