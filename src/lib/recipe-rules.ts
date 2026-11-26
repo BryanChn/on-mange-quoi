@@ -503,3 +503,34 @@ export function fieldsFromIngredient(ingredient: ParsedIngredient): {
         : formatAmount({ quantity: ingredient.quantity, unit: ingredient.unit }),
   };
 }
+
+// ─── souvent cuisiné ─────────────────────────────────────
+
+// Une recette compte comme cuisinée quand elle gagne un vote du foyer. « Souvent » : au moins
+// 2 fois. Les plus cuisinées d'abord, à égalité la plus récente ; `limit` au plus.
+export type CookedCount = { recipeId: string; count: number };
+
+export function oftenCooked(
+  // Les recettes gagnantes des votes clos, du plus récent au plus ancien (null : un plat sans
+  // recette).
+  winners: (string | null)[],
+  limit = 2,
+): CookedCount[] {
+  const counts = new Map<string, { count: number; latest: number }>();
+  winners.forEach((recipeId, index) => {
+    if (recipeId === null) return;
+    const current = counts.get(recipeId);
+    if (current) current.count += 1;
+    else counts.set(recipeId, { count: 1, latest: index });
+  });
+  return [...counts.entries()]
+    .filter(([, { count }]) => count >= 2)
+    .sort(([, a], [, b]) => b.count - a.count || a.latest - b.latest)
+    .slice(0, limit)
+    .map(([recipeId, { count }]) => ({ recipeId, count }));
+}
+
+// « Cuisinée 3 fois ».
+export function cookedLabel(count: number): string {
+  return `Cuisinée ${count} fois`;
+}

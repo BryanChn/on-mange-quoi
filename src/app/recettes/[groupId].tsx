@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "@/components/card";
@@ -10,10 +10,17 @@ import { RecipeTile } from "@/components/recipe-tile";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextField } from "@/components/text-field";
 import { fetchGroup } from "@/lib/groups";
-import { matchesRecipeSearch, recipeSubtitle } from "@/lib/recipe-rules";
+import {
+  cookedLabel,
+  matchesRecipeSearch,
+  oftenCooked,
+  recipeSubtitle,
+  type CookedCount,
+} from "@/lib/recipe-rules";
 import {
   fetchBaseRecipes,
   fetchCarnet,
+  fetchCookedWinners,
   subscribeToCarnet,
   type RecipeSummary,
 } from "@/lib/recipes";
@@ -23,6 +30,7 @@ type CarnetState = {
   groupName: string;
   recipes: RecipeSummary[];
   baseRecipes: RecipeSummary[];
+  cooked: CookedCount[];
 };
 
 // Au-delà, la recherche aide ; en dessous, tout tient à l'écran.
@@ -47,10 +55,15 @@ export default function CarnetScreen() {
     latestRequestRef.current += 1;
     const requestId = latestRequestRef.current;
 
-    Promise.all([fetchGroup(groupId), fetchCarnet(groupId), fetchBaseRecipes()]).then(
-      ([group, recipes, baseRecipes]) => {
+    Promise.all([
+      fetchGroup(groupId),
+      fetchCarnet(groupId),
+      fetchBaseRecipes(),
+      fetchCookedWinners(groupId),
+    ]).then(
+      ([group, recipes, baseRecipes, winners]) => {
         if (latestRequestRef.current !== requestId) return;
-        setCarnet({ groupName: group.name, recipes, baseRecipes });
+        setCarnet({ groupName: group.name, recipes, baseRecipes, cooked: oftenCooked(winners) });
         setHasFailed(false);
       },
       () => {
@@ -86,6 +99,13 @@ export default function CarnetScreen() {
     ),
   );
 
+  // Une recette retirée du carnet ne reste pas dans « Souvent cuisiné ».
+  const byId = new Map(carnet.recipes.map((recipe) => [recipe.id, recipe]));
+  const cooked = carnet.cooked.flatMap(({ recipeId, count }) => {
+    const recipe = byId.get(recipeId);
+    return recipe ? [{ recipe, count }] : [];
+  });
+
   function openRecipe(recipeId: string) {
     router.push({ pathname: "/recette/[id]", params: { id: recipeId, groupId } });
   }
@@ -119,6 +139,31 @@ export default function CarnetScreen() {
           returnKeyType="search"
           autoCorrect={false}
         />
+      ) : null}
+
+      {cooked.length > 0 && query.trim() === "" ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle} accessibilityRole="header">
+            Souvent cuisiné
+          </Text>
+          <View style={styles.cookedRow}>
+            {cooked.map(({ recipe, count }) => (
+              <Pressable
+                key={recipe.id}
+                onPress={() => openRecipe(recipe.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`${recipe.title}, ${cookedLabel(count)}`}
+                style={({ pressed }) => [styles.cookedCard, pressed && styles.pressed]}
+              >
+                <RecipeTile recipeId={recipe.id} size={48} />
+                <Text style={styles.cookedTitle} numberOfLines={2}>
+                  {recipe.title}
+                </Text>
+                <Text style={styles.subtitle}>{cookedLabel(count)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       ) : null}
 
       {carnet.recipes.length === 0 ? (
@@ -187,7 +232,7 @@ export default function CarnetScreen() {
   );
 }
 
-function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
+function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
     header: { gap: spacing.xs },
@@ -201,6 +246,17 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     section: { gap: spacing.md },
     sectionHeader: { gap: spacing.xs },
     sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 20 },
+    cookedRow: { flexDirection: "row", gap: spacing.md },
+    cookedCard: {
+      flex: 1,
+      gap: spacing.sm,
+      padding: spacing.lg,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface,
+      boxShadow: cardShadow,
+    },
+    cookedTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
+    pressed: { opacity: 0.6 },
     emptyTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
     emptyText: { color: colors.textMuted, fontSize: fontSize.body, lineHeight: 24 },
   });

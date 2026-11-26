@@ -3,12 +3,14 @@ import { test } from "node:test";
 
 import {
   buildRecipeDraft,
+  cookedLabel,
   formatAmount,
   fieldsFromIngredient,
   ingredientFromFields,
   ingredientGrams,
   macrosPerServing,
   matchesRecipeSearch,
+  oftenCooked,
   parseIngredientLine,
   recipeSubtitle,
   recipesShortcut,
@@ -389,4 +391,21 @@ test("écrire : modifier rend les deux champs, et les réenregistrer ne change r
     name: "Plat de côte",
     quantity: "1 kg",
   });
+});
+
+test("souvent cuisiné : au moins 2 fois, les plus cuisinées d'abord", () => {
+  assert.deepEqual(oftenCooked([]), []);
+  // Une seule fois, ou un plat sans recette : pas « souvent ».
+  assert.deepEqual(oftenCooked(["gratin", null, null]), []);
+  assert.deepEqual(oftenCooked(["gratin", "potaufeu", "potaufeu", "gratin", "potaufeu", "chili"]), [
+    { recipeId: "potaufeu", count: 3 },
+    { recipeId: "gratin", count: 2 },
+  ]);
+  // À égalité, la plus récente (en tête de liste) d'abord ; jamais plus de `limit`.
+  assert.deepEqual(oftenCooked(["chili", "gratin", "chili", "gratin", "soupe", "soupe"]), [
+    { recipeId: "chili", count: 2 },
+    { recipeId: "gratin", count: 2 },
+  ]);
+  assert.equal(oftenCooked(["a", "a", "b", "b", "c", "c"], 3).length, 3);
+  assert.equal(cookedLabel(3), "Cuisinée 3 fois");
 });

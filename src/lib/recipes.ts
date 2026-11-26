@@ -134,6 +134,20 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
   };
 }
 
+// Les recettes gagnantes des derniers votes clos du foyer, du plus récent au plus ancien (null :
+// un plat sans recette) : « Souvent cuisiné » les compte (oftenCooked).
+export async function fetchCookedWinners(groupId: string): Promise<(string | null)[]> {
+  const { data, error } = await supabase
+    .from("vote_sessions")
+    .select("winner:proposals!vote_sessions_winner_fk(recipe_id)")
+    .eq("group_id", groupId)
+    .eq("status", "closed")
+    .order("closed_at", { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return data.map((session) => session.winner?.recipe_id ?? null);
+}
+
 // Un aliment Ciqual proposé pendant qu'on tape un ingrédient.
 export type FoodSuggestion = { id: number; name: string; groupName: string | null };
 
