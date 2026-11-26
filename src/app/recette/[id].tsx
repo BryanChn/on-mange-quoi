@@ -1,14 +1,16 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PrimaryButton } from "@/components/primary-button";
-import { RecipePhoto } from "@/components/recipe-tile";
+import { RecipeBanner } from "@/components/recipe-tile";
 import { ServingsStepper } from "@/components/servings-stepper";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { hapticAdded, hapticReject } from "@/lib/haptics";
+import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
+import { uploadRecipePhoto } from "@/lib/photo-storage";
 import { formatAmount, macrosPerServing, scaleAmount } from "@/lib/recipe-rules";
 import { copyBaseRecipe, fetchRecipe, subscribeToCarnet, type Recipe } from "@/lib/recipes";
 import { useTheme, type Theme } from "@/theme";
@@ -28,6 +30,8 @@ export default function RecipeScreen() {
   const [chosenServings, setChosenServings] = useState<number | null>(null);
   const [isCopying, setIsCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [isPhotoBusy, setIsPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const latestRequestRef = useRef(0);
 
@@ -72,6 +76,36 @@ export default function RecipeScreen() {
   const macros = macrosPerServing(recipe.ingredients, recipe.servings);
   const isBase = recipe.groupId === null;
 
+  // Ajouter ou changer la photo après coup, sans passer par « Modifier ».
+  async function handlePhoto(source: PhotoSource) {
+    if (!recipe?.groupId) return;
+    setPhotoError(null);
+    setIsPhotoBusy(true);
+    try {
+      const picked = await pickRecipePhoto(source);
+      if (picked.kind === "denied") {
+        setPhotoError("L’appareil photo est refusé : autorise-le dans les réglages du téléphone.");
+      } else if (picked.kind === "picked") {
+        await uploadRecipePhoto(recipe.groupId, recipe.id, picked.bytes, recipe.photoPath);
+        hapticAdded();
+        load();
+      }
+    } catch {
+      hapticReject();
+      setPhotoError("La photo n’a pas été enregistrée. Vérifie ta connexion et réessaie.");
+    } finally {
+      setIsPhotoBusy(false);
+    }
+  }
+
+  function askPhotoSource() {
+    Alert.alert(recipe?.photoPath ? "Changer la photo" : "Ajouter une photo", undefined, [
+      { text: "Prendre une photo", onPress: () => handlePhoto("camera") },
+      { text: "Choisir dans la galerie", onPress: () => handlePhoto("library") },
+      { text: "Annuler", style: "cancel" },
+    ]);
+  }
+
   async function handleCopy() {
     if (!groupId || isCopying) return;
     setIsCopying(true);
@@ -113,7 +147,27 @@ export default function RecipeScreen() {
               ),
         }}
       />
-      <RecipePhoto photoPath={recipe.photoPath} />
+      <View style={styles.bannerBlock}>
+        <RecipeBanner recipeId={recipe.id} photoPath={recipe.photoPath} />
+        {isBase ? null : (
+          <TextButton
+            label={
+              isPhotoBusy
+                ? "Envoi de la photo…"
+                : recipe.photoPath
+                  ? "Changer la photo"
+                  : "Ajouter une photo"
+            }
+            onPress={askPhotoSource}
+            isDisabled={isPhotoBusy}
+          />
+        )}
+        {photoError ? (
+          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            {photoError}
+          </Text>
+        ) : null}
+      </View>
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">
           {recipe.title}
@@ -206,6 +260,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
   return StyleSheet.create({
     container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
     header: { gap: spacing.xs },
+    bannerBlock: { gap: spacing.xs, alignItems: "center" },
     title: {
       color: colors.text,
       fontFamily: fonts.display,

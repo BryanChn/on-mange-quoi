@@ -41,32 +41,48 @@ export function RecipeTile({ recipeId, photoPath, size = 40 }: RecipeTileProps) 
   );
 }
 
-// La photo en tête d'une recette (4:3). Rien tant qu'elle n'est pas chargée : pas de cadre vide.
-// uri : une photo choisie pas encore envoyée (aperçu en écrivant la recette).
-export function RecipePhoto({ photoPath, uri }: { photoPath?: string | null; uri?: string }) {
-  const { radius, colors } = useTheme();
+type RecipeBannerProps = {
+  recipeId: string;
+  photoPath?: string | null;
+  // Une photo choisie, pas encore envoyée (aperçu en écrivant la recette).
+  uri?: string;
+};
+
+// L'encart en tête d'une recette, pour illustrer le plat : sa photo, ou par défaut le livre sur
+// la couleur de la recette (la même que sa vignette dans le carnet). Décoratif.
+export function RecipeBanner({ recipeId, photoPath, uri }: RecipeBannerProps) {
+  const { avatarColors, onAvatar, radius } = useTheme();
   const photoUrl = usePhotoUrl(uri ? null : photoPath, RECIPE_BUCKET);
   const source = uri
     ? { uri }
     : photoUrl
       ? { uri: photoUrl, cacheKey: photoPath ?? undefined }
       : null;
-  if (!source) return null;
+  const backgroundColor = avatarColors[recipeTileIndex(recipeId, avatarColors.length)];
 
   return (
-    <Image
-      source={source}
-      style={[styles.photo, { borderRadius: radius.lg, backgroundColor: colors.surface2 }]}
-      contentFit="cover"
-      transition={150}
-      accessibilityIgnoresInvertColors
-      accessible={false}
-    />
+    <View
+      style={[styles.banner, { borderRadius: radius.lg, backgroundColor }]}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {source ? (
+        <Image source={source} style={styles.fill} contentFit="cover" transition={150} />
+      ) : (
+        <Feather name="book-open" size={56} color={onAvatar} />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   tile: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
   fill: { width: "100%", height: "100%" },
-  photo: { width: "100%", aspectRatio: 4 / 3 },
+  banner: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
 });

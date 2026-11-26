@@ -20,7 +20,7 @@ import { ServingsStepper } from "@/components/servings-stepper";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
-import { RecipePhoto } from "@/components/recipe-tile";
+import { RecipeBanner } from "@/components/recipe-tile";
 import { hapticAdded, hapticReject } from "@/lib/haptics";
 import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { removeRecipePhoto, removeRecipePhotoFile, uploadRecipePhoto } from "@/lib/photo-storage";
@@ -411,6 +411,13 @@ export default function WriteRecipeScreen() {
         {isEditing ? "Modifier la recette" : "Écrire une recette"}
       </Text>
 
+      {/* L'encart du plat : la photo choisie, sinon le livre par défaut. */}
+      <RecipeBanner
+        recipeId={savedId ?? "nouvelle-recette"}
+        photoPath={isPhotoRemoved ? null : photoPath}
+        uri={pendingPhoto?.uri}
+      />
+
       <TextField
         label="Nom de la recette"
         value={form.title}
@@ -422,43 +429,6 @@ export default function WriteRecipeScreen() {
       />
 
       <ServingsStepper value={form.servings} onChange={(servings) => update({ servings })} />
-
-      {/* ─── photo, facultative ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Photo <Text style={styles.count}>· facultative</Text>
-        </Text>
-        {pendingPhoto ? (
-          <RecipePhoto uri={pendingPhoto.uri} />
-        ) : photoPath && !isPhotoRemoved ? (
-          <RecipePhoto photoPath={photoPath} />
-        ) : null}
-        <View style={styles.photoActions}>
-          <TextButton
-            label={isPicking ? "Ouverture…" : "Prendre une photo"}
-            onPress={() => handlePickPhoto("camera")}
-            isDisabled={isPicking || isSaving}
-          />
-          <TextButton
-            label="Choisir dans la galerie"
-            onPress={() => handlePickPhoto("library")}
-            isDisabled={isPicking || isSaving}
-          />
-          {pendingPhoto || (photoPath && !isPhotoRemoved) ? (
-            <TextButton
-              label="Retirer la photo"
-              variant="danger"
-              onPress={handleRemovePhoto}
-              isDisabled={isPicking || isSaving}
-            />
-          ) : null}
-        </View>
-        {photoError ? (
-          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            {photoError}
-          </Text>
-        ) : null}
-      </View>
 
       {/* ─── ingrédients ─── */}
       <View style={styles.section}>
@@ -691,6 +661,41 @@ export default function WriteRecipeScreen() {
           </Pressable>
         </View>
         {errors.steps ? <Text style={styles.error}>{errors.steps}</Text> : null}
+      </View>
+
+      {/* ─── photo, facultative ─── */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          Photo <Text style={styles.count}>· facultative</Text>
+        </Text>
+        <Text style={styles.muted}>
+          Elle illustre le plat en haut de la recette. Tu pourras aussi l’ajouter plus tard.
+        </Text>
+        <View style={styles.photoActions}>
+          <TextButton
+            label={isPicking ? "Ouverture…" : "Prendre une photo"}
+            onPress={() => handlePickPhoto("camera")}
+            isDisabled={isPicking || isSaving}
+          />
+          <TextButton
+            label="Choisir dans la galerie"
+            onPress={() => handlePickPhoto("library")}
+            isDisabled={isPicking || isSaving}
+          />
+          {pendingPhoto || (photoPath && !isPhotoRemoved) ? (
+            <TextButton
+              label="Retirer la photo"
+              variant="danger"
+              onPress={handleRemovePhoto}
+              isDisabled={isPicking || isSaving}
+            />
+          ) : null}
+        </View>
+        {photoError ? (
+          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            {photoError}
+          </Text>
+        ) : null}
       </View>
 
       {errors.save ? (
