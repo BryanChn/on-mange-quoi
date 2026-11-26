@@ -31,6 +31,7 @@ import {
   type Tonight,
 } from "@/lib/tonight";
 import { useProfile } from "@/lib/profile";
+import { recipesShortcut } from "@/lib/recipe-rules";
 import { shoppingShortcut } from "@/lib/shopping-rules";
 import { capitalize } from "@/lib/vote-topic";
 import { startSession } from "@/lib/votes";
@@ -133,6 +134,7 @@ export default function Index() {
   const displayName = profile?.display_name ?? "";
   const hasGroups = home.groups.length > 0;
   const shopping = shoppingShortcut(home.groups, home.toBuyByGroup);
+  const recipes = recipesShortcut(home.groups, home.recipesByGroup);
 
   return (
     <>
@@ -224,6 +226,24 @@ export default function Index() {
                             params: { groupId: shopping.groupId },
                           })
                         : router.push("/courses")
+                    }
+                  />
+                )}
+                {/* Une seule ligne aussi : un foyer ouvre son carnet, plusieurs passent par
+                    l'écran de choix. */}
+                {recipes.kind === "none" ? null : (
+                  <ListRow
+                    icon="book-open"
+                    label="Recettes"
+                    subtitle={recipes.subtitle}
+                    hasChevron
+                    onPress={() =>
+                      recipes.kind === "one"
+                        ? router.push({
+                            pathname: "/recettes/[groupId]",
+                            params: { groupId: recipes.groupId },
+                          })
+                        : router.push("/recettes")
                     }
                   />
                 )}

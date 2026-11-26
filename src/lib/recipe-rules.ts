@@ -314,3 +314,70 @@ export function macrosPerServing(ingredients: MacroIngredient[], servings: numbe
     uncounted: ingredients.length - counted,
   };
 }
+
+// ─── écrans ──────────────────────────────────────────────
+
+// « 1 part », « 4 parts ».
+export function servingsLabel(servings: number): string {
+  return servings === 1 ? "1 part" : `${servings} parts`;
+}
+
+// « 4 parts · 8 ingrédients » sous le nom d'une recette.
+export function recipeSubtitle(servings: number, ingredientCount: number): string {
+  if (ingredientCount === 0) return servingsLabel(servings);
+  const ingredients = ingredientCount === 1 ? "1 ingrédient" : `${ingredientCount} ingrédients`;
+  return `${servingsLabel(servings)} · ${ingredients}`;
+}
+
+// Sans accents ni majuscules : « creme » trouve « Crème brûlée ».
+function foldText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+export function matchesRecipeSearch(title: string, query: string): boolean {
+  const folded = foldText(query);
+  return folded === "" || foldText(title).includes(folded);
+}
+
+// La ligne « Recettes » de l'accueil : toujours là dès qu'on a un foyer (un carnet vide invite
+// à écrire la première). Un foyer : son carnet s'ouvre directement ; plusieurs : l'écran de
+// choix, comme la liste de courses.
+export type RecipesShortcut =
+  | { kind: "none" }
+  | { kind: "one"; groupId: string; subtitle: string }
+  | { kind: "many"; subtitle: string };
+
+function recipeCountLabel(count: number): string {
+  return count === 1 ? "1 recette" : `${count} recettes`;
+}
+
+export function recipesShortcut(
+  groups: { id: string; name: string }[],
+  recipesByGroup: Map<string, number>,
+): RecipesShortcut {
+  if (groups.length === 0) return { kind: "none" };
+  if (groups.length === 1) {
+    const [group] = groups;
+    const count = recipesByGroup.get(group.id) ?? 0;
+    return {
+      kind: "one",
+      groupId: group.id,
+      subtitle:
+        count === 0 ? "Écris ta première recette" : `${recipeCountLabel(count)} dans le carnet`,
+    };
+  }
+  const total = groups.reduce((sum, group) => sum + (recipesByGroup.get(group.id) ?? 0), 0);
+  return { kind: "many", subtitle: `${recipeCountLabel(total)} dans ${groups.length} carnets` };
+}
+
+// La couleur d'une vignette sans photo, toujours la même pour une recette : un petit hachage
+// de son identifiant, parmi `count` couleurs.
+export function recipeTileIndex(recipeId: string, count: number): number {
+  let hash = 0;
+  for (const char of recipeId) hash = (hash * 31 + char.charCodeAt(0)) % 997;
+  return hash % count;
+}

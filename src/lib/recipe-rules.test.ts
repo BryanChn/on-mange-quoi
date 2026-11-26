@@ -5,8 +5,13 @@ import {
   formatAmount,
   ingredientGrams,
   macrosPerServing,
+  matchesRecipeSearch,
   parseIngredientLine,
+  recipeSubtitle,
+  recipesShortcut,
+  recipeTileIndex,
   scaleAmount,
+  servingsLabel,
   type FoodNutrients,
 } from "./recipe-rules.ts";
 
@@ -225,4 +230,45 @@ test("macros par part : rien de comptable, pas d'estimation", () => {
   assert.equal(macrosPerServing([], 4), null);
   assert.equal(macrosPerServing([{ quantity: null, unit: null, food: null }], 4), null);
   assert.equal(macrosPerServing([{ quantity: 500, unit: "g", food: beef }], 0), null);
+});
+
+test("écrans : parts et sous-titre d'une recette", () => {
+  assert.equal(servingsLabel(1), "1 part");
+  assert.equal(servingsLabel(4), "4 parts");
+  assert.equal(recipeSubtitle(4, 8), "4 parts · 8 ingrédients");
+  assert.equal(recipeSubtitle(2, 1), "2 parts · 1 ingrédient");
+  assert.equal(recipeSubtitle(6, 0), "6 parts");
+});
+
+test("écrans : chercher sans accents ni majuscules", () => {
+  assert.ok(matchesRecipeSearch("Crème brûlée", "creme"));
+  assert.ok(matchesRecipeSearch("Pâtes à la bolognaise", "BOLO"));
+  assert.ok(matchesRecipeSearch("Gratin", "  "));
+  assert.ok(!matchesRecipeSearch("Gratin", "quiche"));
+});
+
+test("écrans : la ligne Recettes de l'accueil", () => {
+  const famille = { id: "f", name: "Famille" };
+  const coloc = { id: "c", name: "Coloc" };
+  assert.deepEqual(recipesShortcut([], new Map()), { kind: "none" });
+  assert.deepEqual(recipesShortcut([famille], new Map()), {
+    kind: "one",
+    groupId: "f",
+    subtitle: "Écris ta première recette",
+  });
+  assert.deepEqual(recipesShortcut([famille], new Map([["f", 1]])), {
+    kind: "one",
+    groupId: "f",
+    subtitle: "1 recette dans le carnet",
+  });
+  assert.deepEqual(recipesShortcut([famille, coloc], new Map([["f", 5]])), {
+    kind: "many",
+    subtitle: "5 recettes dans 2 carnets",
+  });
+});
+
+test("écrans : une vignette garde sa couleur", () => {
+  const index = recipeTileIndex("3f2a9c1e-0000-4000-8000-000000000000", 3);
+  assert.ok(index >= 0 && index < 3);
+  assert.equal(recipeTileIndex("3f2a9c1e-0000-4000-8000-000000000000", 3), index);
 });
