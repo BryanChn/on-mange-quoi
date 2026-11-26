@@ -1,6 +1,6 @@
 # Journal de bord
 
-État du projet au **2026-11-24** (soir), pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-25** (soir), pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
@@ -9,39 +9,81 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne : base (migrations `meal_modes` et `tidy_free_text`), mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit), site en production. Je ne code plus moi-même : Claude écrit tout, je relis les PR.
+Tout est mergé et en ligne (#109 à #121) : migrations jusqu'à `recipes`, Edge Functions `notify-vote`, `notify-meal` et `notify-shopping` déployées, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit), site en production. **Décidé le 2026-11-25 : la V1 se termine avec les recettes, les stores viennent après** (audit, design, notifications, modèle économique, coûts, version anglaise : backlog). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande (autorisation donnée le 2026-11-25).
 
-**1. Tout de suite : tester sur le téléphone**
+**1. Tout de suite : tester sur les deux téléphones** (26/11 : notifications et midi ou soir validés ; restent courses, réglages, vibrations et partage)
 
 | # | Tâche | Détail |
 | --- | --- | --- |
-| 1 | Les trois façons de faire un repas | Commande et resto en 1 toucher ; chez quelqu'un : cocher les sujets, le bouton dit « Lancer 2 votes » ou « C'est parti, sans vote » ; une date au calendrier |
-| 2 | Chez quelqu'un, à plusieurs | « Le menu » (« Proposer » sur un vote vide, puis « Voter »), « Qui apporte quoi » en direct, menu décidé quand le dernier vote se termine |
-| 3 | Un invité sans l'app sur un repas chez quelqu'un | Le lien WhatsApp → page web : voit le menu, vote le dessert (« Proposer un dessert »), écrit ce qu'il apporte |
-| 4 | Accueil | Une seule ligne « Liste de courses » ; plusieurs foyers avec des courses → écran de choix |
-| 5 | « Noël à Soultz » (vrai repas d'un ami, 24/12) | Il disparaîtra le 26/12 (24 h après sa date). S'il doit tenir jusqu'au 26 au soir : passer sa date au 26, seulement si je le demande |
+| 1 | Midi ou soir | Avant 15 h : « on mange quoi ce midi ? », pastille « Ce midi » choisie ; décidé à midi, l'accueil repropose le soir après 15 h. **La pastille crème ressemble-t-elle trop au bouton « Lancer le vote » ?** Sinon : contour seul |
+| 2 | Notifications d'un repas | Résumé : l'organisateur en ~1 min, les autres au plus toutes les 30 min dès 2 nouveautés ; « C'est commandé » ; le rappel du jour à 10 h (repas chez quelqu'un créé la veille) |
+| 3 | « Je pars faire les courses » | L'autre téléphone reçoit l'annonce, ajoute un article, ~30 s plus tard « À prendre aussi : … » ; « J'ai fini » |
+| 4 | Réglages | Mon compte : « Votes du foyer », « Repas à plusieurs », « Liste de courses » ; dans un repas : « Me tenir au courant » |
+| 5 | Vibrations et partage | Un ajout réussi vibre (sinon vérifier « Vibration au toucher » d'Android) ; « Partager le resto » / « Partager le menu » |
+| 6 | « Noël à Soultz » (24/12) | Disparaîtra le 26/12. Changer sa date seulement si je le demande |
 
-**2. À voir à la fin de la V1** (avant de la déclarer livrée)
+**2. Recettes (la fin de la V1)** : étude validée, https://claude.ai/artifact/SbaydwqqNZ36yrqnLn2yH2
+
+| PR | Contenu | État |
+| --- | --- | --- |
+| 1 | Base : `recipes`, `recipe_ingredients`, `foods` (vide), `save_recipe`, `copy_base_recipe`, liens, photos | **Faite (#121), en ligne** |
+| 2 | Aliments Ciqual : import (**vérifier la licence avant**), recherche pour l'autocomplétion, poids moyens des pièces | Prochaine |
+| 3 | Lecture d'une ligne d'ingrédient, quantités selon les parts, macros par part (fonctions pures) | |
+| 4 | Carnet, recette, écrire une recette, photo, « Souvent cuisiné », la ligne sur l'accueil | |
+| 5 | La boucle : proposer au vote, « Voir la recette » au résultat, « Ajouter aux courses » | |
+| 6 | Mode cuisine, écran allumé (`expo-keep-awake` : vérifier qu'il est dans l'APK sans changer l'empreinte), « Prendre le plat en photo » | |
+
+**Recettes de base** : je les prépare avec mon assistant cuisine et je les envoie (titre, parts, ingrédients avec quantités, étapes) ; Claude en fait une migration, chaque ingrédient relié à Ciqual, après la PR 2.
+
+**3. À voir à la fin de la V1** (avant de la déclarer livrée)
 
 | Tâche | Détail |
 | --- | --- |
-| Captures du README | Page web d'un invité, récap WhatsApp, et maintenant les trois façons de faire un repas. Pseudo « SuperNono » : accord à demander, ou pseudos inventés. Jamais la photo de ma compagne sans son accord (floutée) |
+| Captures du README | Page web d'un invité, récap WhatsApp, les trois façons de faire un repas, les courses, les recettes. Pseudo « SuperNono » : accord à demander, ou pseudos inventés. Jamais la photo de ma compagne sans son accord (floutée) |
 | Vérification complète d'un invité | Un vrai proche, sans l'app : lien → pseudo → commande ou menu → direct → fin. Puis avec l'app (le lien l'ouvre) et avec le code |
-| « Ce soir, c'est … ! » le matin | Décider s'il faut « ce midi » selon l'heure |
 | Seul dans un repas | Deux cartes fortes se suivent (« Invite tes amis », « Où on mange ? ») : à revoir si ça paraît chargé |
 | Les 3 repas « commande » à 1 personne | Repas de test sur mon compte : à supprimer quand je veux |
+| Plus tard, à valider explicitement | Catalogue des enseignes, partage de la note |
 
-**3. V1 · Cuisiner : la suite**
+« Ce soir, c'est … ! » le matin : réglé par midi ou soir (#120).
 
-| Fonctionnalité | Note |
-| --- | --- |
-| Recettes | Reste de la V1 : commencer par une étude (parcours, schéma, questions produit) à valider avant le code. L'ajout d'une recette à la liste de courses viendra avec |
-| Catalogue des enseignes | « Plus tard » dans `CLAUDE.md` : à valider explicitement |
-| Partage de la note | Plus tard |
-
-**4. Avant les stores (backlog)** : signaler ou bloquer quelqu'un ; purge des photos orphelines ; nom du responsable dans la politique de confidentialité ; service d'envoi des codes ; CAPTCHA sur la connexion anonyme ; réglage des notifications ; limiter les essais de `join_group`.
+**4. Avant les stores** (backlog) : audit complet, **refonte du design à la fin de la V1** (épurer, boutons modernes avec des effets travaillés), revue des notifications, modèle économique, coûts et hébergement, **version entièrement en anglais**, signaler ou bloquer quelqu'un, purge des photos orphelines (profils et recettes), politique de confidentialité hébergée avec le nom du responsable, page web de suppression de compte, service d'envoi des codes (SMTP), CAPTCHA sur la connexion anonyme, limite des essais de `join_group`, demande de permission des notifications expliquée, build de production.
 
 **5. Indicateur** : feu vert (ne bloque plus rien), requête `private.feu_vert` le lundi 30/11.
+
+#### 🗓️ Session du 2026-11-25 : notifications, midi ou soir, recettes
+
+| PR | Contenu |
+| --- | --- |
+| #110 | Votes d'un repas : la notification parle du sujet (« où on mange ? », « quel dessert ? »), « Le menu est décidé » une seule fois au dernier vote (`menuIfLast`) |
+| #111, #115 | Réglages dans Mon compte (« Me prévenir ») : table `notification_settings`, visible par soi seul, activée par défaut ; le serveur ne prévient pas qui a coupé |
+| #112, #116 | Résumé d'un repas (`notify-meal`) : arrivées et apports, chacun lit ce que les AUTRES ont fait ; l'organisateur en ~1 min, les autres au plus toutes les 30 min dès 2 nouveautés ; rien de 22 h à 8 h ; tâche `meal-digests` toutes les 30 s |
+| #113 | Un ajout réussi vibre comme cocher un plat (`hapticAdded`) |
+| #114 | « Partager le resto » / « Partager le menu » sur WhatsApp : le canal des invités, qui n'ont pas de notification |
+| #117 | « Me tenir au courant » sur l'écran d'un repas : couper un seul repas (`meal_notification_mutes`) |
+| #118 | « C'est commandé » aux participants ; rappel du jour d'un repas chez quelqu'un à 10 h (`meal-day-reminders`) |
+| #119 | « Je pars faire les courses » : annonce au foyer (au plus une par 30 min, pas la nuit), puis les ajouts envoyés à celui qui y est, regroupés sur 30 s (`notify-shopping`, `shopping-additions`) ; réglage « Liste de courses » |
+| #120 | Midi ou soir : pastille au lancement (avant 15 h : midi), `vote_sessions.moment`, l'accueil, le résultat et la notification suivent ; un midi décidé s'efface à 15 h |
+| #121 | Recettes, PR 1 : la base |
+| #109 | Journal du 24/11 et note « le midi aussi » (réglée par #120) |
+
+**Décisions du jour**
+- **Notifications** : jamais une par événement ; regrouper, et toujours une porte de sortie (réglages activés par défaut : une notification à activer soi-même, personne ne l'active). **Pas de notifications aux invités sans l'app** (Web Push : page ouverte une fois, permission souvent refusée, iPhone seulement si le site est sur l'écran d'accueil) : WhatsApp à la place.
+- **Midi ou soir**, choisi au lancement (option C) : déduit de l'heure, il se trompait dès qu'on planifie le dîner le matin. Deux moments seulement, pour les foyers.
+- **Recettes** : un carnet par foyer modifiable par tous, recettes de base écrites pour l'app (seule la rédaction d'une recette est protégée ; pas d'import d'un site), autocomplétion Ciqual, calories et macros « estimation ». Partage communautaire en V2 (modération), recettes qui connaissent le stock en V3.
+- **Stores après la V1** : Android d'abord ; un compte Google personnel récent impose un test fermé à 12 testeurs pendant 14 jours (à vérifier dans la Play Console).
+
+**Pièges trouvés le 2026-11-25**
+- **Ordre de mise en ligne d'une fonction et d'une migration** : la fonction d'abord quand la migration l'appelle avec un nouveau champ (sinon elle refuse l'appel) ; la migration d'abord quand la fonction lit une nouvelle table ou colonne (sinon plus aucune notification). L'écrire dans chaque PR.
+- **`gh pr merge` échoue si la branche n'est pas à jour** (règle du dépôt) : `update-branch`, attendre la CI, puis merger. Ne pas masquer sa sortie avec un `grep`.
+- **GitHub en 502 sur GraphQL** : `gh pr create` peut avoir créé la PR malgré l'erreur (`gh pr list --head <branche>`) ; merger par l'API REST : `gh api -X PUT repos/BryanChn/on-mange-quoi/pulls/N/merge -f merge_method=merge`.
+- **Lectures en base en ligne** : `npx supabase db query --linked "select …"` (cron, `net._http_response`, marques de résumé). C'est ainsi qu'on a vu que le résumé était parti (`sent 1`).
+- **Un module testé par node ne peut pas importer une valeur d'un autre module** sans extension, et la config principale refuse `.ts` : la logique pure partagée vit dans le même fichier (le moment est dans `tonight.ts`).
+- **Tests qui dépendent de l'heure** : `Intl` en `fr-FR` écrit « 13 h » (`Number` donne `NaN`) ; lire l'heure en `en-GB` avec `hourCycle: "h23"`. Une valeur posée selon l'heure (le moment d'un vote) se vérifie à part, pas dans un `deepEqual`.
+- **`startSession` rejoint le vote déjà ouvert** du foyer : un test qui veut un vote neuf prend un foyer neuf.
+- **Migration modifiée après son application en local** (pas encore en ligne) : réappliquer la fonction à la main (`psql`), sinon la base locale garde l'ancienne version.
+- **pg_cron 1.6** accepte `'30 seconds'` comme planning.
+- **Données de test à la main en local** : un `auth.users` ne crée pas son `profiles` ; insérer les deux, puis tout retirer.
 
 #### 🗓️ Session du 2026-11-24, après-midi : les repas en trois façons
 
