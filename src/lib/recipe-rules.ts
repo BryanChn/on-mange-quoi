@@ -390,14 +390,15 @@ export const RECIPE_MAX_INGREDIENTS = 60;
 export const RECIPE_MAX_STEPS = 40;
 export const RECIPE_STEP_MAX_LENGTH = 500;
 
-// Une ligne du formulaire : le texte tapé, et l'aliment Ciqual choisi pour ce texte (perdu dès
-// que le texte change : l'écran remet null).
-export type IngredientLineInput = { raw: string; foodId: number | null };
+// Une ligne du formulaire : le nom et la quantité tapés dans deux champs (comme la liste de
+// courses), et l'aliment Ciqual choisi pour ce nom (perdu dès que le nom change : l'écran
+// remet null).
+export type IngredientFieldsInput = { name: string; quantity: string; foodId: number | null };
 
 export type RecipeFormInput = {
   title: string;
   servings: number;
-  ingredients: IngredientLineInput[];
+  ingredients: IngredientFieldsInput[];
   steps: string[];
 };
 
@@ -430,13 +431,9 @@ export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
   else if (title.length > RECIPE_TITLE_MAX_LENGTH)
     errors.title = `Le nom fait ${RECIPE_TITLE_MAX_LENGTH} caractères au plus.`;
 
-  const lines = form.ingredients
-    .map((line) => ({ raw: tidy(line.raw), foodId: line.foodId }))
-    .filter((line) => line.raw !== "");
+  const lines = form.ingredients.filter((line) => tidy(line.name) !== "");
   if (lines.length > RECIPE_MAX_INGREDIENTS)
     errors.ingredients = `${RECIPE_MAX_INGREDIENTS} ingrédients au plus.`;
-  else if (lines.some((line) => line.raw.length > INGREDIENT_RAW_MAX_LENGTH))
-    errors.ingredients = `Une ligne fait ${INGREDIENT_RAW_MAX_LENGTH} caractères au plus.`;
 
   // Rangées comme la base les range (tidy_text) : un seul espace, retours à la ligne compris.
   const steps = form.steps.map(tidy).filter((step) => step !== "");
@@ -451,8 +448,7 @@ export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
       title,
       servings: form.servings,
       ingredients: lines.map((line) => ({
-        ...parseIngredientLine(line.raw),
-        raw: line.raw,
+        ...ingredientFromFields(line.name, line.quantity),
         foodId: line.foodId,
       })),
       steps,
@@ -460,11 +456,50 @@ export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
   };
 }
 
-// Sous une ligne qu'on tape, ce que l'app en a compris : « 500 g · bœuf haché », ou que la
-// ligne reste sans quantité. null : ligne vide, rien à montrer.
-export function ingredientPreview(raw: string): string | null {
-  if (raw.trim() === "") return null;
-  const parsed = parseIngredientLine(raw);
-  if (parsed.quantity === null) return "Sans quantité";
-  return `${formatAmount({ quantity: parsed.quantity, unit: parsed.unit })} · ${parsed.label}`;
+// Même limite que la quantité d'un article de courses.
+export const INGREDIENT_QUANTITY_MAX_LENGTH = 20;
+
+// Le nom et la quantité tapés → la ligne enregistrée. « Plat de côte » + « 1 kg » → 1 kg,
+// recalculé selon les parts. Ce que la quantité dit de plus (« 3 gousses », « au goût ») reste
+// lisible à côté du nom : « Ail (gousses) », « Sel (au goût) ». raw garde la ligne entière.
+export function ingredientFromFields(
+  name: string,
+  quantityText: string,
+): ParsedIngredient & { raw: string } {
+  const cleanName = tidy(name);
+  const cleanQuantity = tidy(quantityText);
+  const raw = (cleanQuantity === "" ? cleanName : `${cleanQuantity} ${cleanName}`).slice(
+    0,
+    INGREDIENT_RAW_MAX_LENGTH,
+  );
+  const withNote = (note: string) =>
+    (note === "" ? cleanName : `${cleanName} (${note})`).slice(0, INGREDIENT_LABEL_MAX_LENGTH);
+
+  if (cleanQuantity === "") return { raw, label: withNote(""), quantity: null, unit: null };
+  const read = readQuantity(cleanQuantity);
+  if (!read || !(read.quantity > 0) || read.quantity > QUANTITY_MAX) {
+    return { raw, label: withNote(cleanQuantity), quantity: null, unit: null };
+  }
+  let rest = read.rest.trim();
+  let unit: IngredientUnit | null = null;
+  const unitRead = readUnit(rest);
+  if (unitRead) {
+    unit = unitRead.unit;
+    rest = unitRead.rest.trim();
+  }
+  return { raw, label: withNote(rest), quantity: Math.round(read.quantity * 100) / 100, unit };
+}
+
+// L'inverse, pour modifier une recette : la ligne enregistrée → les deux champs.
+export function fieldsFromIngredient(ingredient: ParsedIngredient): {
+  name: string;
+  quantity: string;
+} {
+  return {
+    name: ingredient.label,
+    quantity:
+      ingredient.quantity === null
+        ? ""
+        : formatAmount({ quantity: ingredient.quantity, unit: ingredient.unit }),
+  };
 }

@@ -321,6 +321,15 @@ export default function GroupScreen() {
           }
         />
         <ListRow
+          icon="book-open"
+          label="Recettes"
+          subtitle="Le carnet du groupe, modifiable par tous"
+          hasChevron
+          onPress={() =>
+            router.push({ pathname: "/recettes/[groupId]", params: { groupId: group.id } })
+          }
+        />
+        <ListRow
           icon="user-plus"
           label="Inviter quelqu’un"
           subtitle={`Code ${group.invite_code} · à envoyer ou à dicter`}
