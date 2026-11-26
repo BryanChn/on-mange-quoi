@@ -25,14 +25,14 @@ export type Database = {
           Tables: {
             "foods": {
                   Row: {
-                    "carbs_g": number | null,"fat_g": number | null,"group_name": string | null,"id": number,"kcal": number | null,"name": string,"protein_g": number | null,"unit_weight_g": number | null
+                    "carbs_g": number | null,"fat_g": number | null,"group_name": string | null,"id": number,"kcal": number | null,"name": string,"protein_g": number | null,"search_text": string | null,"unit_weight_g": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "carbs_g"?: number | null,"fat_g"?: number | null,"group_name"?: string | null,"id": number,"kcal"?: number | null,"name": string,"protein_g"?: number | null,"unit_weight_g"?: number | null
+                    "carbs_g"?: number | null,"fat_g"?: number | null,"group_name"?: string | null,"id": number,"kcal"?: number | null,"name": string,"protein_g"?: number | null,"search_text"?: never,"unit_weight_g"?: number | null
                   }
                   Update: {
-                    "carbs_g"?: number | null,"fat_g"?: number | null,"group_name"?: string | null,"id"?: number,"kcal"?: number | null,"name"?: string,"protein_g"?: number | null,"unit_weight_g"?: number | null
+                    "carbs_g"?: number | null,"fat_g"?: number | null,"group_name"?: string | null,"id"?: number,"kcal"?: number | null,"name"?: string,"protein_g"?: number | null,"search_text"?: never,"unit_weight_g"?: number | null
                   }
                   Relationships: [
                     
@@ -545,6 +545,9 @@ isOneToOne: false
 "end_shopping_trip":
 { Args: { "target_group_id": string }; Returns: undefined
                            },
+"food_search_text":
+{ Args: { "value": string }; Returns: string
+                           },
 "generate_invite_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -632,7 +635,7 @@ isOneToOne: false
                            },
 "search_foods":
 { Args: { "query": string }; Returns: {
-              "group_name": string | null,"id": number,"name": string
+              "group_name": string,"id": number,"name": string
             }[]
                            },
 "send_meal_day_reminders":
