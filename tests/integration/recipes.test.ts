@@ -12,6 +12,7 @@ import {
   fetchBaseRecipes,
   fetchCarnet,
   fetchCarnets,
+  fetchCookedWinners,
   fetchRecipe,
   saveRecipe,
   searchFoods,
@@ -20,7 +21,7 @@ import {
 import { fetchHome } from "../../src/lib/home.ts";
 import { macrosPerServing } from "../../src/lib/recipe-rules.ts";
 import { createSoiree } from "../../src/lib/soirees.ts";
-import { startSession } from "../../src/lib/votes.ts";
+import { closeSession, startSession } from "../../src/lib/votes.ts";
 import {
   cleanUp,
   createBaseRecipe,
@@ -402,5 +403,30 @@ describe("les aliments Ciqual", () => {
     // Trop court, ou des jokers tapés : rien d'inattendu.
     assert.deepEqual(await searchFoods("c"), []);
     assert.deepEqual(await searchFoods("%%"), []);
+  });
+});
+
+describe("souvent cuisiné", () => {
+  test("une recette qui gagne un vote clos compte comme cuisinée, pour le foyer seulement", async () => {
+    // Un foyer neuf : un seul vote ouvert par foyer.
+    const groupId = await createGroup(alice, [bea]);
+    await signInAs(alice);
+    const recipeId = await saveRecipe(groupId, null, { ...bolo, title: "Pot-au-feu (test)" });
+    const sessionId = await startSession(groupId, "soir");
+    const proposal = await supabase.from("proposals").insert({
+      session_id: sessionId,
+      name: "Pot-au-feu",
+      proposed_by: alice.id,
+      recipe_id: recipeId,
+    });
+    assert.equal(proposal.error, null);
+    // Seule proposition : elle gagne au tirage, sans vote.
+    await closeSession(sessionId);
+
+    await signInAs(bea);
+    assert.deepEqual(await fetchCookedWinners(groupId), [recipeId]);
+
+    await signInAs(dan);
+    assert.deepEqual(await fetchCookedWinners(groupId), []);
   });
 });
