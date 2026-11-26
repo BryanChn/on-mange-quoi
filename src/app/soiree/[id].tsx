@@ -51,6 +51,7 @@ import {
   type LatestSession,
 } from "@/lib/votes";
 import { topicWords } from "@/lib/vote-topic";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 type Styles = ReturnType<typeof createStyles>;
@@ -105,6 +106,8 @@ export default function SoireeScreen() {
   const [soiree, setSoiree] = useState<SoireeDetail | null>(null);
   const [latestSession, setLatestSession] = useState<LatestSession | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isSharingDecided, setIsSharingDecided] = useState(false);
@@ -130,8 +133,9 @@ export default function SoireeScreen() {
         setLatestSession(loadedSession);
         setHasFailed(false);
       },
-      () => {
+      (error: unknown) => {
         if (latestRequestRef.current !== requestId) return;
+        setLoadError(error);
         setHasFailed(true);
       },
     );
@@ -201,8 +205,8 @@ export default function SoireeScreen() {
     setIsStarting(true);
     try {
       openSession(await startSession(id));
-    } catch {
-      setError("Le vote n’a pas démarré : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("Le vote n’a pas démarré", error));
     } finally {
       setIsStarting(false);
     }
@@ -220,8 +224,8 @@ export default function SoireeScreen() {
       await chooseRestaurant(id, clean);
       setIsChoosing(false);
       loadSoiree();
-    } catch {
-      setError("Le resto n’est pas enregistré : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("Le resto n’est pas enregistré", error));
     } finally {
       setIsSavingRestaurant(false);
     }
@@ -248,8 +252,8 @@ export default function SoireeScreen() {
         await deleteGroup(id);
         router.dismissTo("/");
       }
-    } catch {
-      setError("Ça n’a pas marché, rien n’a changé. Vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("Ça n’a pas marché, rien n’a changé", error));
     } finally {
       setIsConfirming(false);
     }
@@ -259,7 +263,7 @@ export default function SoireeScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir le repas"
-        message="Il a peut-être été supprimé. Sinon, vérifie ta connexion."
+        message={`Il a peut-être été supprimé. ${loadErrorMessage(loadError)}`}
         onRetry={() => {
           setHasFailed(false);
           loadSoiree();

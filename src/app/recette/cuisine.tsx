@@ -14,6 +14,7 @@ import { pickRecipePhoto } from "@/lib/photo-picker";
 import { uploadRecipePhoto } from "@/lib/photo-storage";
 import { formatAmount, scaleAmount, servingsLabel } from "@/lib/recipe-rules";
 import { fetchRecipe, type Recipe } from "@/lib/recipes";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 type PhotoState = "idle" | "sending" | "sent";
@@ -31,6 +32,8 @@ export default function CookingScreen() {
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   // 0 : les ingrédients ; 1 à n : les étapes ; n + 1 : la fin.
   const [page, setPage] = useState(0);
   // Les ingrédients déjà sortis, par position dans la recette.
@@ -46,7 +49,10 @@ export default function CookingScreen() {
         setRecipe(loaded);
         setHasFailed(false);
       },
-      () => setHasFailed(true),
+      (error: unknown) => {
+        setLoadError(error);
+        setHasFailed(true);
+      },
     );
   }, [id]);
 
@@ -59,7 +65,7 @@ export default function CookingScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir la recette"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={load}
       />
     );
@@ -102,10 +108,10 @@ export default function CookingScreen() {
       );
       hapticAdded();
       setPhotoState("sent");
-    } catch {
+    } catch (error) {
       hapticReject();
       setPhotoState("idle");
-      setPhotoError("La photo n’a pas été enregistrée. Vérifie ta connexion et réessaie.");
+      setPhotoError(failureMessage("La photo n’a pas été enregistrée", error));
     }
   }
 

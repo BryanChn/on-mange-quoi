@@ -20,6 +20,7 @@ import { useProfile } from "@/lib/profile";
 import { defaultSoireeName, SOIREE_NAME_MAX_LENGTH } from "@/lib/soiree-rules";
 import { createSoiree, type SoireeMode } from "@/lib/soirees";
 import { MENU_TOPICS, topicWords, type VoteTopic } from "@/lib/vote-topic";
+import { failureMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
@@ -87,8 +88,8 @@ export default function NewSoiree() {
       });
       // replace : le retour ramène à l'accueil, pas à ce formulaire déjà envoyé.
       router.replace({ pathname: "/soiree/[id]", params: { id: soiree.id } });
-    } catch {
-      setError("Le repas n’est pas créé : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("Le repas n’est pas créé", error));
       setCreating(null);
     }
   }

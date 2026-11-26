@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, StyleSheet, Text } from "react-native";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextField } from "@/components/text-field";
 import { createGroup } from "@/lib/groups";
+import { failureMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne groups.name.
@@ -32,8 +33,8 @@ export default function CreateGroup() {
       const groupId = await createGroup(cleanName);
       // replace : le bouton retour ramène à la liste, pas à ce formulaire déjà envoyé.
       router.replace({ pathname: "/group/[id]", params: { id: groupId } });
-    } catch {
-      setError("Le groupe n’est pas créé : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("Le groupe n’est pas créé", error));
     } finally {
       setIsSaving(false);
     }

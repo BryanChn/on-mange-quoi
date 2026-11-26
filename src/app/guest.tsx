@@ -8,6 +8,7 @@ import { LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { signOut } from "@/lib/notifications";
 import { fetchFirstSoireeId } from "@/lib/soirees";
+import { loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // Point d'arrivée d'un invité sans lien (page rechargée sur « / », onglet rouvert) : il n'a
@@ -19,6 +20,8 @@ export default function GuestHome() {
   // undefined : en chargement ; null : plus de soirée.
   const [soireeId, setSoireeId] = useState<string | null | undefined>(undefined);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -27,8 +30,11 @@ export default function GuestHome() {
       (id) => {
         if (!isStale) setSoireeId(id);
       },
-      () => {
-        if (!isStale) setHasFailed(true);
+      (error: unknown) => {
+        if (!isStale) {
+          setLoadError(error);
+          setHasFailed(true);
+        }
       },
     );
     return () => {
@@ -49,7 +55,7 @@ export default function GuestHome() {
         {hasFailed ? (
           <>
             <Text style={styles.title}>On ne retrouve pas ton repas</Text>
-            <Text style={styles.muted}>Vérifie ta connexion et réessaie.</Text>
+            <Text style={styles.muted}>{loadErrorMessage(loadError)}</Text>
             <PrimaryButton
               label="Réessayer"
               onPress={() => {

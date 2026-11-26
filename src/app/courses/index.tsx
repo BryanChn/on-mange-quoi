@@ -7,6 +7,7 @@ import { InitialTile, ListCard, ListRow } from "@/components/list";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { getInitial } from "@/lib/avatar";
 import { fetchShoppingLists, type ShoppingListSummary } from "@/lib/shopping";
+import { loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // Le choix de la liste, quand plusieurs foyers ont des courses à faire : l'accueil garde une
@@ -17,12 +18,15 @@ export default function ShoppingListsScreen() {
   const insets = useSafeAreaInsets();
   const [lists, setLists] = useState<ShoppingListSummary[] | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   const load = useCallback(async () => {
     try {
       setLists(await fetchShoppingLists());
       setHasFailed(false);
-    } catch {
+    } catch (error) {
+      setLoadError(error);
       setHasFailed(true);
     }
   }, []);
@@ -38,7 +42,7 @@ export default function ShoppingListsScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir tes listes"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={load}
       />
     );

@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 
 import { Avatar } from "@/components/avatar";
 import { hapticAdded, hapticReject } from "@/lib/haptics";
+import { failureMessage } from "@/lib/network-errors";
 import {
   addContribution,
   CONTRIBUTION_MAX_LENGTH,
@@ -43,9 +44,9 @@ export function MealContributions({ soiree, userId, isOwner, onChanged }: MealCo
       hapticAdded();
       setLabel("");
       onChanged();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("Ce n’est pas ajouté : vérifie ta connexion et réessaie.");
+      setError(failureMessage("Ce n’est pas ajouté", error));
     } finally {
       setIsAdding(false);
     }
@@ -56,9 +57,9 @@ export function MealContributions({ soiree, userId, isOwner, onChanged }: MealCo
     try {
       await removeContribution(contributionId);
       onChanged();
-    } catch {
+    } catch (error) {
       hapticReject();
-      setError("Ce n’est pas retiré : vérifie ta connexion et réessaie.");
+      setError(failureMessage("Ce n’est pas retiré", error));
     }
   }
 

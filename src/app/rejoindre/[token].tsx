@@ -24,6 +24,7 @@ import {
   type JoinFailure,
 } from "@/lib/soiree-rules";
 import { fetchSoireePreview, joinSoiree, type SoireePreview } from "@/lib/soirees";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 type Styles = ReturnType<typeof createStyles>;
@@ -41,6 +42,8 @@ export default function JoinSoireeScreen() {
   // undefined : en chargement ; null : aucun lien ne correspond.
   const [preview, setPreview] = useState<SoireePreview | null | undefined>(undefined);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState<AvatarId | null>(null);
@@ -58,8 +61,11 @@ export default function JoinSoireeScreen() {
         setPreview(loaded);
         setHasFailed(false);
       },
-      () => {
-        if (!isStale) setHasFailed(true);
+      (error: unknown) => {
+        if (!isStale) {
+          setLoadError(error);
+          setHasFailed(true);
+        }
       },
     );
     return () => {
@@ -104,7 +110,7 @@ export default function JoinSoireeScreen() {
       } else if (known) {
         setFailure(known);
       } else {
-        setError("Tu n’as pas pu rejoindre : vérifie ta connexion et réessaie.");
+        setError(failureMessage("Tu n’as pas pu rejoindre", joinError));
       }
       setIsJoining(false);
     }
@@ -115,7 +121,7 @@ export default function JoinSoireeScreen() {
       <Centered styles={styles} insetsBottom={insets.bottom}>
         <Card>
           <Text style={styles.cardTitle}>On n’arrive pas à ouvrir le repas</Text>
-          <Text style={styles.muted}>Vérifie ta connexion et réessaie.</Text>
+          <Text style={styles.muted}>{loadErrorMessage(loadError)}</Text>
           <PrimaryButton label="Réessayer" onPress={() => setAttempt((count) => count + 1)} />
         </Card>
       </Centered>

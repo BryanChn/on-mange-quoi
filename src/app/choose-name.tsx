@@ -7,6 +7,7 @@ import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { signOut } from "@/lib/notifications";
 import { DISPLAY_NAME_MAX_LENGTH, useProfile } from "@/lib/profile";
+import { failureMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 function getNameError(cleanName: string): string | null {
@@ -35,8 +36,8 @@ export default function ChooseName() {
     try {
       // Une fois le profil créé, la garde du layout mène seule à l'accueil.
       await saveDisplayName(cleanName);
-    } catch {
-      setError("Ton prénom n’est pas enregistré : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("Ton prénom n’est pas enregistré", error));
     } finally {
       setIsSaving(false);
     }

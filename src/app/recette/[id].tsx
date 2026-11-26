@@ -13,6 +13,7 @@ import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { uploadRecipePhoto } from "@/lib/photo-storage";
 import { formatAmount, macrosPerServing, scaleAmount } from "@/lib/recipe-rules";
 import { copyBaseRecipe, fetchRecipe, subscribeToCarnet, type Recipe } from "@/lib/recipes";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // Une recette : les parts changent les quantités à l'écran (rien n'est enregistré), les
@@ -26,6 +27,8 @@ export default function RecipeScreen() {
   const insets = useSafeAreaInsets();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   // null : les parts de la recette ; un nombre : celles choisies à l'écran.
   const [chosenServings, setChosenServings] = useState<number | null>(null);
   const [isCopying, setIsCopying] = useState(false);
@@ -44,8 +47,9 @@ export default function RecipeScreen() {
         setRecipe(loaded);
         setHasFailed(false);
       },
-      () => {
+      (error: unknown) => {
         if (latestRequestRef.current !== requestId) return;
+        setLoadError(error);
         setHasFailed(true);
       },
     );
@@ -65,7 +69,7 @@ export default function RecipeScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir la recette"
-        message="Elle a peut-être été retirée du carnet. Vérifie ta connexion et réessaie."
+        message={`Elle a peut-être été retirée du carnet. ${loadErrorMessage(loadError)}`}
         onRetry={load}
       />
     );
@@ -90,9 +94,9 @@ export default function RecipeScreen() {
         hapticAdded();
         load();
       }
-    } catch {
+    } catch (error) {
       hapticReject();
-      setPhotoError("La photo n’a pas été enregistrée. Vérifie ta connexion et réessaie.");
+      setPhotoError(failureMessage("La photo n’a pas été enregistrée", error));
     } finally {
       setIsPhotoBusy(false);
     }
@@ -115,9 +119,9 @@ export default function RecipeScreen() {
       hapticAdded();
       // La copie remplace la recette de base : le retour ramène au carnet.
       router.replace({ pathname: "/recette/[id]", params: { id: copyId, groupId } });
-    } catch {
+    } catch (error) {
       hapticReject();
-      setCopyError("La recette n’a pas pu être ajoutée. Vérifie ta connexion et réessaie.");
+      setCopyError(failureMessage("La recette n’a pas pu être ajoutée", error));
       setIsCopying(false);
     }
   }

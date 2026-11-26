@@ -92,3 +92,28 @@ export function errorMessage(kind: ErrorKind): string {
       return "Quelque chose s’est mal passé. Réessaie ; si ça continue, déconnecte-toi puis reconnecte-toi.";
   }
 }
+
+// La fin d'un message d'action, selon la cause : « Le vote n'a pas démarré » + « : le serveur
+// ne répond pas sur ce réseau… ». Remplace le « vérifie ta connexion » qui inventait la cause.
+function causeHint(kind: ErrorKind): string {
+  switch (kind) {
+    case "unreachable":
+      return "le serveur ne répond pas sur ce réseau. Réessaie, ou passe en données mobiles.";
+    case "session":
+      return "ta session a expiré. Déconnecte-toi, puis reconnecte-toi.";
+    case "server":
+      return "le serveur ne répond pas pour l’instant. Réessaie dans un moment.";
+    case "other":
+      return "réessaie dans un instant.";
+  }
+}
+
+// « <ce qui n'a pas marché> : <la vraie cause et quoi faire> ». `what` sans point final.
+export function failureMessage(what: string, error: unknown): string {
+  return `${what} : ${causeHint(classifyError(error))}`;
+}
+
+// Le message d'un écran qui ne se charge pas, selon la cause.
+export function loadErrorMessage(error: unknown): string {
+  return errorMessage(classifyError(error));
+}

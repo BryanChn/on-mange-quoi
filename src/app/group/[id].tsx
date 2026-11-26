@@ -31,6 +31,7 @@ import {
 } from "@/lib/groups";
 import { defaultMoment, momentLabel, type MealMoment } from "@/lib/tonight";
 import { useSession } from "@/lib/session";
+import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import {
   fetchLatestSession,
   startSession,
@@ -68,6 +69,8 @@ export default function GroupScreen() {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [latestSession, setLatestSession] = useState<LatestSession | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
+  // Pourquoi le chargement a échoué : le message dit la vraie cause.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [isStarting, setIsStarting] = useState(false);
   // Midi ou soir du prochain vote, présélectionné selon l'heure d'ouverture de l'écran.
   const [moment, setMoment] = useState<MealMoment>(() => defaultMoment(new Date()));
@@ -94,8 +97,9 @@ export default function GroupScreen() {
         setLatestSession(loadedSession);
         setHasFailed(false);
       },
-      () => {
+      (error: unknown) => {
         if (latestRequestRef.current !== requestId) return;
+        setLoadError(error);
         setHasFailed(true);
       },
     );
@@ -126,8 +130,8 @@ export default function GroupScreen() {
 
     try {
       openSession(await startSession(id, moment));
-    } catch {
-      setError("Le vote n’a pas démarré : vérifie ta connexion et réessaie.");
+    } catch (error) {
+      setError(failureMessage("Le vote n’a pas démarré", error));
     } finally {
       setIsStarting(false);
     }
@@ -152,9 +156,9 @@ export default function GroupScreen() {
     try {
       setLeaveImpact(await fetchLeaveImpact(id));
       setLeaveStep("confirm");
-    } catch {
+    } catch (error) {
       setLeaveStep("idle");
-      setLeaveError("On n’arrive pas à préparer ton départ : vérifie ta connexion et réessaie.");
+      setLeaveError(failureMessage("On n’arrive pas à préparer ton départ", error));
     }
   }
 
@@ -165,10 +169,10 @@ export default function GroupScreen() {
     try {
       await leaveGroup(id);
       router.dismissTo("/");
-    } catch {
+    } catch (error) {
       // Rien n'a changé : leave_group est une seule transaction.
       setLeaveStep("confirm");
-      setLeaveError("Tu n’as pas quitté le groupe : vérifie ta connexion et réessaie.");
+      setLeaveError(failureMessage("Tu n’as pas quitté le groupe", error));
     }
   }
 
@@ -190,9 +194,9 @@ export default function GroupScreen() {
     try {
       await deleteGroup(id);
       router.dismissTo("/");
-    } catch {
+    } catch (error) {
       setDeleteStep("confirm");
-      setDeleteError("Le groupe n’a pas été supprimé : vérifie ta connexion et réessaie.");
+      setDeleteError(failureMessage("Le groupe n’a pas été supprimé", error));
     }
   }
 
@@ -205,7 +209,7 @@ export default function GroupScreen() {
     return (
       <ErrorScreen
         title="On n’arrive pas à ouvrir ce groupe"
-        message="Vérifie ta connexion et réessaie."
+        message={loadErrorMessage(loadError)}
         onRetry={retry}
       />
     );

@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { classifyError, errorMessage, isRetryable, withRetry } from "./network-errors.ts";
+import {
+  classifyError,
+  errorMessage,
+  failureMessage,
+  isRetryable,
+  loadErrorMessage,
+  withRetry,
+} from "./network-errors.ts";
 
 test("reconnaître la cause d'une erreur", () => {
   // Les formes réelles de supabase-js.
@@ -85,4 +92,25 @@ test("un message par cause, qui ne dit pas « vérifie ta connexion » quand Int
   assert.match(errorMessage("unreachable"), /données mobiles/);
   assert.match(errorMessage("session"), /reconnecte-toi/);
   assert.doesNotMatch(errorMessage("server"), /connexion/);
+});
+
+test("un message d'action dit ce qui a raté, puis la vraie cause", () => {
+  assert.equal(
+    failureMessage("Le vote n’a pas démarré", new TypeError("Network request failed")),
+    "Le vote n’a pas démarré : le serveur ne répond pas sur ce réseau. Réessaie, ou passe en données mobiles.",
+  );
+  assert.match(
+    failureMessage("Ton vote n’est pas passé", { message: "JWT expired", code: "PGRST301" }),
+    /session a expiré/,
+  );
+  assert.match(
+    failureMessage("L’article n’a pas été ajouté", { status: 503, message: "x" }),
+    /pour l’instant/,
+  );
+  assert.equal(
+    failureMessage("Ce n’est pas retiré", { code: "23505" }),
+    "Ce n’est pas retiré : réessaie dans un instant.",
+  );
+  assert.doesNotMatch(failureMessage("X", new Error("?")), /vérifie ta connexion/);
+  assert.match(loadErrorMessage(new TypeError("Failed to fetch")), /données mobiles/);
 });

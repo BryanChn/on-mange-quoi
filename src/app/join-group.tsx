@@ -7,6 +7,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { TextField } from "@/components/text-field";
 import { isSoireeGroup, joinGroup } from "@/lib/groups";
 import { JOIN_FAILURE_MESSAGES, toJoinFailure } from "@/lib/soiree-rules";
+import { failureMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne groups.invite_code.
@@ -47,7 +48,7 @@ export default function JoinGroup() {
       setError(
         failure
           ? JOIN_FAILURE_MESSAGES[failure].title
-          : "Tu n’as pas pu rejoindre : vérifie ta connexion et réessaie.",
+          : failureMessage("Tu n’as pas pu rejoindre", joinError),
       );
     } finally {
       setIsJoining(false);

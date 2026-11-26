@@ -9,6 +9,7 @@ import {
   setMealNotificationsOn,
 } from "@/lib/notification-settings";
 import { createSerialQueue } from "@/lib/serial-queue";
+import { failureMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
 
 type State = { isOn: boolean; isMealsOff: boolean };
@@ -31,8 +32,8 @@ export function MealNotificationsRow({ soireeId }: { soireeId: string }) {
       .then(([isOn, settings]) => {
         if (isCurrent) setState({ isOn, isMealsOff: !settings.meals });
       })
-      .catch(() => {
-        if (isCurrent) setError("Ce réglage ne se charge pas : vérifie ta connexion.");
+      .catch((loadError: unknown) => {
+        if (isCurrent) setError(failureMessage("Ce réglage ne se charge pas", loadError));
       });
     return () => {
       isCurrent = false;
@@ -44,9 +45,9 @@ export function MealNotificationsRow({ soireeId }: { soireeId: string }) {
     hapticToggle(isOn);
     setError(null);
     setState((current) => (current ? { ...current, isOn } : current));
-    enqueue(() => setMealNotificationsOn(soireeId, isOn)).catch(() => {
+    enqueue(() => setMealNotificationsOn(soireeId, isOn)).catch((saveError: unknown) => {
       setState((current) => (current ? { ...current, isOn: !isOn } : current));
-      setError("Ton réglage n’est pas enregistré : vérifie ta connexion et réessaie.");
+      setError(failureMessage("Ton réglage n’est pas enregistré", saveError));
     });
   }
 
