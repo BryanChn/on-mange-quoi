@@ -15,11 +15,13 @@ export type HomeSoiree = {
 
 // groups : les foyers seulement (« Ce soir », « Tes groupes ») ; soirees : à part.
 // toBuyByGroup : nombre d'articles à acheter dans la liste de courses de chaque foyer.
+// recipesByGroup : nombre de recettes dans le carnet de chaque foyer.
 export type Home = {
   userId: string;
   groups: HomeGroup[];
   soirees: HomeSoiree[];
   toBuyByGroup: Map<string, number>;
+  recipesByGroup: Map<string, number>;
 };
 
 // Tout l'accueil en une requête : les groupes du membre (la RLS filtre), leurs membres,
@@ -33,6 +35,8 @@ export async function fetchHome(): Promise<Home> {
     .select("group_id")
     .is("checked_at", null)
     .is("cleared_at", null);
+  // Les recettes des carnets (pas celles de base, sans foyer), en parallèle aussi.
+  const recipesRequest = supabase.from("recipes").select("group_id").not("group_id", "is", null);
   const { data, error } = await supabase
     .from("groups")
     .select(
@@ -54,6 +58,14 @@ export async function fetchHome(): Promise<Home> {
   const toBuyByGroup = new Map<string, number>();
   for (const item of toBuy) {
     toBuyByGroup.set(item.group_id, (toBuyByGroup.get(item.group_id) ?? 0) + 1);
+  }
+
+  const { data: recipes, error: recipesError } = await recipesRequest;
+  if (recipesError) throw recipesError;
+  const recipesByGroup = new Map<string, number>();
+  for (const recipe of recipes) {
+    if (recipe.group_id === null) continue;
+    recipesByGroup.set(recipe.group_id, (recipesByGroup.get(recipe.group_id) ?? 0) + 1);
   }
 
   const soirees = data.flatMap((group): HomeSoiree[] =>
@@ -115,7 +127,7 @@ export async function fetchHome(): Promise<Home> {
       };
     });
 
-  return { userId, groups, soirees, toBuyByGroup };
+  return { userId, groups, soirees, toBuyByGroup, recipesByGroup };
 }
 
 // Plusieurs membres qui cochent en même temps déclenchent une rafale d'événements : on
@@ -156,6 +168,8 @@ export function subscribeToHome(onChange: () => void): () => void {
       { event: "*", schema: "public", table: "shopping_items" },
       scheduleReload,
     )
+    // Carnet : le compteur « 5 dans le carnet ».
+    .on("postgres_changes", { event: "*", schema: "public", table: "recipes" }, scheduleReload)
     // (Re)connexion confirmée : rattrape ce qui a changé pendant une coupure.
     .subscribe((status) => {
       if (status === "SUBSCRIBED") scheduleReload();

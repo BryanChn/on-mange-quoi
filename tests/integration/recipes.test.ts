@@ -11,10 +11,13 @@ import {
   deleteRecipe,
   fetchBaseRecipes,
   fetchCarnet,
+  fetchCarnets,
   fetchRecipe,
   saveRecipe,
   type RecipeDraft,
 } from "../../src/lib/recipes.ts";
+import { fetchHome } from "../../src/lib/home.ts";
+import { macrosPerServing } from "../../src/lib/recipe-rules.ts";
 import { createSoiree } from "../../src/lib/soirees.ts";
 import { startSession } from "../../src/lib/votes.ts";
 import {
@@ -306,5 +309,54 @@ describe("les photos des recettes", () => {
       .update({ photo_path: path(danFoyerId) })
       .eq("id", id);
     assert.ok(error, "le chemin doit commencer par le dossier du foyer");
+  });
+});
+
+describe("ce que lisent les écrans", () => {
+  test("l'aliment Ciqual arrive avec sa ligne : les macros se calculent", async () => {
+    await signInAs(alice);
+    const id = await saveRecipe(foyerId, null, bolo);
+
+    await signInAs(bea);
+    const recipe = await fetchRecipe(id);
+    assert.deepEqual(recipe.ingredients[0].food, {
+      kcal: 250,
+      proteinG: 20,
+      carbsG: 0,
+      fatG: 18,
+      unitWeightG: null,
+    });
+    assert.equal(recipe.ingredients[1].food, null);
+    // 500 g à 250 kcal pour 100 g, en 4 parts ; l'oignon et le sel ne comptent pas.
+    assert.deepEqual(macrosPerServing(recipe.ingredients, recipe.servings), {
+      kcal: 313,
+      proteinG: 25,
+      carbsG: 0,
+      fatG: 23,
+      counted: 1,
+      uncounted: 2,
+    });
+  });
+
+  test("le carnet compte les ingrédients, l'accueil et le choix comptent les recettes", async () => {
+    const groupId = await createGroup(alice, [bea]);
+    await signInAs(alice);
+    await saveRecipe(groupId, null, bolo);
+    await saveRecipe(groupId, null, { ...bolo, title: "Bolognaise du dimanche" });
+
+    await signInAs(bea);
+    const carnet = await fetchCarnet(groupId);
+    assert.deepEqual(
+      carnet.map((summary) => summary.ingredientCount),
+      [3, 3],
+    );
+    assert.equal((await fetchHome()).recipesByGroup.get(groupId), 2);
+    const carnets = await fetchCarnets();
+    assert.equal(carnets.find((summary) => summary.groupId === groupId)?.recipeCount, 2);
+
+    // Dan ne voit ni le carnet ni son compteur.
+    await signInAs(dan);
+    assert.equal((await fetchHome()).recipesByGroup.get(groupId), undefined);
+    assert.ok(!(await fetchCarnets()).some((summary) => summary.groupId === groupId));
   });
 });

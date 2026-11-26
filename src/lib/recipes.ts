@@ -1,10 +1,10 @@
 // Recettes (migration recipes) : le carnet d'un foyer, les recettes de base, une recette et
 // ses ingrédients, enregistrer, copier, retirer, suivre en direct. Les règles d'accès sont
 // dans la base (RLS : membres du foyer ; recettes de base en lecture seule).
-import type { Enums } from "./database.types";
+import type { FoodNutrients, IngredientUnit } from "./recipe-rules";
 import { supabase } from "./supabase";
 
-export type IngredientUnit = Enums<"ingredient_unit">;
+export type { IngredientUnit };
 
 // Une ligne d'ingrédient, comme l'écran l'envoie et la lit.
 export type RecipeIngredient = {
@@ -18,11 +18,16 @@ export type RecipeIngredient = {
   foodId: number | null;
 };
 
+// Une ligne lue avec son aliment Ciqual (valeurs pour 100 g) : les calories et les macros
+// de l'écran de la recette en viennent.
+export type RecipeIngredientView = RecipeIngredient & { food: FoodNutrients | null };
+
 // Une recette dans une liste (carnet, recettes de base).
 export type RecipeSummary = {
   id: string;
   title: string;
   servings: number;
+  ingredientCount: number;
   photoPath: string | null;
   // La recette de base dont elle est la copie, null sinon.
   sourceRecipeId: string | null;
@@ -33,7 +38,7 @@ export type Recipe = RecipeSummary & {
   // null : une recette de base (lecture seule).
   groupId: string | null;
   steps: string[];
-  ingredients: RecipeIngredient[];
+  ingredients: RecipeIngredientView[];
 };
 
 // Ce que l'écran « Écrire une recette » envoie : tout d'un coup.
@@ -44,12 +49,15 @@ export type RecipeDraft = {
   ingredients: RecipeIngredient[];
 };
 
-const SUMMARY_COLUMNS = "id, title, servings, photo_path, source_recipe_id, updated_at";
+// Alias : fetchRecipe lit aussi les ingrédients eux-mêmes, sous leur nom.
+const SUMMARY_COLUMNS =
+  "id, title, servings, photo_path, source_recipe_id, updated_at, ingredient_count:recipe_ingredients(count)";
 
 type SummaryRow = {
   id: string;
   title: string;
   servings: number;
+  ingredient_count: { count: number }[];
   photo_path: string | null;
   source_recipe_id: string | null;
   updated_at: string;
@@ -60,6 +68,7 @@ function toSummary(row: SummaryRow): RecipeSummary {
     id: row.id,
     title: row.title,
     servings: row.servings,
+    ingredientCount: row.ingredient_count.at(0)?.count ?? 0,
     photoPath: row.photo_path,
     sourceRecipeId: row.source_recipe_id,
     updatedAt: row.updated_at,
@@ -95,7 +104,8 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
     .from("recipes")
     .select(
       `${SUMMARY_COLUMNS}, group_id, steps,
-      recipe_ingredients(position, raw, label, quantity, unit, food_id)`,
+      recipe_ingredients(position, raw, label, quantity, unit, food_id,
+        food:foods(kcal, protein_g, carbs_g, fat_g, unit_weight_g))`,
     )
     .eq("id", recipeId)
     .order("position", { referencedTable: "recipe_ingredients" })
@@ -111,8 +121,35 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
       quantity: row.quantity,
       unit: row.unit,
       foodId: row.food_id,
+      food: row.food
+        ? {
+            kcal: row.food.kcal,
+            proteinG: row.food.protein_g,
+            carbsG: row.food.carbs_g,
+            fatG: row.food.fat_g,
+            unitWeightG: row.food.unit_weight_g,
+          }
+        : null,
     })),
   };
+}
+
+// Un carnet par foyer, avec son nombre de recettes : l'écran de choix, quand on a plusieurs
+// foyers (la RLS ne montre que les siens).
+export type CarnetSummary = { groupId: string; name: string; recipeCount: number };
+
+export async function fetchCarnets(): Promise<CarnetSummary[]> {
+  const { data, error } = await supabase
+    .from("groups")
+    .select("id, name, recipes(count)")
+    .eq("kind", "foyer")
+    .order("created_at");
+  if (error) throw error;
+  return data.map((group) => ({
+    groupId: group.id,
+    name: group.name,
+    recipeCount: group.recipes.at(0)?.count ?? 0,
+  }));
 }
 
 // Crée (recipeId null) ou remplace une recette et tous ses ingrédients, en une transaction
