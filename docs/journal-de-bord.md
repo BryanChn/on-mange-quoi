@@ -11,6 +11,8 @@
 
 Tout est mergé et en ligne (#122 à #140) : migrations jusqu'à `base_recipes_lot1`, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande. Au travail : 5G (le Wi-Fi bloque le serveur).
 
+**0. En premier : des photos pour les recettes de base** (demandé le 26/11, une PR propre) : la contrainte `recipes_photo_path_check` et le stockage n'acceptent une photo que dans le dossier d'un foyer. À faire : un dossier `base/` lisible par les comptes (pas les invités anonymes), la contrainte assouplie, une copie qui garde la photo sans pouvoir effacer l'originale ; tests d'intégration. Photos **CC0 ou domaine public seulement** (montrées à tous les foyers et sur les stores), vérifiées une par une.
+
 **1. Tout de suite : mes retours**
 
 | # | Tâche | Détail |
