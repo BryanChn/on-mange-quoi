@@ -29,7 +29,13 @@ import {
   RECIPE_STEP_MAX_LENGTH,
   RECIPE_TITLE_MAX_LENGTH,
 } from "@/lib/recipe-rules";
-import { deleteRecipe, fetchRecipe, saveRecipe } from "@/lib/recipes";
+import {
+  deleteRecipe,
+  fetchRecipe,
+  saveRecipe,
+  searchFoods,
+  type FoodSuggestion,
+} from "@/lib/recipes";
 import { useTheme, type Theme } from "@/theme";
 
 // Clés stables : corriger ou retirer une ligne ne doit pas mélanger les autres.
@@ -78,6 +84,9 @@ export default function WriteRecipeScreen() {
   const [newName, setNewName] = useState("");
   const [newQuantity, setNewQuantity] = useState("");
   const [newStep, setNewStep] = useState("");
+  // L'aliment Ciqual proposé pendant la frappe, et celui choisi pour le nom tapé.
+  const [suggestions, setSuggestions] = useState<FoodSuggestion[]>([]);
+  const [newFood, setNewFood] = useState<FoodSuggestion | null>(null);
   // La ligne ouverte pour être corrigée (ingrédient ou étape), et ses champs.
   const [editingKey, setEditingKey] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
@@ -87,6 +96,10 @@ export default function WriteRecipeScreen() {
   const scrollRef = useRef<ScrollViewInstance>(null);
   const nameRef = useRef<TextInputInstance>(null);
   const quantityRef = useRef<TextInputInstance>(null);
+  // Une recherche part 250 ms après la dernière frappe ; seule la plus récente a le droit
+  // d'afficher ses suggestions.
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestSearchRef = useRef(0);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -148,6 +161,37 @@ export default function WriteRecipeScreen() {
 
   // ─── ingrédients ───
 
+  function changeNewName(text: string) {
+    setNewName(text);
+    // Un autre nom, un autre aliment : le choix précédent ne vaut plus.
+    setNewFood(null);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    latestSearchRef.current += 1;
+    const searchId = latestSearchRef.current;
+    if (text.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    searchTimerRef.current = setTimeout(() => {
+      searchFoods(text).then(
+        (found) => {
+          if (latestSearchRef.current === searchId) setSuggestions(found.slice(0, 5));
+        },
+        // Sans suggestion, on écrit quand même : l'ingrédient reste en texte libre.
+        () => {
+          if (latestSearchRef.current === searchId) setSuggestions([]);
+        },
+      );
+    }, 250);
+  }
+
+  function chooseFood(food: FoodSuggestion) {
+    setNewFood(food);
+    setSuggestions([]);
+    latestSearchRef.current += 1;
+    quantityRef.current?.focus();
+  }
+
   function handleAddIngredient() {
     if (!form) return;
     if (newName.trim() === "") {
@@ -160,11 +204,14 @@ export default function WriteRecipeScreen() {
     update({
       ingredients: [
         ...form.ingredients,
-        { key: nextKey(), name: newName, quantity: newQuantity, foodId: null },
+        { key: nextKey(), name: newName, quantity: newQuantity, foodId: newFood?.id ?? null },
       ],
     });
     setNewName("");
     setNewQuantity("");
+    setNewFood(null);
+    setSuggestions([]);
+    latestSearchRef.current += 1;
     setErrors((current) => ({ ...current, ingredient: undefined, ingredients: undefined }));
     // On enchaîne : retour au nom pour l'ingrédient suivant.
     nameRef.current?.focus();
@@ -246,7 +293,7 @@ export default function WriteRecipeScreen() {
     const pendingIngredients =
       newName.trim() === ""
         ? []
-        : [{ name: newName, quantity: newQuantity, foodId: null as number | null }];
+        : [{ name: newName, quantity: newQuantity, foodId: newFood?.id ?? null }];
     const pendingSteps = newStep.trim() === "" ? [] : [newStep];
     const result = buildRecipeDraft({
       title: form.title,
@@ -327,7 +374,7 @@ export default function WriteRecipeScreen() {
             <TextInput
               ref={nameRef}
               value={newName}
-              onChangeText={setNewName}
+              onChangeText={changeNewName}
               placeholder="Ingrédient"
               placeholderTextColor={theme.colors.textMuted}
               accessibilityLabel="Ingrédient à ajouter"
@@ -362,12 +409,45 @@ export default function WriteRecipeScreen() {
             <Feather name="plus" size={24} color={theme.colors.onPrimary} />
           </Pressable>
         </View>
+        {suggestions.length > 0 ? (
+          <View style={styles.card} accessibilityLabel="Aliments proposés">
+            {suggestions.map((food, index) => (
+              <Pressable
+                key={food.id}
+                onPress={() => chooseFood(food)}
+                accessibilityRole="button"
+                accessibilityLabel={`Choisir ${food.name}`}
+                style={({ pressed }) => [
+                  styles.suggestion,
+                  index > 0 && styles.divider,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.suggestionName}>{food.name}</Text>
+                {food.groupName ? (
+                  <Text style={styles.suggestionGroup}>{food.groupName}</Text>
+                ) : null}
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        {newFood ? (
+          <View style={styles.chosen}>
+            <Feather name="check-circle" size={16} color={theme.colors.success} />
+            <Text style={styles.chosenText} numberOfLines={1}>
+              {newFood.name}
+            </Text>
+            <TextButton label="Changer" onPress={() => changeNewName(newName)} />
+          </View>
+        ) : null}
         {errors.ingredient ? (
           <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
             {errors.ingredient}
           </Text>
-        ) : (
-          <Text style={styles.hint}>Quantité libre : « 1 kg », « 3 », « 2 c. à soupe ».</Text>
+        ) : newFood || suggestions.length > 0 ? null : (
+          <Text style={styles.hint}>
+            Choisis un aliment proposé pour compter les calories. Quantité libre : « 1 kg », « 3 ».
+          </Text>
         )}
 
         {form.ingredients.length > 0 ? (
@@ -422,6 +502,14 @@ export default function WriteRecipeScreen() {
                   ]}
                 >
                   <Text style={styles.rowName}>{ingredient.name}</Text>
+                  {ingredient.foodId !== null ? (
+                    <Feather
+                      name="check-circle"
+                      size={14}
+                      color={theme.colors.success}
+                      accessibilityLabel="Compté dans les calories"
+                    />
+                  ) : null}
                   {ingredient.quantity ? (
                     <Text style={styles.rowQuantity}>{ingredient.quantity}</Text>
                   ) : null}
@@ -621,6 +709,11 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     rowName: { flex: 1, color: colors.text, fontSize: fontSize.body },
     rowQuantity: { color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
     editRow: { gap: spacing.sm, padding: spacing.md },
+    suggestion: { gap: 2, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
+    suggestionName: { color: colors.text, fontSize: fontSize.body },
+    suggestionGroup: { color: colors.textMuted, fontSize: fontSize.caption },
+    chosen: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginLeft: spacing.xs },
+    chosenText: { flex: 1, color: colors.success, fontSize: fontSize.small },
     editActions: { flexDirection: "row", justifyContent: "flex-end", gap: spacing.lg },
 
     stepCard: {
