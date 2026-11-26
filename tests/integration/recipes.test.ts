@@ -411,6 +411,20 @@ describe("les aliments Ciqual", () => {
       "« creme » trouve « Crème »",
     );
 
+    // Un mot entier passe avant un morceau de mot : « oeuf » avant « boeuf », « sel » avant
+    // « Selles-sur-Cher ».
+    const eggFirst = await searchFoods("oeuf");
+    assert.ok(eggFirst[0].name.startsWith("Oeuf"), eggFirst[0].name);
+    const salt = await searchFoods("sel");
+    assert.ok(salt[0].name.startsWith("Sel"), salt[0].name);
+    assert.ok(
+      salt.findIndex((food) => food.name.startsWith("Selles")) === -1 ||
+        salt.findIndex((food) => food.name.startsWith("Selles")) > 0,
+    );
+    // Mot par mot : « pomme terre crue » trouve « Pomme de terre, sans peau, crue ».
+    const potatoes = await searchFoods("pomme terre crue");
+    assert.ok(potatoes.some((food) => food.name.startsWith("Pomme de terre")));
+
     // Trop court, ou des jokers tapés : rien d'inattendu.
     assert.deepEqual(await searchFoods("c"), []);
     assert.deepEqual(await searchFoods("%%"), []);
