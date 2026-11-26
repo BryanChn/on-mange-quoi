@@ -380,6 +380,17 @@ describe("les aliments Ciqual", () => {
     });
   });
 
+  test("une pièce a son poids moyen : 3 œufs comptent dans les calories", async () => {
+    await signInAs(alice);
+    const { data, error } = await supabase
+      .from("foods")
+      .select("unit_weight_g")
+      .eq("id", 22000)
+      .single();
+    assert.equal(error, null);
+    assert.equal(data.unit_weight_g, 50);
+  });
+
   test("chercher sans accents ni majuscules, ce qui commence par le texte d'abord", async () => {
     await signInAs(alice);
     const carrots = await searchFoods("CAROTTE");
