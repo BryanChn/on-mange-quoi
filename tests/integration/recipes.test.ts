@@ -645,6 +645,18 @@ describe("le carnet dans le vote", () => {
 });
 
 describe("les recettes de base, lot 1", () => {
+  test("9 photos dans base/<id>.jpg ; la blanquette sans photo", async () => {
+    await signInAs(alice);
+    const lot1 = (await fetchBaseRecipes()).filter((recipe) =>
+      /^00000000-0000-4000-8000-0000000000(0[1-9]|10)$/.test(recipe.id),
+    );
+    assert.equal(lot1.length, 10);
+    for (const recipe of lot1) {
+      const expected = recipe.title === "Blanquette de veau" ? null : `base/${recipe.id}.jpg`;
+      assert.equal(recipe.photoPath, expected, recipe.title);
+    }
+  });
+
   test("lisibles avec leurs étiquettes, et la copie dans un carnet les garde", async () => {
     await signInAs(alice);
     const base = await fetchBaseRecipes();
