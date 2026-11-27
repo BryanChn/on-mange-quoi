@@ -2,8 +2,10 @@
 // suivre en direct. Les règles d'accès sont dans la base (RLS : membres du foyer) ; la RLS
 // refuse parfois sans erreur (0 ligne) : on le vérifie pour ne pas annoncer un faux succès.
 import {
+  ciqualMatchesLabel,
   cleanShoppingInput,
   guessAisle,
+  resolveAisle,
   normalizeLabel,
   orderedAisles,
   sortShoppingList,
@@ -99,16 +101,29 @@ export async function fetchShoppingHistory(groupId: string): Promise<ShoppingHis
   }));
 }
 
-// Le rayon est deviné ici (choix du foyer d'abord, puis le nom) : l'écran n'a rien à faire.
+// Le sous-groupe Ciqual d'un nom tapé, quand le dictionnaire ne le connaît pas : le premier
+// aliment trouvé, s'il commence bien comme le nom. Un échec de recherche n'empêche pas l'ajout
+// (l'article ira dans « Autres »).
+async function ciqualGroupFor(label: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("search_foods", { query: label });
+  if (error || data.length === 0) return null;
+  const [food] = data;
+  return ciqualMatchesLabel(label, food.name) ? food.group_name : null;
+}
+
+// Le rayon est trouvé ici (choix du foyer, dictionnaire, puis Ciqual) : l'écran n'a rien à faire.
 export async function addShoppingItem(
   groupId: string,
   input: { label: string; quantity: string },
   chosen: ReadonlyMap<string, ShoppingAisle> = new Map(),
 ): Promise<ShoppingItem> {
   const { label, quantity } = cleanShoppingInput(input.label, input.quantity);
+  const guessed = guessAisle(label, chosen);
+  const aisle =
+    guessed === "autres" ? resolveAisle(label, chosen, await ciqualGroupFor(label)) : guessed;
   const { data, error } = await supabase
     .from("shopping_items")
-    .insert({ group_id: groupId, label, quantity, aisle: guessAisle(label, chosen) })
+    .insert({ group_id: groupId, label, quantity, aisle })
     .select(COLUMNS)
     .single();
   if (error) throw error;
@@ -124,15 +139,30 @@ export async function addRecipeToShopping(
   plan: ShoppingPlan,
 ): Promise<number> {
   if (plan.toInsert.length > 0) {
-    // Les rayons choisis par le foyer s'appliquent aussi aux ingrédients d'une recette.
+    // Les rayons choisis par le foyer s'appliquent aussi aux ingrédients d'une recette ; un
+    // ingrédient relié à Ciqual apporte le sous-groupe de son aliment.
     const { chosen } = await fetchAisleSettings(groupId);
+    const foodIds = plan.toInsert.flatMap((addition) => (addition.foodId ? [addition.foodId] : []));
+    const groups = new Map<number, string | null>();
+    if (foodIds.length > 0) {
+      const { data: foods, error: foodsError } = await supabase
+        .from("foods")
+        .select("id, group_name")
+        .in("id", foodIds);
+      if (foodsError) throw foodsError;
+      for (const food of foods) groups.set(food.id, food.group_name);
+    }
     const { error } = await supabase.from("shopping_items").insert(
       plan.toInsert.map((addition) => ({
         group_id: groupId,
         label: addition.label,
         quantity: addition.quantity,
         recipe_id: recipeId,
-        aisle: guessAisle(addition.label, chosen),
+        aisle: resolveAisle(
+          addition.label,
+          chosen,
+          addition.foodId ? groups.get(addition.foodId) : null,
+        ),
       })),
     );
     if (error) throw error;

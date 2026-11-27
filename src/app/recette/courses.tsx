@@ -95,6 +95,7 @@ export default function RecipeToShoppingScreen() {
     return {
       index,
       label: ingredient.label,
+      foodId: ingredient.foodId,
       quantity: amount ? formatAmount(amount) : null,
       isOnList,
       isChecked: !isOnList && !unchecked.has(index),
@@ -103,7 +104,7 @@ export default function RecipeToShoppingScreen() {
   const plan = planShoppingAdditions(
     rows
       .filter((row) => row.isChecked)
-      .map((row) => ({ label: row.label, quantity: row.quantity })),
+      .map((row) => ({ label: row.label, quantity: row.quantity, foodId: row.foodId })),
     items,
   );
   const count = plan.toInsert.length + plan.toUncheck.length;

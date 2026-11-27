@@ -21,7 +21,7 @@ export type ShoppingItem = {
 
 // Ordre d'ajout ; deux articles ajoutés d'un coup (même instant, depuis une recette) gardent
 // toujours le même ordre entre eux : sans ça, cocher l'un pouvait faire sauter l'autre.
-function byAddedOrder(a: ShoppingItem, b: ShoppingItem): number {
+export function byAddedOrder(a: ShoppingItem, b: ShoppingItem): number {
   return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
 }
 
@@ -34,26 +34,6 @@ export function sortShoppingList(items: ShoppingItem[]): ShoppingItem[] {
     .filter((item) => item.checkedAt !== null)
     .sort((a, b) => (b.checkedAt ?? "").localeCompare(a.checkedAt ?? ""));
   return [...toBuy, ...taken];
-}
-
-export type ShoppingSection = "toBuy" | "taken";
-
-// Les deux sections affichées. Un article qu'on vient de cocher (ou décocher) reste un instant
-// dans sa section d'avant (held), à sa place : on peut cocher le suivant sans que la liste
-// bouge sous le doigt, puis tout glisse ensemble. Même ordre que sortShoppingList.
-export function splitShoppingList(
-  items: ShoppingItem[],
-  held: ReadonlyMap<string, ShoppingSection>,
-): Record<ShoppingSection, ShoppingItem[]> {
-  const sectionOf = (item: ShoppingItem): ShoppingSection =>
-    held.get(item.id) ?? (item.checkedAt === null ? "toBuy" : "taken");
-  return {
-    toBuy: items.filter((item) => sectionOf(item) === "toBuy").sort(byAddedOrder),
-    // Un article décoché retenu ici n'a plus d'heure : il reste en bas de la section.
-    taken: items
-      .filter((item) => sectionOf(item) === "taken")
-      .sort((a, b) => (b.checkedAt ?? "").localeCompare(a.checkedAt ?? "")),
-  };
 }
 
 // Texte saisi → valeurs à enregistrer : espaces superflus retirés, quantité vide = null.
@@ -150,7 +130,8 @@ export function tripToShow<T extends { shopperId: string }>(
 
 // ─── ajouter une recette aux courses ─────────────────────
 
-export type ShoppingAddition = { label: string; quantity: string | null };
+// foodId : l'aliment Ciqual d'un ingrédient de recette, s'il y en a un (son rayon en dépend).
+export type ShoppingAddition = { label: string; quantity: string | null; foodId?: number | null };
 
 export type ShoppingPlan = {
   // Les nouveaux articles.
@@ -180,6 +161,7 @@ export function planShoppingAdditions(
       plan.toInsert.push({
         label: label.slice(0, SHOPPING_LABEL_MAX_LENGTH),
         quantity: quantity?.slice(0, SHOPPING_QUANTITY_MAX_LENGTH) ?? null,
+        foodId: addition.foodId ?? null,
       });
     else if (existing.checkedAt !== null) plan.toUncheck.push(existing.id);
     else plan.alreadyToBuy.push(existing.label);
@@ -687,28 +669,121 @@ export function moveAisle(
   return next;
 }
 
-// Les sections de « À acheter » : les indispensables en tête, puis un rayon par section dans
-// l'ordre du foyer (sections vides retirées), ou tout ensemble pour le tri par ajout.
+// Les sections de la liste : les indispensables en tête, puis un rayon par section dans
+// l'ordre du foyer (sections vides retirées). Un article pris reste dans sa section, barré :
+// le « 2/5 » d'un rayon compte ce qui y a été pris.
 export type ShoppingSectionGroup<T> = {
-  key: "important" | "all" | ShoppingAisle;
+  key: "important" | ShoppingAisle;
   items: T[];
 };
 
 export function groupShoppingItems<T extends { aisle: ShoppingAisle; isImportant: boolean }>(
   items: T[],
   order: readonly ShoppingAisle[],
-  mode: "aisle" | "added",
 ): ShoppingSectionGroup<T>[] {
   const important = items.filter((item) => item.isImportant);
-  const rest = items.filter((item) => !item.isImportant);
   const groups: ShoppingSectionGroup<T>[] =
     important.length > 0 ? [{ key: "important", items: important }] : [];
-  if (mode === "added") {
-    return rest.length > 0 ? [...groups, { key: "all", items: rest }] : groups;
-  }
   for (const aisle of order) {
-    const inAisle = rest.filter((item) => item.aisle === aisle);
+    const inAisle = items.filter((item) => !item.isImportant && item.aisle === aisle);
     if (inAisle.length > 0) groups.push({ key: aisle, items: inAisle });
   }
   return groups;
+}
+
+// ─── Ciqual en renfort du dictionnaire ───────────────────
+
+// Le rayon des sous-groupes d'aliments Ciqual (foods.group_name), comme en magasin.
+const CIQUAL_AISLES: Record<string, ShoppingAisle> = {
+  "aides culinaires": "epicerie_salee",
+  algues: "epicerie_salee",
+  "autres matières grasses": "epicerie_salee",
+  "autres produits à base de viande": "charcuterie_traiteur",
+  "barres céréalières": "epicerie_sucree",
+  beurres: "cremerie",
+  "biscuits apéritifs": "epicerie_salee",
+  "biscuits sucrés": "epicerie_sucree",
+  "boisson alcoolisées": "boissons",
+  "boissons sans alcool": "boissons",
+  "céréales de petit-déjeuner": "epicerie_sucree",
+  "céréales et biscuits infantiles": "bebe",
+  "charcuteries et alternatives végétales": "charcuterie_traiteur",
+  "chocolats et produits à base de chocolat": "epicerie_sucree",
+  condiments: "epicerie_salee",
+  "confiseries non chocolatées": "epicerie_sucree",
+  "confitures et assimilés": "epicerie_sucree",
+  "crèmes et spécialités à base de crème": "cremerie",
+  "desserts glacés": "surgeles",
+  "desserts infantiles": "bebe",
+  eaux: "boissons",
+  épices: "epicerie_salee",
+  farines: "epicerie_salee",
+  "feuilletées et autres entrées": "charcuterie_traiteur",
+  "fromages et alternatives végétales": "cremerie",
+  fruits: "fruits_legumes",
+  "fruits à coque et graines oléagineuses": "epicerie_sucree",
+  "gâteaux et pâtisseries": "epicerie_sucree",
+  glaces: "surgeles",
+  herbes: "fruits_legumes",
+  "huiles de poissons": "epicerie_salee",
+  "huiles et graisses végétales": "epicerie_salee",
+  "ingrédients pour végétariens": "charcuterie_traiteur",
+  laits: "cremerie",
+  "laits et boissons infantiles": "bebe",
+  légumes: "fruits_legumes",
+  légumineuses: "epicerie_salee",
+  margarines: "cremerie",
+  "mollusques et crustacés crus": "boucherie_poisson",
+  "mollusques et crustacés cuits": "boucherie_poisson",
+  oeufs: "cremerie",
+  "pains et assimilés": "boulangerie",
+  "pâtes à tarte": "charcuterie_traiteur",
+  "pâtes, riz et céréales": "epicerie_salee",
+  "petits pots salés et plats infantiles": "bebe",
+  "pizzas, tartes et crêpes salées": "charcuterie_traiteur",
+  "plats composés": "charcuterie_traiteur",
+  "poissons crus": "boucherie_poisson",
+  "poissons cuits": "boucherie_poisson",
+  "pommes de terre et autres tubercules": "fruits_legumes",
+  "produits à base de poissons et produits de la mer": "boucherie_poisson",
+  "produits laitiers frais et alternatives végétales": "cremerie",
+  "salades composées et crudités": "charcuterie_traiteur",
+  sandwichs: "charcuterie_traiteur",
+  sauces: "epicerie_salee",
+  sels: "epicerie_salee",
+  sorbets: "surgeles",
+  soupes: "epicerie_salee",
+  "sucres, miels et assimilés": "epicerie_sucree",
+  "tartinables végétariens": "charcuterie_traiteur",
+  "viandes crues": "boucherie_poisson",
+  // Jambon cuit, poulet rôti en barquette : au rayon charcuterie et traiteur.
+  "viandes cuites": "charcuterie_traiteur",
+  viennoiseries: "boulangerie",
+};
+
+export function aisleFromCiqualGroup(group: string | null | undefined): ShoppingAisle | null {
+  return group ? (CIQUAL_AISLES[group] ?? null) : null;
+}
+
+// L'aliment trouvé par la recherche Ciqual correspond-il vraiment au nom tapé ? Son premier mot
+// doit commencer comme le premier mot du nom (« Goûter » → « Goûter fourré au chocolat »).
+// Sinon on ne s'en sert pas : mieux vaut « Autres » qu'un rayon faux.
+export function ciqualMatchesLabel(label: string, foodName: string): boolean {
+  const [first] = normalizeLabel(label).split(/[\s'-]+/);
+  const [foodFirst] = normalizeLabel(foodName).split(/[\s,'-]+/);
+  if (!first || !foodFirst || first.length < 3) return false;
+  const stem = first.replace(/s$/, "");
+  return foodFirst.startsWith(stem) || stem.startsWith(foodFirst);
+}
+
+// Le rayon d'un nouvel article : le choix du foyer, puis le dictionnaire, puis le sous-groupe
+// Ciqual de l'aliment (ingrédient de recette, ou trouvé par la recherche), sinon « Autres ».
+export function resolveAisle(
+  label: string,
+  chosen: ReadonlyMap<string, ShoppingAisle>,
+  ciqualGroup: string | null | undefined,
+): ShoppingAisle {
+  const guessed = guessAisle(label, chosen);
+  if (guessed !== "autres") return guessed;
+  return aisleFromCiqualGroup(ciqualGroup) ?? "autres";
 }

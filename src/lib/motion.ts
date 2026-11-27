@@ -56,21 +56,6 @@ export const dishLayout = LinearTransition.duration(200)
   .easing(EASE_IN_OUT)
   .reduceMotion(ReduceMotion.System);
 
-// Liste de courses (option A du 27/11) : on coche sur place, le nom se barre, puis après un
-// temps de pose la ligne se replie et les suivantes remontent. Things 3 pose tout en ~500 ms
-// avant d'effacer la ligne ; on laisse un peu plus, le temps de viser l'article suivant.
-export const ROW_SETTLE_DELAY_MS = 700;
-export const ROW_COLLAPSE_MS = 280;
-export const ROW_COLLAPSE_EASING = EASE_OUT;
-// Le trait qui barre le nom, de gauche à droite.
+// Liste de courses : le nom d'un article coché se barre, de gauche à droite.
 export const STRIKE_MS = 260;
 export const STRIKE_EASING = EASE_OUT;
-
-// Le compteur « Déjà pris » fait un petit bond quand un article y arrive.
-export const countBump = new Keyframe({
-  0: { transform: [{ scale: 1 }] },
-  35: { transform: [{ scale: 1.25 }], easing: EASE_OUT },
-  100: { transform: [{ scale: 1 }], easing: EASE_OUT },
-})
-  .duration(360)
-  .reduceMotion(ReduceMotion.System);
