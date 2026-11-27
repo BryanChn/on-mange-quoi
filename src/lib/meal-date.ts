@@ -62,6 +62,12 @@ export function formatShortDay(day: string): string {
   return `${WEEKDAYS_SHORT[date.getDay()]} ${date.getDate()} ${MONTHS_SHORT[date.getMonth()]}`;
 }
 
+// « Jeudi », en tête de la carte d'un repas de la semaine.
+export function formatWeekday(day: string): string {
+  const name = WEEKDAYS_LONG[fromDay(day).getDay()];
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 // « jeudi 24 décembre », pour le lecteur d'écran.
 export function formatLongDay(day: string): string {
   const date = fromDay(day);
@@ -93,4 +99,21 @@ export function monthWeeks(year: number, month: number): (string | null)[][] {
   const weeks: (string | null)[][] = [];
   for (let start = 0; start < cells.length; start += 7) weeks.push(cells.slice(start, start + 7));
   return weeks;
+}
+
+// Quand a lieu un repas, en tête de sa carte sur l'accueil : « Aujourd'hui », « Demain », le
+// jour de la semaine jusqu'à six jours, puis la date (le nom du jour tromperait). Sans date
+// (repas créés avant « Quand ? »), rien.
+export function mealWhenLabel(mealDate: string | null, today: string): string | null {
+  if (!mealDate) return null;
+  if (mealDate <= today) return "Aujourd’hui";
+  if (mealDate === addDays(today, 1)) return "Demain";
+  if (mealDate <= addDays(today, 6)) return formatWeekday(mealDate);
+  return formatShortDay(mealDate);
+}
+
+// Le plus proche d'abord. Un repas sans date passe devant : il date d'avant « Quand ? »,
+// donc il est en cours.
+export function sortMealsByDate<T extends { mealDate: string | null }>(meals: T[]): T[] {
+  return [...meals].sort((a, b) => (a.mealDate ?? "").localeCompare(b.mealDate ?? ""));
 }

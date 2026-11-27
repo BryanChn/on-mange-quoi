@@ -348,35 +348,10 @@ export function matchesRecipeSearch(title: string, query: string): boolean {
   return folded === "" || foldText(title).includes(folded);
 }
 
-// La ligne « Recettes » de l'accueil : toujours là dès qu'on a un foyer (un carnet vide invite
-// à écrire la première). Un foyer : son carnet s'ouvre directement ; plusieurs : l'écran de
-// choix, comme la liste de courses.
-export type RecipesShortcut =
-  | { kind: "none" }
-  | { kind: "one"; groupId: string; subtitle: string }
-  | { kind: "many"; subtitle: string };
-
-function recipeCountLabel(count: number): string {
-  return count === 1 ? "1 recette" : `${count} recettes`;
-}
-
-export function recipesShortcut(
-  groups: { id: string; name: string }[],
-  recipesByGroup: Map<string, number>,
-): RecipesShortcut {
-  if (groups.length === 0) return { kind: "none" };
-  if (groups.length === 1) {
-    const [group] = groups;
-    const count = recipesByGroup.get(group.id) ?? 0;
-    return {
-      kind: "one",
-      groupId: group.id,
-      subtitle:
-        count === 0 ? "Écris ta première recette" : `${recipeCountLabel(count)} dans le carnet`,
-    };
-  }
-  const total = groups.reduce((sum, group) => sum + (recipesByGroup.get(group.id) ?? 0), 0);
-  return { kind: "many", subtitle: `${recipeCountLabel(total)} dans ${groups.length} carnets` };
+// La ligne « Recettes » d'un foyer sur l'accueil : un carnet vide invite à écrire la première.
+export function recipesSubtitle(count: number): string {
+  if (count === 0) return "Écris ta première recette";
+  return `${count === 1 ? "1 recette" : `${count} recettes`} dans le carnet`;
 }
 
 // La couleur d'une vignette sans photo, toujours la même pour une recette : un petit hachage

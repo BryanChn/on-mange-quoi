@@ -3,10 +3,12 @@ import { MEMBER_COLUMNS, toMembers, type Member } from "./members";
 import { getUserId, supabase } from "./supabase";
 import type { HomeGroup } from "./tonight";
 
-// Une soirée en cours (carte au-dessus de « Ce soir »).
+// Un repas à plusieurs en cours (« Bientôt » sur l'accueil).
 export type HomeSoiree = {
   id: string;
   name: string;
+  // Le jour du repas (AAAA-MM-JJ) ; null pour les repas créés avant « Quand ? ».
+  mealDate: string | null;
   step: Enums<"soiree_step">;
   // Commande, resto, chez quelqu'un : l'étiquette de la carte en dépend.
   mode: Enums<"soiree_mode">;
@@ -40,7 +42,7 @@ export async function fetchHome(): Promise<Home> {
   const { data, error } = await supabase
     .from("groups")
     .select(
-      `id, name, kind, soiree_step, soiree_mode,
+      `id, name, kind, soiree_step, soiree_mode, meal_date,
       ${MEMBER_COLUMNS},
       vote_sessions(id, status, created_at, closed_at, moment,
         winner:proposals!vote_sessions_winner_fk(name),
@@ -74,6 +76,7 @@ export async function fetchHome(): Promise<Home> {
           {
             id: group.id,
             name: group.name,
+            mealDate: group.meal_date,
             step: group.soiree_step,
             mode: group.soiree_mode ?? "commande",
             members: toMembers(group.group_members),

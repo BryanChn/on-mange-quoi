@@ -105,31 +105,6 @@ export function buildSuggestions(
     .map(({ label, quantity }) => ({ label, quantity }));
 }
 
-// La ligne « Liste de courses » de l'accueil : une seule, quel que soit le nombre de foyers.
-// Une liste à faire : elle s'ouvre directement. Plusieurs : un écran pour choisir le foyer.
-export type ShoppingShortcut =
-  | { kind: "none" }
-  | { kind: "one"; groupId: string; subtitle: string }
-  | { kind: "many"; subtitle: string };
-
-export function shoppingShortcut(
-  groups: { id: string; name: string }[],
-  toBuyByGroup: Map<string, number>,
-): ShoppingShortcut {
-  const withItems = groups.filter((group) => (toBuyByGroup.get(group.id) ?? 0) > 0);
-  if (withItems.length === 0) return { kind: "none" };
-  if (withItems.length === 1) {
-    const [group] = withItems;
-    return {
-      kind: "one",
-      groupId: group.id,
-      subtitle: `${group.name} · ${toBuyByGroup.get(group.id)} à acheter`,
-    };
-  }
-  const total = withItems.reduce((sum, group) => sum + (toBuyByGroup.get(group.id) ?? 0), 0);
-  return { kind: "many", subtitle: `${total} à acheter dans ${withItems.length} groupes` };
-}
-
 // « 19 h 40 », l'heure de fin d'un passage aux courses (heure du téléphone).
 export function clockLabel(instant: Date): string {
   const minutes = String(instant.getMinutes()).padStart(2, "0");
