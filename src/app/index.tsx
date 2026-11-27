@@ -1,53 +1,47 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { Card } from "@/components/card";
-import { Chip } from "@/components/chip";
-import { InitialTile, ListCard, ListRow } from "@/components/list";
-import { MomentPicker } from "@/components/moment-picker";
+import { GroupPills } from "@/components/group-pills";
+import { ListCard, ListRow } from "@/components/list";
+import { MealCard } from "@/components/meal-card";
+import { PeekCarousel, type PeekCarouselHandle } from "@/components/peek-carousel";
 import { PrimaryButton } from "@/components/primary-button";
-import { SignatureCard } from "@/components/signature-card";
-import { SignatureCat } from "@/components/signature-cat";
 import { StatusBarBackdrop } from "@/components/status-bar-backdrop";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
-import { UpdateBanner } from "@/components/update-banner";
 import { TextButton } from "@/components/text-button";
-import { getInitial } from "@/lib/avatar";
-import { fetchHome, subscribeToHome, type Home, type HomeSoiree } from "@/lib/home";
-import {
-  defaultMoment,
-  groupSubtitle,
-  idleLine,
-  leadingTitle,
-  momentLabel,
-  pickTonight,
-  summarizeParticipation,
-  voteProgressLabel,
-  type HomeGroup,
-  type MealMoment,
-  type Tonight,
-} from "@/lib/tonight";
-import { useProfile } from "@/lib/profile";
+import { TonightCard } from "@/components/tonight-card";
+import { UpdateBanner } from "@/components/update-banner";
+import { fetchHome, subscribeToHome, type Home } from "@/lib/home";
+import { mealWhenLabel, sortMealsByDate, toDay } from "@/lib/meal-date";
 import {
   classifyError,
   errorMessage,
+  failureMessage,
   withRetry,
   type ErrorKind,
-  failureMessage,
 } from "@/lib/network-errors";
-import { recipesShortcut } from "@/lib/recipe-rules";
-import { shoppingShortcut } from "@/lib/shopping-rules";
-import { capitalize } from "@/lib/vote-topic";
+import { useProfile } from "@/lib/profile";
+import { recipesSubtitle } from "@/lib/recipe-rules";
+import {
+  defaultMoment,
+  featuredGroupIndex,
+  groupStatus,
+  groupTonight,
+  memberNamesLine,
+  toBuyLabel,
+  type HomeGroup,
+  type MealMoment,
+} from "@/lib/tonight";
 import { startSession } from "@/lib/votes";
 import { useTheme, type Theme } from "@/theme";
 
-// Au-delà, les avatars déborderaient de la carte : le texte à côté dit qui manque.
-const MAX_AVATARS = 5;
-// Le chat de la carte signature : assez grand pour être vu, sans manger la place du titre.
-const CAT_SIZE = 72;
+// Ce qui dépasse de la carte suivante : assez pour deviner qu'on peut faire glisser.
+const PEEK = 32;
+// Largeur d'une carte de repas quand il y en a plusieurs, en part de la largeur utile.
+const MEAL_CARD_RATIO = 0.72;
 
 // loadedAt : « aujourd'hui » au moment du chargement. Lire l'horloge pendant le rendu le
 // rendrait impur ; la date voyage donc avec les données.
@@ -55,22 +49,24 @@ type LoadedHome = Home & { loadedAt: Date };
 
 type Styles = ReturnType<typeof createStyles>;
 
-function openSession(sessionId: string) {
-  router.push({ pathname: "/session/[id]", params: { id: sessionId } });
-}
-
 export default function Index() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { profile } = useProfile();
   const [home, setHome] = useState<LoadedHome | null>(null);
   // Pourquoi le dernier chargement a échoué ; null : pas d'échec.
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
-  const [isStarting, setIsStarting] = useState(false);
+  // Le groupe affiché (pastille, carte et outils). Posé au premier chargement sur celui où il
+  // se passe quelque chose, puis seulement par l'utilisateur : un rechargement ne le change pas.
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  // Le groupe dont le vote est en train de démarrer, et l'erreur d'un lancement raté.
+  const [startingGroupId, setStartingGroupId] = useState<string | null>(null);
+  const [startError, setStartError] = useState<{ groupId: string; message: string } | null>(null);
   // Midi ou soir touché par l'utilisateur ; null : la présélection selon l'heure du chargement.
   const [chosenMoment, setChosenMoment] = useState<MealMoment | null>(null);
-  const [startError, setStartError] = useState<string | null>(null);
+  const carouselRef = useRef<PeekCarouselHandle>(null);
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran
   // (le temps réel peut en lancer plusieurs coup sur coup).
@@ -84,7 +80,15 @@ export default function Index() {
     withRetry(fetchHome).then(
       (loadedHome) => {
         if (latestRequestRef.current !== requestId) return;
-        setHome({ ...loadedHome, loadedAt: new Date() });
+        const loadedAt = new Date();
+        setHome({ ...loadedHome, loadedAt });
+        setSelectedGroupId(
+          (current) =>
+            current ??
+            loadedHome.groups[featuredGroupIndex(loadedHome.groups, loadedHome.userId, loadedAt)]
+              ?.id ??
+            null,
+        );
         setErrorKind(null);
       },
       (error: unknown) => {
@@ -113,15 +117,19 @@ export default function Index() {
 
   async function handleStart(group: HomeGroup) {
     setStartError(null);
-    setIsStarting(true);
+    setStartingGroupId(group.id);
 
     try {
-      openSession(await startSession(group.id, moment));
+      const sessionId = await startSession(group.id, moment);
+      router.push({ pathname: "/session/[id]", params: { id: sessionId } });
       setChosenMoment(null);
     } catch (error) {
-      setStartError(failureMessage("Le vote n’a pas démarré", error));
+      setStartError({
+        groupId: group.id,
+        message: failureMessage("Le vote n’a pas démarré", error),
+      });
     } finally {
-      setIsStarting(false);
+      setStartingGroupId(null);
     }
   }
 
@@ -140,10 +148,49 @@ export default function Index() {
     );
   }
 
+  const { groups, userId, loadedAt } = home;
   const displayName = profile?.display_name ?? "";
-  const hasGroups = home.groups.length > 0;
-  const shopping = shoppingShortcut(home.groups, home.toBuyByGroup);
-  const recipes = recipesShortcut(home.groups, home.recipesByGroup);
+  const hasGroups = groups.length > 0;
+  // Un groupe quitté ou supprimé ailleurs : on revient au premier.
+  const selectedIndex = Math.max(
+    0,
+    groups.findIndex((group) => group.id === selectedGroupId),
+  );
+  const selectedGroup = groups.at(selectedIndex);
+  const edge = theme.spacing.lg;
+  const contentWidth = width - edge * 2;
+  const meals = sortMealsByDate(home.soirees);
+  const today = toDay(loadedAt);
+
+  function selectGroup(groupId: string) {
+    setSelectedGroupId(groupId);
+    carouselRef.current?.scrollToIndex(groups.findIndex((group) => group.id === groupId));
+  }
+
+  const mealsSection =
+    meals.length > 0 ? (
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel} accessibilityRole="header">
+          Bientôt
+        </Text>
+        <PeekCarousel
+          accessibilityLabel="Repas à venir"
+          edgeInset={edge}
+          gap={theme.spacing.md}
+          itemWidth={meals.length > 1 ? Math.round(contentWidth * MEAL_CARD_RATIO) : contentWidth}
+          items={meals.map((soiree, index) => ({
+            key: soiree.id,
+            content: (
+              <MealCard
+                soiree={soiree}
+                when={mealWhenLabel(soiree.mealDate, today)}
+                isNext={index === 0 && meals.length > 1}
+              />
+            ),
+          }))}
+        />
+      </View>
+    ) : null;
 
   return (
     <>
@@ -152,19 +199,17 @@ export default function Index() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: insets.top + theme.spacing.xl,
+            paddingHorizontal: edge,
+            paddingTop: insets.top + theme.spacing.lg,
             paddingBottom: insets.bottom + theme.spacing.xl,
           },
           !hasGroups && styles.contentEmpty,
         ]}
       >
         <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={styles.title} accessibilityRole="header">
-              <Text style={styles.titleName}>Salut {displayName}</Text>
-              {hasGroups ? `,\non mange quoi ${momentLabel(defaultMoment(home.loadedAt))} ?` : null}
-            </Text>
-          </View>
+          <Text style={styles.title} accessibilityRole="header">
+            On mange quoi ?
+          </Text>
           <Pressable
             onPress={() => router.push("/account")}
             accessibilityRole="button"
@@ -176,107 +221,82 @@ export default function Index() {
               name={displayName}
               avatar={profile?.avatar}
               photoPath={profile?.photo_path}
-              size={44}
+              size={40}
             />
           </Pressable>
         </View>
 
         <UpdateBanner />
 
-        {/* Une soirée en cours passe avant « Ce soir » : elle a une échéance. Carte blanche,
-          pour ne pas concurrencer la carte de couleur. */}
-        {home.soirees.map((soiree) => (
-          <SoireeCard key={soiree.id} soiree={soiree} styles={styles} />
-        ))}
-
-        {hasGroups ? (
+        {hasGroups && selectedGroup ? (
           <>
-            <TonightCard
-              tonight={pickTonight(home.groups, home.userId, home.loadedAt)}
-              userId={home.userId}
-              now={home.loadedAt}
-              isStarting={isStarting}
-              error={startError}
-              moment={moment}
-              onMomentChange={setChosenMoment}
-              onStart={handleStart}
-              styles={styles}
-            />
+            <View style={styles.tonight}>
+              {groups.length > 1 ? (
+                <GroupPills
+                  groups={groups.map((group) => ({
+                    id: group.id,
+                    name: group.name,
+                    status: groupStatus(group, loadedAt),
+                  }))}
+                  selectedId={selectedGroup.id}
+                  onSelect={selectGroup}
+                  edgeInset={edge}
+                />
+              ) : null}
+              <PeekCarousel
+                ref={carouselRef}
+                accessibilityLabel="Ce soir, dans tes groupes"
+                edgeInset={edge}
+                gap={theme.spacing.md}
+                itemWidth={groups.length > 1 ? contentWidth - PEEK : contentWidth}
+                initialIndex={selectedIndex}
+                onIndexChange={(index) => setSelectedGroupId(groups[index].id)}
+                items={groups.map((group) => ({
+                  key: group.id,
+                  content: (
+                    <TonightCard
+                      tonight={groupTonight(group, userId, loadedAt)}
+                      group={group}
+                      userId={userId}
+                      now={loadedAt}
+                      isStarting={startingGroupId === group.id}
+                      error={startError?.groupId === group.id ? startError.message : null}
+                      moment={moment}
+                      onMomentChange={setChosenMoment}
+                      onStart={handleStart}
+                    />
+                  ),
+                }))}
+              />
+            </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle} accessibilityRole="header">
-                Tes groupes
-              </Text>
-              <ListCard>
-                {home.groups.map((group) => (
-                  <ListRow
-                    key={group.id}
-                    label={group.name}
-                    subtitle={groupSubtitle(group, home.loadedAt)}
-                    leading={<InitialTile initial={getInitial(group.name)} />}
-                    hasChevron
-                    onPress={() =>
-                      router.push({ pathname: "/group/[id]", params: { id: group.id } })
-                    }
-                  />
-                ))}
-                {/* Une seule ligne de courses, même avec plusieurs foyers : pas de liste qui
-                    envahit l'accueil. Une liste à faire : elle s'ouvre directement. */}
-                {shopping.kind === "none" ? null : (
-                  <ListRow
-                    icon="shopping-cart"
-                    label="Liste de courses"
-                    subtitle={shopping.subtitle}
-                    hasChevron
-                    onPress={() =>
-                      shopping.kind === "one"
-                        ? router.push({
-                            pathname: "/courses/[groupId]",
-                            params: { groupId: shopping.groupId },
-                          })
-                        : router.push("/courses")
-                    }
-                  />
-                )}
-                {/* Une seule ligne aussi : un foyer ouvre son carnet, plusieurs passent par
-                    l'écran de choix. */}
-                {recipes.kind === "none" ? null : (
-                  <ListRow
-                    icon="book-open"
-                    label="Recettes"
-                    subtitle={recipes.subtitle}
-                    hasChevron
-                    onPress={() =>
-                      recipes.kind === "one"
-                        ? router.push({
-                            pathname: "/recettes/[groupId]",
-                            params: { groupId: recipes.groupId },
-                          })
-                        : router.push("/recettes")
-                    }
-                  />
-                )}
-                <ListRow
-                  icon="star"
-                  label="Organiser un repas"
-                  subtitle="Commande, resto, ou chez quelqu’un"
-                  onPress={() => router.push("/soiree/new")}
-                />
-                <ListRow
-                  icon="plus"
-                  label="Créer un groupe"
-                  onPress={() => router.push("/create-group")}
-                />
-                <ListRow
-                  icon="hash"
-                  label="Rejoindre avec un code"
-                  onPress={() => router.push("/join-group")}
-                />
-              </ListCard>
+            {mealsSection}
+
+            <GroupTools group={selectedGroup} home={home} styles={styles} />
+
+            <ListCard>
+              <ListRow
+                icon="plus"
+                label="Organiser un repas"
+                subtitle="Commande, resto, ou chez quelqu’un"
+                hasChevron
+                onPress={() => router.push("/soiree/new")}
+              />
+            </ListCard>
+
+            <View style={styles.links}>
+              <TextButton label="Créer un groupe" onPress={() => router.push("/create-group")} />
+              <TextButton
+                label="Rejoindre avec un code"
+                onPress={() => router.push("/join-group")}
+              />
             </View>
           </>
         ) : (
-          <EmptyHome styles={styles} />
+          <>
+            {mealsSection}
+            <EmptyHome styles={styles} />
+          </>
         )}
       </ScrollView>
       <StatusBarBackdrop />
@@ -284,193 +304,53 @@ export default function Index() {
   );
 }
 
-type TonightCardProps = {
-  tonight: Tonight;
-  userId: string;
-  now: Date;
-  isStarting: boolean;
-  error: string | null;
-  // Midi ou soir du prochain vote (pastille de la carte « rien de prévu »).
-  moment: MealMoment;
-  onMomentChange: (moment: MealMoment) => void;
-  onStart: (group: HomeGroup) => void;
-  styles: Styles;
-};
-
-// La carte « Ce soir » : l'action du moment, en un appui.
-function TonightCard({
-  tonight,
-  userId,
-  now,
-  isStarting,
-  error,
-  moment,
-  onMomentChange,
-  onStart,
+// Les outils du groupe affiché : ils suivent la pastille et la carte choisies.
+function GroupTools({
+  group,
+  home,
   styles,
-}: TonightCardProps) {
-  if (tonight.kind === "open") {
-    const { group, session, hasMyVote } = tonight;
-    const participation = summarizeParticipation(group.members, session.voterIds, userId);
-    const hasProposals = session.proposals.length > 0;
-    // Sans plat, personne ne peut voter ; seul dans le groupe, il n'y a personne à attendre.
-    const showVoters = hasProposals && group.members.length > 1;
-    const isDone = hasProposals && hasMyVote;
-
-    return (
-      <Card>
-        <Chip label={`${group.name} · vote en cours`} hasDot />
-        <Text style={styles.cardTitle} accessibilityRole="header">
-          {leadingTitle(session.proposals)}
-        </Text>
-        <Text style={styles.muted}>
-          {voteProgressLabel(session.proposals.length, participation)}
-        </Text>
-        {showVoters ? (
-          <View style={styles.voters}>
-            <View style={styles.avatars}>
-              {group.members.slice(0, MAX_AVATARS).map((member, index) => (
-                <View
-                  key={member.id}
-                  style={[styles.avatarRing, index > 0 && styles.avatarOverlap]}
-                >
-                  <Avatar
-                    name={member.name}
-                    avatar={member.avatar}
-                    photoPath={member.photoPath}
-                    isPending={!session.voterIds.includes(member.id)}
-                  />
-                </View>
-              ))}
-            </View>
-            <Text style={[styles.muted, styles.votersLabel]}>{participation.pendingLabel}</Text>
-          </View>
-        ) : null}
-        <PrimaryButton
-          label={!hasProposals ? "Proposer un plat" : isDone ? "Voir le vote" : "Voter"}
-          variant={isDone ? "secondary" : "primary"}
-          onPress={() => openSession(session.id)}
-        />
-      </Card>
-    );
-  }
-
-  // C'est décidé et rien de prévu : la carte signature, avec le chat. Le vote en cours reste
-  // une carte neutre, son contenu (plats, votants) est ce qu'il faut lire.
-  if (tonight.kind === "decided") {
-    const { group, session } = tonight;
-
-    return (
-      <SignatureCard>
-        <View style={styles.signatureTop}>
-          <View style={styles.signatureText}>
-            <Chip label={`${group.name} · c’est décidé`} variant="accent" />
-            <Text style={styles.signatureTitle} accessibilityRole="header">
-              {capitalize(momentLabel(session.moment))}, c’est {session.winnerName} !
-            </Text>
-            <Text style={styles.signatureMuted}>Bon appétit !</Text>
-          </View>
-          <SignatureCat size={CAT_SIZE} />
-        </View>
-        <PrimaryButton
-          label="Voir le résultat"
-          variant="signature"
-          onPress={() => openSession(session.id)}
-        />
-      </SignatureCard>
-    );
-  }
-
-  const { groupToStart } = tonight;
-
+}: {
+  group: HomeGroup;
+  home: LoadedHome;
+  styles: Styles;
+}) {
   return (
-    <View style={styles.tonight}>
-      <SignatureCard>
-        <View style={styles.signatureTop}>
-          <View style={styles.signatureText}>
-            <Text style={styles.signatureTitle} accessibilityRole="header">
-              Rien de prévu {momentLabel(moment)}
-            </Text>
-            <Text style={styles.signatureMuted}>
-              {groupToStart ? idleLine(now) : "Choisis un groupe ci-dessous pour lancer le vote."}
-            </Text>
-          </View>
-          <SignatureCat size={CAT_SIZE} />
-        </View>
-        {groupToStart ? (
-          <>
-            <MomentPicker
-              value={moment}
-              onChange={onMomentChange}
-              tone="signature"
-              isDisabled={isStarting}
-            />
-            <PrimaryButton
-              label="Lancer le vote"
-              variant="signature"
-              onPress={() => onStart(groupToStart)}
-              isLoading={isStarting}
-            />
-          </>
-        ) : null}
-      </SignatureCard>
-      {/* Sous la carte : la couleur d'erreur ne se lit pas sur la tomate. */}
-      {error ? (
-        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-          {error}
-        </Text>
-      ) : null}
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel} accessibilityRole="header">
+        {group.name}
+      </Text>
+      <ListCard>
+        <ListRow
+          icon="shopping-cart"
+          label="Liste de courses"
+          subtitle={toBuyLabel(home.toBuyByGroup.get(group.id) ?? 0)}
+          hasChevron
+          onPress={() =>
+            router.push({ pathname: "/courses/[groupId]", params: { groupId: group.id } })
+          }
+        />
+        <ListRow
+          icon="book-open"
+          label="Recettes"
+          subtitle={recipesSubtitle(home.recipesByGroup.get(group.id) ?? 0)}
+          hasChevron
+          onPress={() =>
+            router.push({ pathname: "/recettes/[groupId]", params: { groupId: group.id } })
+          }
+        />
+        <ListRow
+          icon="users"
+          label="Le foyer"
+          subtitle={memberNamesLine(group.members)}
+          hasChevron
+          onPress={() => router.push({ pathname: "/group/[id]", params: { id: group.id } })}
+        />
+      </ListCard>
     </View>
   );
 }
 
 // Premier lancement : aucun groupe. Une assiette vide, et les deux façons d'en avoir un.
-// L'étiquette de la carte d'un repas : où il en est, selon sa façon de faire.
-function soireeLabel(soiree: Pick<HomeSoiree, "step" | "mode">): string {
-  if (soiree.step === "commande") return "Commande ouverte";
-  if (soiree.step === "passee") return "Commande passée";
-  if (soiree.mode === "maison") return soiree.step === "decide" ? "Menu décidé" : "Le menu se vote";
-  return soiree.step === "decide" ? "C’est décidé" : "Où on mange ?";
-}
-
-// Une soirée en cours : son étape, qui vient. S'ouvre au toucher.
-function SoireeCard({ soiree, styles }: { soiree: HomeSoiree; styles: Styles }) {
-  const count = soiree.members.length;
-  return (
-    <Pressable
-      onPress={() => router.push({ pathname: "/soiree/[id]", params: { id: soiree.id } })}
-      accessibilityRole="button"
-      accessibilityLabel={`Repas ${soiree.name}, ${soireeLabel(soiree)}, ${count} ${count > 1 ? "personnes" : "personne"}`}
-      style={({ pressed }) => pressed && styles.pressed}
-    >
-      <Card>
-        <View style={styles.soireeTop}>
-          <Chip
-            label={soireeLabel(soiree)}
-            hasDot={soiree.step === "choix" || soiree.step === "commande"}
-          />
-          <Text style={styles.muted}>
-            {count} {count > 1 ? "personnes" : "personne"}
-          </Text>
-        </View>
-        <Text style={styles.cardTitle}>{soiree.name}</Text>
-        <View style={styles.avatars}>
-          {soiree.members.slice(0, MAX_AVATARS).map((member, index) => (
-            <View key={member.id} style={[styles.avatarRing, index > 0 && styles.avatarOverlap]}>
-              <Avatar
-                name={member.name}
-                avatar={member.avatar}
-                photoPath={member.photoPath}
-                size={28}
-              />
-            </View>
-          ))}
-        </View>
-      </Card>
-    </Pressable>
-  );
-}
-
 function EmptyHome({ styles }: { styles: Styles }) {
   return (
     <View style={styles.empty}>
@@ -495,46 +375,32 @@ function EmptyHome({ styles }: { styles: Styles }) {
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     screen: { backgroundColor: colors.background },
-    content: { paddingHorizontal: spacing.xl, gap: spacing.xl },
+    content: { gap: spacing.xl },
     contentEmpty: { flexGrow: 1 },
     pressed: { opacity: 0.6 },
-    header: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
-    headerText: { flex: 1, gap: spacing.xs },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.md,
+    },
     title: {
+      flex: 1,
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
     },
-    // Le prénom en tomate : la seule touche de couleur du titre.
-    titleName: { color: colors.brand },
-    cardTitle: {
-      color: colors.text,
-      fontFamily: fonts.display,
-      fontSize: fontSize.heading,
-      lineHeight: 30,
+    tonight: { gap: spacing.md },
+    section: { gap: spacing.sm },
+    // Titre de section discret, comme un en-tête de liste groupée.
+    sectionLabel: {
+      color: colors.textMuted,
+      fontSize: fontSize.small,
+      fontWeight: "700",
+      paddingHorizontal: spacing.xs,
     },
-    muted: { color: colors.textMuted, fontSize: fontSize.small },
-    tonight: { gap: spacing.sm },
-    signatureTop: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-    signatureText: { flex: 1, gap: spacing.sm },
-    signatureTitle: {
-      color: colors.onSignature,
-      fontFamily: fonts.display,
-      fontSize: fontSize.heading,
-      lineHeight: 30,
-    },
-    signatureMuted: { color: colors.onSignatureMuted, fontSize: fontSize.small },
-    voters: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-    votersLabel: { flex: 1 },
-    avatars: { flexDirection: "row" },
-    // Anneau de la couleur de la carte : sépare deux avatars qui se chevauchent.
-    avatarRing: { borderWidth: 2, borderColor: colors.surface, borderRadius: radius.pill },
-    avatarOverlap: { marginLeft: -spacing.sm },
-    error: { color: colors.danger, fontSize: fontSize.small },
-    soireeTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-    section: { gap: spacing.md },
-    sectionTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
+    links: { alignItems: "center", gap: spacing.xs },
     empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },
     plate: {
       width: 150,
