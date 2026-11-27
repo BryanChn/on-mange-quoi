@@ -65,14 +65,14 @@ isOneToOne: false
                   ]
                 },"groups": {
                   Row: {
-                    "created_at": string,"digest_pending_since": string | null,"digest_sent_at": string | null,"id": string,"invite_code": string,"join_token": string | null,"kind": Database["public"]['Enums']["group_kind"],"meal_date": string | null,"meal_day_reminded_at": string | null,"name": string,"ordered_at": string | null,"owner_digest_pending_since": string | null,"owner_digest_sent_at": string | null,"owner_id": string,"restaurant": string | null,"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,"soiree_step": Database["public"]['Enums']["soiree_step"] | null
+                    "aisle_order": (Database["public"]['Enums']["shopping_aisle"])[] | null,"created_at": string,"digest_pending_since": string | null,"digest_sent_at": string | null,"id": string,"invite_code": string,"join_token": string | null,"kind": Database["public"]['Enums']["group_kind"],"meal_date": string | null,"meal_day_reminded_at": string | null,"name": string,"ordered_at": string | null,"owner_digest_pending_since": string | null,"owner_digest_sent_at": string | null,"owner_id": string,"restaurant": string | null,"soiree_mode": Database["public"]['Enums']["soiree_mode"] | null,"soiree_step": Database["public"]['Enums']["soiree_step"] | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"digest_pending_since"?: string | null,"digest_sent_at"?: string | null,"id"?: string,"invite_code": string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"meal_day_reminded_at"?: string | null,"name": string,"ordered_at"?: string | null,"owner_digest_pending_since"?: string | null,"owner_digest_sent_at"?: string | null,"owner_id": string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
+                    "aisle_order"?: (Database["public"]['Enums']["shopping_aisle"])[] | null,"created_at"?: string,"digest_pending_since"?: string | null,"digest_sent_at"?: string | null,"id"?: string,"invite_code": string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"meal_day_reminded_at"?: string | null,"name": string,"ordered_at"?: string | null,"owner_digest_pending_since"?: string | null,"owner_digest_sent_at"?: string | null,"owner_id": string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
                   }
                   Update: {
-                    "created_at"?: string,"digest_pending_since"?: string | null,"digest_sent_at"?: string | null,"id"?: string,"invite_code"?: string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"meal_day_reminded_at"?: string | null,"name"?: string,"ordered_at"?: string | null,"owner_digest_pending_since"?: string | null,"owner_digest_sent_at"?: string | null,"owner_id"?: string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
+                    "aisle_order"?: (Database["public"]['Enums']["shopping_aisle"])[] | null,"created_at"?: string,"digest_pending_since"?: string | null,"digest_sent_at"?: string | null,"id"?: string,"invite_code"?: string,"join_token"?: string | null,"kind"?: Database["public"]['Enums']["group_kind"],"meal_date"?: string | null,"meal_day_reminded_at"?: string | null,"name"?: string,"ordered_at"?: string | null,"owner_digest_pending_since"?: string | null,"owner_digest_sent_at"?: string | null,"owner_id"?: string,"restaurant"?: string | null,"soiree_mode"?: Database["public"]['Enums']["soiree_mode"] | null,"soiree_step"?: Database["public"]['Enums']["soiree_step"] | null
                   }
                   Relationships: [
                     {
@@ -287,16 +287,36 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"shopping_items": {
+                },"shopping_aisle_choices": {
                   Row: {
-                    "added_by": string | null,"checked_at": string | null,"checked_by": string | null,"cleared_at": string | null,"created_at": string,"group_id": string,"id": string,"label": string,"quantity": string | null,"recipe_id": string | null
+                    "aisle": Database["public"]['Enums']["shopping_aisle"],"group_id": string,"label_key": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id": string,"id"?: string,"label": string,"quantity"?: string | null,"recipe_id"?: string | null
+                    "aisle": Database["public"]['Enums']["shopping_aisle"],"group_id": string,"label_key": string,"updated_at"?: string
                   }
                   Update: {
-                    "added_by"?: string | null,"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id"?: string,"id"?: string,"label"?: string,"quantity"?: string | null,"recipe_id"?: string | null
+                    "aisle"?: Database["public"]['Enums']["shopping_aisle"],"group_id"?: string,"label_key"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shopping_aisle_choices_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "groups"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shopping_items": {
+                  Row: {
+                    "added_by": string | null,"aisle": Database["public"]['Enums']["shopping_aisle"],"checked_at": string | null,"checked_by": string | null,"cleared_at": string | null,"created_at": string,"group_id": string,"id": string,"is_important": boolean,"label": string,"quantity": string | null,"recipe_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "added_by"?: string | null,"aisle"?: Database["public"]['Enums']["shopping_aisle"],"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id": string,"id"?: string,"is_important"?: boolean,"label": string,"quantity"?: string | null,"recipe_id"?: string | null
+                  }
+                  Update: {
+                    "added_by"?: string | null,"aisle"?: Database["public"]['Enums']["shopping_aisle"],"checked_at"?: string | null,"checked_by"?: string | null,"cleared_at"?: string | null,"created_at"?: string,"group_id"?: string,"id"?: string,"is_important"?: boolean,"label"?: string,"quantity"?: string | null,"recipe_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -440,7 +460,8 @@ isOneToOne: false
                            },
 "choose_restaurant":
 { Args: { "restaurant_name": string,"target_group_id": string }; Returns: {
-              "created_at": string,
+              "aisle_order": (Database["public"]['Enums']["shopping_aisle"])[] | null,
+"created_at": string,
 "digest_pending_since": string | null,
 "digest_sent_at": string | null,
 "id": string,
@@ -489,7 +510,8 @@ isOneToOne: false
                            },
 "create_group":
 { Args: { "group_name": string }; Returns: {
-              "created_at": string,
+              "aisle_order": (Database["public"]['Enums']["shopping_aisle"])[] | null,
+"created_at": string,
 "digest_pending_since": string | null,
 "digest_sent_at": string | null,
 "id": string,
@@ -515,7 +537,8 @@ isOneToOne: false
       } },
 "create_soiree":
 { Args: { "meal_mode"?: Database["public"]['Enums']["soiree_mode"],"on_date"?: string,"soiree_name": string,"vote_topics"?: (Database["public"]['Enums']["vote_topic"])[] }; Returns: {
-              "created_at": string,
+              "aisle_order": (Database["public"]['Enums']["shopping_aisle"])[] | null,
+"created_at": string,
 "digest_pending_since": string | null,
 "digest_sent_at": string | null,
 "id": string,
@@ -588,7 +611,8 @@ isOneToOne: false
                            },
 "mark_ordered":
 { Args: { "target_group_id": string }; Returns: {
-              "created_at": string,
+              "aisle_order": (Database["public"]['Enums']["shopping_aisle"])[] | null,
+"created_at": string,
 "digest_pending_since": string | null,
 "digest_sent_at": string | null,
 "id": string,
@@ -631,7 +655,7 @@ isOneToOne: false
 { Args: { "new_token": string }; Returns: undefined
                            },
 "save_recipe":
-{ Args: { "ingredients": Json,"recipe_category"?: Database["public"]['Enums']["recipe_category"],"recipe_chef_tip"?: string,"recipe_budget"?: number,"recipe_diets"?: (Database["public"]['Enums']["recipe_diet"])[],"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"recipe_total_minutes"?: number,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
+{ Args: { "ingredients": Json,"recipe_budget"?: number,"recipe_category"?: Database["public"]['Enums']["recipe_category"],"recipe_chef_tip"?: string,"recipe_diets"?: (Database["public"]['Enums']["recipe_diet"])[],"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"recipe_total_minutes"?: number,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
                            },
 "search_foods":
 { Args: { "query": string }; Returns: {
@@ -649,6 +673,12 @@ isOneToOne: false
                            },
 "send_vote_reminders":
 { Args: { "reference_time"?: string }; Returns: number
+                           },
+"set_aisle_order":
+{ Args: { "new_order": (Database["public"]['Enums']["shopping_aisle"])[],"target_group_id": string }; Returns: undefined
+                           },
+"set_shopping_item_aisle":
+{ Args: { "item_label_key": string,"new_aisle": Database["public"]['Enums']["shopping_aisle"],"target_item_id": string }; Returns: undefined
                            },
 "shares_group_with":
 { Args: { "folder": string }; Returns: boolean
@@ -680,7 +710,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","recipe_category": "viande"|"poisson"|"vege"|"dessert","recipe_diet": "vegetarien"|"vegan"|"sans_porc"|"sans_gluten"|"sans_lactose","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
+            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","recipe_category": "viande"|"poisson"|"vege"|"dessert","recipe_diet": "vegetarien"|"vegan"|"sans_porc"|"sans_gluten"|"sans_lactose","session_status": "open"|"closed","shopping_aisle": "fruits_legumes"|"boucherie_poisson"|"cremerie"|"boulangerie"|"epicerie_salee"|"epicerie_sucree"|"surgeles"|"boissons"|"bebe"|"animaux"|"maison_hygiene"|"autres","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -800,7 +830,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"recipe_category": ["viande", "poisson", "vege", "dessert"],"recipe_diet": ["vegetarien", "vegan", "sans_porc", "sans_gluten", "sans_lactose"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
+            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"recipe_category": ["viande", "poisson", "vege", "dessert"],"recipe_diet": ["vegetarien", "vegan", "sans_porc", "sans_gluten", "sans_lactose"],"session_status": ["open", "closed"],"shopping_aisle": ["fruits_legumes", "boucherie_poisson", "cremerie", "boulangerie", "epicerie_salee", "epicerie_sucree", "surgeles", "boissons", "bebe", "animaux", "maison_hygiene", "autres"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
           }
         }
 } as const

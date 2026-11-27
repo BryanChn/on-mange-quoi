@@ -3,14 +3,19 @@
 // refuse parfois sans erreur (0 ligne) : on le vérifie pour ne pas annoncer un faux succès.
 import {
   cleanShoppingInput,
+  guessAisle,
+  normalizeLabel,
+  orderedAisles,
   sortShoppingList,
+  type ShoppingAisle,
   type ShoppingHistoryEntry,
   type ShoppingItem,
   type ShoppingPlan,
 } from "./shopping-rules";
 import { supabase } from "./supabase";
 
-const COLUMNS = "id, label, quantity, added_by, checked_at, checked_by, created_at";
+const COLUMNS =
+  "id, label, quantity, added_by, checked_at, checked_by, created_at, aisle, is_important";
 
 type Row = {
   id: string;
@@ -20,6 +25,8 @@ type Row = {
   checked_at: string | null;
   checked_by: string | null;
   created_at: string;
+  aisle: ShoppingAisle;
+  is_important: boolean;
 };
 
 function toItem(row: Row): ShoppingItem {
@@ -31,6 +38,33 @@ function toItem(row: Row): ShoppingItem {
     checkedAt: row.checked_at,
     checkedBy: row.checked_by,
     createdAt: row.created_at,
+    aisle: row.aisle,
+    isImportant: row.is_important,
+  };
+}
+
+// Les réglages de rayons du foyer : les choix retenus par nom d'article, et l'ordre des rayons.
+export type AisleSettings = {
+  chosen: Map<string, ShoppingAisle>;
+  order: ShoppingAisle[];
+};
+
+export async function fetchAisleSettings(groupId: string): Promise<AisleSettings> {
+  const choicesRequest = supabase
+    .from("shopping_aisle_choices")
+    .select("label_key, aisle")
+    .eq("group_id", groupId);
+  const { data: group, error } = await supabase
+    .from("groups")
+    .select("aisle_order")
+    .eq("id", groupId)
+    .single();
+  if (error) throw error;
+  const { data: choices, error: choicesError } = await choicesRequest;
+  if (choicesError) throw choicesError;
+  return {
+    chosen: new Map(choices.map((choice) => [choice.label_key, choice.aisle])),
+    order: orderedAisles(group.aisle_order),
   };
 }
 
@@ -65,14 +99,16 @@ export async function fetchShoppingHistory(groupId: string): Promise<ShoppingHis
   }));
 }
 
+// Le rayon est deviné ici (choix du foyer d'abord, puis le nom) : l'écran n'a rien à faire.
 export async function addShoppingItem(
   groupId: string,
   input: { label: string; quantity: string },
+  chosen: ReadonlyMap<string, ShoppingAisle> = new Map(),
 ): Promise<ShoppingItem> {
   const { label, quantity } = cleanShoppingInput(input.label, input.quantity);
   const { data, error } = await supabase
     .from("shopping_items")
-    .insert({ group_id: groupId, label, quantity })
+    .insert({ group_id: groupId, label, quantity, aisle: guessAisle(label, chosen) })
     .select(COLUMNS)
     .single();
   if (error) throw error;
@@ -88,12 +124,15 @@ export async function addRecipeToShopping(
   plan: ShoppingPlan,
 ): Promise<number> {
   if (plan.toInsert.length > 0) {
+    // Les rayons choisis par le foyer s'appliquent aussi aux ingrédients d'une recette.
+    const { chosen } = await fetchAisleSettings(groupId);
     const { error } = await supabase.from("shopping_items").insert(
       plan.toInsert.map((addition) => ({
         group_id: groupId,
         label: addition.label,
         quantity: addition.quantity,
         recipe_id: recipeId,
+        aisle: guessAisle(addition.label, chosen),
       })),
     );
     if (error) throw error;
@@ -265,5 +304,38 @@ export async function startShoppingTrip(groupId: string): Promise<{ isAnnounced:
 // « J'ai fini » : plus aucun ajout ne prévient.
 export async function endShoppingTrip(groupId: string): Promise<void> {
   const { error } = await supabase.rpc("end_shopping_trip", { target_group_id: groupId });
+  if (error) throw error;
+}
+
+// L'étoile « indispensable » : l'article passe en tête de la liste, quel que soit le tri.
+export async function setShoppingItemImportant(itemId: string, important: boolean): Promise<void> {
+  const { data, error } = await supabase
+    .from("shopping_items")
+    .update({ is_important: important })
+    .eq("id", itemId)
+    .select("id");
+  if (error) throw error;
+  if (data.length === 0) throw new Error("Article non modifié.");
+}
+
+// Ranger un article dans un autre rayon ; le foyer s'en souvient pour ce nom.
+export async function setShoppingItemAisle(
+  item: Pick<ShoppingItem, "id" | "label">,
+  aisle: ShoppingAisle,
+): Promise<void> {
+  const { error } = await supabase.rpc("set_shopping_item_aisle", {
+    target_item_id: item.id,
+    new_aisle: aisle,
+    item_label_key: normalizeLabel(item.label),
+  });
+  if (error) throw error;
+}
+
+// L'ordre des rayons du foyer, dans l'ordre où l'on traverse le magasin.
+export async function saveAisleOrder(groupId: string, order: ShoppingAisle[]): Promise<void> {
+  const { error } = await supabase.rpc("set_aisle_order", {
+    target_group_id: groupId,
+    new_order: order,
+  });
   if (error) throw error;
 }
