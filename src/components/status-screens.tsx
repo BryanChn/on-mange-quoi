@@ -48,6 +48,34 @@ export function ErrorScreen({ title, message, onRetry, canSignOut = false }: Err
   );
 }
 
+type CrashScreenProps = { onRetry: () => void; onGoHome: () => void };
+
+// Un écran a planté (voir ErrorBoundary dans _layout) : on le dit simplement, avec deux sorties.
+// « Retour à l'accueil » évite de rester bloqué si l'erreur revient à chaque essai.
+export function CrashScreen({ onRetry, onGoHome }: CrashScreenProps) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.warning} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>!</Text>
+        </View>
+        <Text style={styles.title}>Oups, cet écran a planté</Text>
+        <Text style={styles.message}>
+          Rien n’est perdu : ce qui était enregistré l’est toujours. Réessaie, ou repars de
+          l’accueil.
+        </Text>
+      </View>
+      <View style={styles.actions}>
+        <PrimaryButton label="Réessayer" onPress={onRetry} />
+        <TextButton label="Retour à l’accueil" onPress={onGoHome} />
+      </View>
+    </View>
+  );
+}
+
 function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     container: {
