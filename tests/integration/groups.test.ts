@@ -24,6 +24,7 @@ import {
   signInAs,
   type TestUser,
 } from "./fixtures.ts";
+import { supabase } from "./supabase-test-client.ts";
 
 let alice: TestUser;
 let bea: TestUser;
@@ -186,5 +187,27 @@ describe("supprimer pour tous", () => {
     assert.equal(await countSessions(groupId), 0);
     await signInAs(bea);
     assert.ok(!(await fetchGroups()).some((g) => g.id === groupId));
+  });
+});
+
+describe("sécurité (audit du 2026-11-27)", () => {
+  test("10 codes faux en 15 minutes, puis même le bon code est refusé", async () => {
+    const groupId = await groupWith([]);
+    const { invite_code } = await fetchGroup(groupId);
+    const eve = await createUser("Eve");
+    await signInAs(eve);
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      assert.equal(await joinGroup(`FAUX${attempt}XYZ`), null);
+    }
+    await assert.rejects(joinGroup(invite_code), { hint: "too_many_attempts" });
+  });
+
+  test("sans connexion, aucune table n'est lisible ; l'aperçu d'invitation marche", async () => {
+    await supabase.auth.signOut();
+    const groups = await supabase.from("groups").select("id").limit(1);
+    assert.equal(groups.error?.code, "42501", "permission refusée, pas une liste vide");
+    const preview = await supabase.rpc("soiree_preview", { token: "inconnu" });
+    assert.equal(preview.error, null);
+    assert.deepEqual(preview.data, []);
   });
 });

@@ -18,12 +18,19 @@ export function defaultSoireeName(now: Date, firstName: string): string {
 }
 
 // Pourquoi rejoindre a échoué, d'après la clé stable (hint) que renvoie join_soiree.
-export type JoinFailure = "invalid_link" | "soiree_closed" | "soiree_full" | "name_required";
+export type JoinFailure =
+  | "invalid_link"
+  | "soiree_closed"
+  | "soiree_full"
+  | "name_required"
+  // join_group : 10 codes faux en 15 minutes (audit de sécurité du 2026-11-27).
+  | "too_many_attempts";
 
 const JOIN_FAILURES: readonly JoinFailure[] = [
   "invalid_link",
   "soiree_closed",
   "soiree_full",
+  "too_many_attempts",
   "name_required",
 ];
 
@@ -46,6 +53,10 @@ export const JOIN_FAILURE_MESSAGES: Record<JoinFailure, { title: string; message
   soiree_full: {
     title: "Le repas est complet",
     message: `Déjà ${SOIREE_MAX_MEMBERS} personnes, c’est le maximum. Demande à la personne qui organise de faire de la place.`,
+  },
+  too_many_attempts: {
+    title: "Trop d’essais : réessaie dans un quart d’heure",
+    message: "Vérifie le code avec la personne qui te l’a envoyé.",
   },
   name_required: {
     title: "Choisis un pseudo",
