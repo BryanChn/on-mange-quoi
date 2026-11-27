@@ -222,7 +222,7 @@ export function SoireeOrder({ soiree, userId, isOwner, onChanged }: SoireeOrderP
               editable={!isAdding}
               onSubmitEditing={handleAdd}
             />
-            <PrimaryButton label="Ajouter" onPress={handleAdd} isLoading={isAdding} />
+            <PrimaryButton label="Ajouter" size="md" onPress={handleAdd} isLoading={isAdding} />
           </Card>
         </View>
       ) : null}
@@ -354,7 +354,12 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     container: { gap: spacing.xl },
     section: { gap: spacing.md },
-    sectionTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
+    sectionTitle: {
+      paddingHorizontal: spacing.xs,
+      color: colors.textMuted,
+      fontSize: fontSize.small,
+      fontWeight: "700",
+    },
     cardTitle: {
       color: colors.text,
       fontFamily: fonts.display,

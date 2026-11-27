@@ -155,12 +155,17 @@ export function MealContributions({ soiree, userId, isOwner, onChanged }: MealCo
   );
 }
 
-function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
+function createStyles({ colors, spacing, radius, control, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     pressed: { opacity: 0.6 },
-    section: { gap: spacing.md },
-    header: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
-    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 19 },
+    section: { gap: spacing.sm },
+    header: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.xs,
+    },
+    title: { color: colors.textMuted, fontSize: fontSize.small, fontWeight: "700" },
     count: { color: colors.textMuted, fontSize: fontSize.small },
     composer: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     field: {
@@ -177,7 +182,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     fieldError: { borderColor: colors.danger },
     input: { color: colors.text, fontSize: fontSize.body },
     addButton: {
-      width: 52,
+      width: control.lg,
       height: control.lg,
       borderRadius: radius.pill,
       alignItems: "center",
@@ -194,7 +199,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     empty: { color: colors.textMuted, fontSize: fontSize.small, paddingVertical: spacing.lg },
     row: { minHeight: 60, flexDirection: "row", alignItems: "center", gap: spacing.md },
-    separated: { borderTopWidth: 1, borderTopColor: colors.border },
+    separated: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
     rowText: { flex: 1, minWidth: 0, gap: 2, paddingVertical: spacing.sm },
     label: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
     name: { color: colors.textMuted, fontSize: fontSize.caption },
