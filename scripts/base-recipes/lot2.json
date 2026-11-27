@@ -1,0 +1,271 @@
+{
+  "lot": 2,
+  "unitWeights": [
+    [26043, 150, "Cabillaud, cru (un dos)"],
+    [36016, 1000, "Poulet, viande et peau crues (la part mangée d'un poulet de 1,5 kg)"]
+  ],
+  "recipes": [
+    {
+      "n": 11,
+      "title": "Lasagnes à la bolognaise",
+      "servings": 6,
+      "minutes": 100,
+      "budget": 2,
+      "diets": ["sans_porc"],
+      "steps": [
+        "Hacher l'oignon, la carotte et l'ail. Les faire revenir 5 min dans l'huile.",
+        "Ajouter le bœuf et le faire dorer en l'émiettant. Verser le coulis, saler, poivrer et laisser mijoter 20 min à feu doux.",
+        "Béchamel : faire fondre le beurre, ajouter la farine et remuer 1 min. Verser le lait petit à petit en fouettant, jusqu'à ce que la sauce épaississe. Saler, poivrer, ajouter la muscade.",
+        "Préchauffer le four à 180 °C. Dans un plat, alterner trois fois une couche de sauce à la viande, des feuilles de lasagne et de la béchamel.",
+        "Finir par la béchamel et l'emmental. Cuire 35 min, jusqu'à ce que le dessus soit doré, puis laisser reposer 5 min avant de servir."
+      ],
+      "ingredients": [
+        ["Feuilles de lasagne", "250 g", 9810],
+        ["Bœuf haché", "500 g", 6254],
+        ["Coulis de tomate", "500 g", 20260],
+        ["Oignon", "1", 20034],
+        ["Carotte", "1", 20009],
+        ["Gousses d'ail", "2", 11000],
+        ["Huile d'olive", "2 c. à soupe", 17270],
+        ["Beurre", "50 g", 16400],
+        ["Farine", "50 g", 9435],
+        ["Lait", "60 cl", 19041],
+        ["Muscade", "1 pincée", 11048],
+        ["Emmental râpé", "100 g", 12118],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 12,
+      "title": "Quiche poireaux et chèvre",
+      "servings": 6,
+      "minutes": 60,
+      "budget": 1,
+      "diets": ["vegetarien", "sans_porc"],
+      "steps": [
+        "Préchauffer le four à 180 °C. Étaler la pâte dans un moule et la piquer à la fourchette.",
+        "Laver les poireaux, les couper en fines rondelles et les faire fondre 10 min dans le beurre, à feu doux, avec un peu de sel.",
+        "Battre les œufs avec la crème et le lait. Poivrer et ajouter un peu de muscade.",
+        "Répartir les poireaux sur la pâte, puis le chèvre en rondelles, et verser les œufs battus par-dessus.",
+        "Cuire 35 min, jusqu'à ce que la quiche soit dorée et prise au centre."
+      ],
+      "ingredients": [
+        ["Pâte brisée", "1", 23414],
+        ["Poireaux", "3", 20039],
+        ["Fromage de chèvre (bûche)", "150 g", 12812],
+        ["Œufs", "3", 22000],
+        ["Crème fraîche", "20 cl", 19410],
+        ["Lait", "10 cl", 19041],
+        ["Beurre", "15 g", 16400],
+        ["Muscade", "1 pincée", 11048],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 13,
+      "title": "Chili sin carne",
+      "servings": 4,
+      "minutes": 45,
+      "budget": 1,
+      "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Cuire le riz selon le paquet.",
+        "Émincer l'oignon, couper le poivron en dés et hacher l'ail. Les faire revenir 5 min dans l'huile.",
+        "Ajouter le cumin, le paprika et le piment, et remuer 1 min pour réveiller les épices.",
+        "Verser les tomates, les haricots rouges rincés et le maïs. Saler et laisser mijoter 20 min à feu doux, en remuant de temps en temps.",
+        "Goûter, ajuster le piment et servir avec le riz."
+      ],
+      "ingredients": [
+        ["Haricots rouges en conserve (égouttés)", "500 g", 20524],
+        ["Maïs doux en conserve (égoutté)", "150 g", 20066],
+        ["Tomates concassées", "400 g", 20137],
+        ["Oignon", "1", 20034],
+        ["Poivron rouge", "1", 20087],
+        ["Gousses d'ail", "2", 11000],
+        ["Cumin", "1 c. à café", 11042],
+        ["Paprika", "1 c. à café", 11049],
+        ["Piment de Cayenne", "1 pincée", 11088],
+        ["Huile d'olive", "1 c. à soupe", 17270],
+        ["Riz", "250 g", 9100],
+        ["Sel", "au goût", 11017]
+      ]
+    },
+    {
+      "n": 14,
+      "title": "Poulet rôti et pommes de terre",
+      "servings": 4,
+      "minutes": 100,
+      "budget": 2,
+      "diets": ["sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Préchauffer le four à 200 °C. Si possible, sortir le poulet du réfrigérateur 30 min avant.",
+        "Éplucher les pommes de terre, les couper en gros morceaux et les mettre dans un grand plat avec l'ail en chemise, le thym, 2 c. à soupe d'huile, du sel et du poivre.",
+        "Poser le poulet au centre, le badigeonner avec le reste de l'huile, saler et poivrer.",
+        "Enfourner 1 h 15, en arrosant le poulet de son jus toutes les 20 min et en retournant les pommes de terre une fois.",
+        "Le poulet est cuit quand le jus qui coule de la cuisse est clair. Le laisser reposer 10 min sous une feuille d'aluminium avant de le découper."
+      ],
+      "ingredients": [
+        ["Poulet entier (1,5 kg)", "1", 36016],
+        ["Pommes de terre", "1 kg", 4008],
+        ["Gousses d'ail", "6", 11000],
+        ["Thym", "quelques branches", 11070],
+        ["Huile d'olive", "3 c. à soupe", 17270],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 15,
+      "title": "Velouté de potiron",
+      "servings": 4,
+      "minutes": 40,
+      "budget": 1,
+      "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Éplucher le potiron et les pommes de terre, les couper en cubes. Émincer l'oignon.",
+        "Faire revenir l'oignon 3 min dans l'huile, ajouter les légumes et remuer 2 min.",
+        "Couvrir avec le bouillon et cuire 25 min à petits bouillons, jusqu'à ce que les légumes s'écrasent à la fourchette.",
+        "Mixer finement, ajouter le lait de coco, saler, poivrer et ajouter un peu de muscade. Rallonger d'eau si le velouté est trop épais."
+      ],
+      "ingredients": [
+        ["Potiron (épluché)", "1 kg", 20044],
+        ["Pommes de terre", "300 g", 4008],
+        ["Oignon", "1", 20034],
+        ["Bouillon de légumes", "1 l", 25948],
+        ["Lait de coco", "10 cl", 18041],
+        ["Huile d'olive", "1 c. à soupe", 17270],
+        ["Muscade", "1 pincée", 11048],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 16,
+      "title": "Salade de lentilles",
+      "servings": 4,
+      "minutes": 35,
+      "budget": 1,
+      "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Rincer les lentilles et les cuire 20 à 25 min dans trois fois leur volume d'eau froide, sans sel : elles doivent rester un peu fermes. Saler en fin de cuisson et égoutter.",
+        "Pendant ce temps, éplucher les carottes et les couper en petits dés. Ciseler l'échalote et le persil.",
+        "Dans un saladier, mélanger la moutarde et le vinaigre, puis ajouter l'huile, du sel et du poivre.",
+        "Ajouter les lentilles encore tièdes, les carottes, l'échalote et le persil, et mélanger. Tièdes, les lentilles prennent mieux la sauce."
+      ],
+      "ingredients": [
+        ["Lentilles vertes", "250 g", 20585],
+        ["Carottes", "2", 20009],
+        ["Échalote", "1", 20097],
+        ["Persil", "quelques brins", 11014],
+        ["Moutarde", "1 c. à soupe", 11013],
+        ["Vinaigre de vin", "2 c. à soupe", 11220],
+        ["Huile", "4 c. à soupe", 17440],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 17,
+      "title": "Pâtes au pesto et tomates cerises",
+      "servings": 4,
+      "minutes": 20,
+      "budget": 1,
+      "diets": ["vegetarien", "sans_porc"],
+      "steps": [
+        "Cuire les pâtes dans une grande casserole d'eau salée, selon le temps du paquet.",
+        "Pesto : faire griller les pignons 2 min à sec dans une poêle. Les mixer avec le basilic, l'ail, le parmesan et l'huile, jusqu'à obtenir une sauce épaisse. Saler.",
+        "Couper les tomates cerises en deux.",
+        "Égoutter les pâtes en gardant un peu d'eau de cuisson. Les mélanger au pesto hors du feu, avec 2 ou 3 c. à soupe d'eau de cuisson pour le rendre onctueux.",
+        "Ajouter les tomates et servir aussitôt."
+      ],
+      "ingredients": [
+        ["Pâtes (penne ou fusilli)", "400 g", 9810],
+        ["Basilic frais", "50 g", 11033],
+        ["Pignons de pin", "30 g", 15025],
+        ["Parmesan râpé", "50 g", 12120],
+        ["Gousse d'ail", "1", 11000],
+        ["Huile d'olive", "10 cl", 17270],
+        ["Tomates cerises", "250 g", 20172],
+        ["Sel", "au goût", 11017]
+      ]
+    },
+    {
+      "n": 18,
+      "title": "Wok de nouilles, légumes et tofu",
+      "servings": 4,
+      "minutes": 30,
+      "budget": 2,
+      "diets": ["vegan", "vegetarien", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Cuire les nouilles selon le paquet, les égoutter et les passer sous l'eau froide pour qu'elles ne collent pas.",
+        "Couper le tofu en cubes, le sécher dans un torchon et le faire dorer 8 min dans la moitié de l'huile, à feu vif. Réserver.",
+        "Couper le poivron en lanières, les carottes en bâtonnets et le brocoli en petits bouquets. Hacher l'ail et râper le gingembre.",
+        "Faire sauter les légumes 5 min à feu vif dans le reste de l'huile, avec l'ail et le gingembre : ils doivent rester croquants.",
+        "Ajouter les nouilles, le tofu et la sauce soja, mélanger 2 min sur le feu et parsemer de sésame."
+      ],
+      "ingredients": [
+        ["Nouilles de blé (sans œuf)", "250 g", 9810],
+        ["Tofu nature", "400 g", 20904],
+        ["Poivron rouge", "1", 20087],
+        ["Carottes", "2", 20009],
+        ["Brocoli", "300 g", 20057],
+        ["Gousses d'ail", "2", 11000],
+        ["Gingembre frais", "1 morceau de 3 cm", 11074],
+        ["Sauce soja", "4 c. à soupe", 11104],
+        ["Huile", "2 c. à soupe", 17440],
+        ["Graines de sésame", "1 c. à soupe", 15010]
+      ]
+    },
+    {
+      "n": 19,
+      "title": "Cabillaud en papillote",
+      "servings": 4,
+      "minutes": 35,
+      "budget": 2,
+      "diets": ["sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Préchauffer le four à 200 °C et cuire le riz selon le paquet.",
+        "Couper les courgettes en fines rondelles, les tomates cerises en deux et le citron en rondelles.",
+        "Sur 4 grandes feuilles de papier cuisson, répartir les courgettes, poser un dos de cabillaud, puis les tomates, une rondelle de citron et le thym. Saler, poivrer et arroser d'huile.",
+        "Fermer chaque papillote en repliant les bords plusieurs fois, pour garder la vapeur à l'intérieur.",
+        "Cuire 15 à 18 min : le poisson est cuit quand sa chair se détache en lamelles. Servir avec le riz et ouvrir les papillotes à table."
+      ],
+      "ingredients": [
+        ["Dos de cabillaud", "4", 26043],
+        ["Courgettes", "2", 20020],
+        ["Tomates cerises", "200 g", 20172],
+        ["Citron", "1", 2028],
+        ["Thym", "quelques branches", 11070],
+        ["Huile d'olive", "2 c. à soupe", 17270],
+        ["Riz basmati", "250 g", 9119],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 20,
+      "title": "Gâteau au chocolat",
+      "servings": 8,
+      "minutes": 40,
+      "budget": 1,
+      "diets": ["vegetarien", "sans_porc"],
+      "steps": [
+        "Préchauffer le four à 180 °C et beurrer un moule d'environ 22 cm.",
+        "Faire fondre le chocolat et le beurre ensemble, au bain-marie ou 1 min au micro-ondes en remuant à mi-cuisson.",
+        "Hors du feu, ajouter le sucre, puis les œufs un à un en mélangeant bien entre chaque.",
+        "Incorporer la farine et le sel sans trop travailler la pâte.",
+        "Verser dans le moule et cuire 20 à 25 min : le centre doit rester un peu tremblant. Laisser tiédir avant de démouler."
+      ],
+      "ingredients": [
+        ["Chocolat noir à pâtisser", "200 g", 31085],
+        ["Beurre", "150 g", 16400],
+        ["Sucre", "120 g", 31016],
+        ["Œufs", "4", 22000],
+        ["Farine", "50 g", 9435],
+        ["Sel", "1 pincée", 11017]
+      ]
+    }
+  ]
+}
