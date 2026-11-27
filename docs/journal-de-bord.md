@@ -21,7 +21,8 @@ Tout est mergé et en ligne (#122 à #161) : migrations jusqu'à `recipe_categor
 
 | # | Piste | Détail |
 | --- | --- | --- |
-| 1 | Champ **durée** (et budget) dans « Écrire une recette » | Sans lui, « ≤ 30 min » et « Petit budget » écartent toujours les recettes écrites par le foyer |
+| 1 | Champ **durée** (et budget) dans « Écrire une recette » | Validé le 27/11 au soir, en cours : sans lui, « ≤ 30 min » et « Petit budget » écartent toujours les recettes écrites par le foyer |
+| 1 bis | **Trier la liste de courses** (par rayon, « indispensable », « souvent acheté ») | **Entré en V1 le 27/11 au soir** : la liste s'allonge trop. Recherche et maquette d'abord. Pistes : rayon déduit du groupe d'aliment Ciqual (`foods.group_name`), sections repliables, ordre des rayons selon le magasin, étoile « indispensable » posée à la main |
 | 2 | Chip « Sans gluten » dans les filtres | Le régime n'est montré que dans la ligne d'une recette |
 | 3 | **Test instable** `meal-digest.test.ts` (« 1 min après le changement ») | La tâche planifiée de la base passe entre deux étapes et envoie le résumé à l'heure réelle. Relancé, il passe. Petite PR pour qu'il ne dépende plus de la tâche planifiée |
 | 4 | Écran « Tous les repas » | Pas de lien sur l'accueil tant qu'il n'existe pas |
