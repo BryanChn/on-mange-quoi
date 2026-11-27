@@ -9,6 +9,7 @@ import {
   normalizeLabel,
   planShoppingAdditions,
   sortShoppingList,
+  splitShoppingList,
   tripToShow,
   type ShoppingItem,
 } from "./shopping-rules.ts";
@@ -36,6 +37,65 @@ test("liste : ce qui reste à acheter d'abord (ordre d'ajout), puis le dernier p
     sorted.map((entry) => entry.id),
     ["lait", "beurre", "oeufs", "pain"],
   );
+});
+
+test("liste : un article tout juste coché reste à sa place, puis rejoint « Déjà pris »", () => {
+  const items = [
+    item("lait", "2026-11-24T10:01:00Z"),
+    // Coché à l'instant, mais encore retenu dans « À acheter ».
+    item("beurre", "2026-11-24T10:02:00Z", "2026-11-24T18:10:00Z"),
+    item("pain", "2026-11-24T10:03:00Z"),
+    item("oeufs", "2026-11-24T10:00:00Z", "2026-11-24T18:05:00Z"),
+  ];
+  const held = splitShoppingList(items, new Map([["beurre", "toBuy"]]));
+  assert.deepEqual(
+    held.toBuy.map((entry) => entry.id),
+    ["lait", "beurre", "pain"],
+  );
+  assert.deepEqual(
+    held.taken.map((entry) => entry.id),
+    ["oeufs"],
+  );
+
+  // Plus rien de retenu : il glisse en tête de « Déjà pris » (le dernier pris).
+  const settled = splitShoppingList(items, new Map());
+  assert.deepEqual(
+    settled.toBuy.map((entry) => entry.id),
+    ["lait", "pain"],
+  );
+  assert.deepEqual(
+    settled.taken.map((entry) => entry.id),
+    ["beurre", "oeufs"],
+  );
+});
+
+test("liste : des articles ajoutés au même instant gardent leur ordre quand on en coche un", () => {
+  const sameTime = "2026-11-24T10:00:00Z";
+  const before = splitShoppingList(
+    [item("c", sameTime), item("a", sameTime), item("b", sameTime)],
+    new Map(),
+  );
+  const held = splitShoppingList(
+    [item("c", sameTime), item("a", sameTime, "2026-11-24T18:00:00Z"), item("b", sameTime)],
+    new Map([["a", "toBuy"]]),
+  );
+  assert.deepEqual(
+    held.toBuy.map((entry) => entry.id),
+    before.toBuy.map((entry) => entry.id),
+  );
+});
+
+test("liste : un article décoché reste un instant en bas de « Déjà pris »", () => {
+  const items = [
+    item("lait", "2026-11-24T10:01:00Z"),
+    item("oeufs", "2026-11-24T10:00:00Z", "2026-11-24T18:05:00Z"),
+  ];
+  const held = splitShoppingList(items, new Map([["lait", "taken"]]));
+  assert.deepEqual(
+    held.taken.map((entry) => entry.id),
+    ["oeufs", "lait"],
+  );
+  assert.equal(held.toBuy.length, 0);
 });
 
 test("liste vide : rien à trier", () => {

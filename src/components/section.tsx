@@ -19,24 +19,35 @@ export function Section({ title, action, footnote, children }: SectionProps) {
 
   return (
     <View style={styles.section}>
-      <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">
-          {title}
-        </Text>
-        {action ? (
-          <Pressable
-            onPress={action.onPress}
-            accessibilityRole="button"
-            accessibilityLabel={action.accessibilityLabel ?? action.label}
-            hitSlop={12}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <Text style={styles.action}>{action.label}</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      <SectionHeader title={title} action={action} />
       {children}
       {footnote ? <Text style={styles.footnote}>{footnote}</Text> : null}
+    </View>
+  );
+}
+
+// Le titre seul, pour une liste dont les lignes sont posées à plat à côté de lui (liste de
+// courses : un article glisse d'une section à l'autre dans la même colonne).
+export function SectionHeader({ title, action }: Pick<SectionProps, "title" | "action">) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return (
+    <View style={styles.header}>
+      <Text style={styles.title} accessibilityRole="header">
+        {title}
+      </Text>
+      {action ? (
+        <Pressable
+          onPress={action.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={action.accessibilityLabel ?? action.label}
+          hitSlop={12}
+          style={({ pressed }) => pressed && styles.pressed}
+        >
+          <Text style={styles.action}>{action.label}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
