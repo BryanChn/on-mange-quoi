@@ -559,7 +559,7 @@ export default function ShoppingListScreen() {
           headerRight: canStartTrip
             ? () => (
                 <HeaderButton
-                  label={isTripBusy ? "…" : "J’y vais"}
+                  label={isTripBusy ? "…" : "Je vais aux courses"}
                   icon="shopping-bag"
                   onPress={() => {
                     if (!isTripBusy) handleStartTrip();
