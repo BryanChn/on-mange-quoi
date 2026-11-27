@@ -114,6 +114,27 @@ function RootNavigator() {
         {/* Titre : le nom du groupe, posé par l'écran une fois chargé. */}
         <Stack.Screen name="courses/index" options={{ title: "" }} />
         <Stack.Screen name="courses/[groupId]" options={{ title: "" }} />
+        {/* Feuilles natives de la liste : choisir le rayon d'un article, l'ordre des rayons. */}
+        <Stack.Screen
+          name="courses/rayon"
+          options={{
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: [0.75, 1],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 20,
+          }}
+        />
+        <Stack.Screen
+          name="courses/rayons"
+          options={{
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: [0.75, 1],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 20,
+          }}
+        />
         {/* Carnet et recette portent leur grand titre : l'en-tête garde le retour. */}
         <Stack.Screen name="recettes/index" options={{ title: "" }} />
         <Stack.Screen name="recettes/[groupId]" options={{ title: "" }} />
