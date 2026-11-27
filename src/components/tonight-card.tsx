@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "@/components/avatar";
-import { Card } from "@/components/card";
 import { MomentPicker } from "@/components/moment-picker";
 import { PrimaryButton } from "@/components/primary-button";
 import { SignatureCard } from "@/components/signature-card";
@@ -19,6 +18,9 @@ import {
   type Tonight,
 } from "@/lib/tonight";
 import { useTheme, type Theme } from "@/theme";
+
+// Espace fine insécable avant « ! » : le point ne part jamais seul à la ligne.
+const NARROW_NBSP = "\u202F";
 
 // Au-delà, les avatars déborderaient de la carte : le texte à côté dit qui manque.
 const MAX_AVATARS = 5;
@@ -43,9 +45,9 @@ type TonightCardProps = {
   onStart: (group: HomeGroup) => void;
 };
 
-// La carte « Ce soir » d'un groupe : l'action du moment, en un appui. Vote en cours : carte
-// neutre, son contenu (plats, votants) est ce qu'il faut lire. Décidé ou rien de prévu : la
-// carte signature, avec le chat.
+// La carte « Ce soir » d'un groupe : l'action du moment, en un appui. Toujours la carte de
+// couleur (maquette v4) : dans le carrousel, les cartes se suivent sans changer de ton. Le chat
+// signe « décidé » et « rien de prévu » ; le vote en cours laisse la place aux votants.
 export function TonightCard({
   tonight,
   group,
@@ -69,15 +71,15 @@ export function TonightCard({
     const isDone = hasProposals && hasMyVote;
 
     return (
-      <Card style={styles.fill}>
+      <SignatureCard style={styles.fill}>
         <View style={styles.kickerRow}>
           <View style={styles.liveDot} />
-          <Text style={styles.kicker}>Vote en cours · {group.name}</Text>
+          <Text style={styles.signatureKicker}>Vote en cours · {group.name}</Text>
         </View>
-        <Text style={styles.title} accessibilityRole="header">
+        <Text style={styles.signatureTitle} accessibilityRole="header">
           {leadingTitle(session.proposals)}
         </Text>
-        <Text style={styles.muted}>
+        <Text style={styles.signatureMuted}>
           {voteProgressLabel(session.proposals.length, participation)}
         </Text>
         {showVoters ? (
@@ -94,23 +96,24 @@ export function TonightCard({
                     photoPath={member.photoPath}
                     size={28}
                     isPending={!session.voterIds.includes(member.id)}
+                    tone="signature"
                   />
                 </View>
               ))}
             </View>
-            <Text style={[styles.muted, styles.votersLabel]} numberOfLines={2}>
+            <Text style={[styles.signatureMuted, styles.votersLabel]} numberOfLines={2}>
               {participation.pendingLabel}
             </Text>
           </View>
         ) : null}
         <PrimaryButton
           label={!hasProposals ? "Proposer un plat" : isDone ? "Voir le vote" : "Voter"}
-          variant={isDone ? "secondary" : "primary"}
+          variant="signature"
           size="md"
           onPress={() => openSession(session.id)}
           style={styles.bottom}
         />
-      </Card>
+      </SignatureCard>
     );
   }
 
@@ -125,7 +128,8 @@ export function TonightCard({
               {momentLabel(session.moment)} · {group.name}
             </Text>
             <Text style={styles.signatureTitle} accessibilityRole="header">
-              C’est {session.winnerName} !
+              C’est {session.winnerName}
+              {NARROW_NBSP}!
             </Text>
             <Text style={styles.signatureMuted}>Bon appétit !</Text>
           </View>
@@ -196,15 +200,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     // Le bouton reste en bas de la carte, même quand une voisine est plus haute.
     bottom: { marginTop: "auto" },
     kickerRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-    liveDot: { width: 7, height: 7, borderRadius: radius.pill, backgroundColor: colors.brand },
-    kicker: { ...kicker, color: colors.chipText },
-    title: {
-      color: colors.text,
-      fontFamily: fonts.display,
-      fontSize: fontSize.heading,
-      lineHeight: 28,
-    },
-    muted: { color: colors.textMuted, fontSize: fontSize.small },
+    // Le jaune spaghetti en touche : « en direct » sur la tomate.
+    liveDot: { width: 7, height: 7, borderRadius: radius.pill, backgroundColor: colors.accent },
     idle: { gap: spacing.sm },
     idleActions: { gap: spacing.md },
     signatureTop: { flexDirection: "row", alignItems: "center", gap: spacing.md },
@@ -221,7 +218,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     votersLabel: { flex: 1 },
     avatars: { flexDirection: "row" },
     // Anneau de la couleur de la carte : sépare deux avatars qui se chevauchent.
-    avatarRing: { borderWidth: 2, borderColor: colors.surface, borderRadius: radius.pill },
+    avatarRing: { borderWidth: 2, borderColor: colors.signature, borderRadius: radius.pill },
     avatarOverlap: { marginLeft: -spacing.sm },
     error: { color: colors.danger, fontSize: fontSize.small },
   });

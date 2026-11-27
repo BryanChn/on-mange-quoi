@@ -31,6 +31,7 @@ import {
   groupStatus,
   groupTonight,
   memberNamesLine,
+  momentLabel,
   toBuyLabel,
   type HomeGroup,
   type MealMoment,
@@ -206,24 +207,35 @@ export default function Index() {
           !hasGroups && styles.contentEmpty,
         ]}
       >
-        <View style={styles.header}>
-          <Text style={styles.title} accessibilityRole="header">
-            On mange quoi ?
-          </Text>
-          <Pressable
-            onPress={() => router.push("/account")}
-            accessibilityRole="button"
-            accessibilityLabel="Mon compte"
-            hitSlop={8}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <Avatar
-              name={displayName}
-              avatar={profile?.avatar}
-              photoPath={profile?.photo_path}
-              size={40}
-            />
-          </Pressable>
+        {/* Le prénom en tomate, à côté de ton avatar : l'app s'adresse à toi. La question
+            dessous prend toute la largeur, sur une seule ligne le plus souvent. */}
+        <View style={styles.greeting}>
+          <View style={styles.header}>
+            <Text style={[styles.title, styles.titleName]} numberOfLines={1}>
+              Salut {displayName}
+              {hasGroups ? <Text style={styles.titleText}>,</Text> : null}
+            </Text>
+            <Pressable
+              onPress={() => router.push("/account")}
+              accessibilityRole="button"
+              accessibilityLabel="Mon compte"
+              hitSlop={8}
+              style={({ pressed }) => pressed && styles.pressed}
+            >
+              <Avatar
+                name={displayName}
+                avatar={profile?.avatar}
+                photoPath={profile?.photo_path}
+                size={40}
+              />
+            </Pressable>
+          </View>
+          {hasGroups ? (
+            <Text style={styles.title} accessibilityRole="header">
+              on mange quoi {momentLabel(defaultMoment(loadedAt))}
+              {"\u202F"}?
+            </Text>
+          ) : null}
         </View>
 
         <UpdateBanner />
@@ -384,6 +396,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       justifyContent: "space-between",
       gap: spacing.md,
     },
+    greeting: { gap: 2 },
     title: {
       flex: 1,
       color: colors.text,
@@ -391,6 +404,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       fontSize: fontSize.screenTitle,
       lineHeight: 34,
     },
+    titleName: { color: colors.brand },
+    titleText: { color: colors.text },
     tonight: { gap: spacing.md },
     section: { gap: spacing.sm },
     // Titre de section discret, comme un en-tête de liste groupée.
