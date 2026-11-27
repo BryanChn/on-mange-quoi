@@ -30,6 +30,7 @@ import {
   fieldsFromIngredient,
   INGREDIENT_LABEL_MAX_LENGTH,
   INGREDIENT_QUANTITY_MAX_LENGTH,
+  RECIPE_CHEF_TIP_MAX_LENGTH,
   RECIPE_STEP_MAX_LENGTH,
   RECIPE_TITLE_MAX_LENGTH,
 } from "@/lib/recipe-rules";
@@ -46,13 +47,20 @@ import { useTheme, type Theme } from "@/theme";
 type Ingredient = { key: number; name: string; quantity: string; foodId: number | null };
 type Step = { key: number; text: string };
 
-type Form = { title: string; servings: number; ingredients: Ingredient[]; steps: Step[] };
+type Form = {
+  title: string;
+  servings: number;
+  ingredients: Ingredient[];
+  steps: Step[];
+  chefTip: string;
+};
 
 type Errors = {
   title?: string;
   ingredient?: string;
   ingredients?: string;
   steps?: string;
+  chefTip?: string;
   save?: string;
 };
 
@@ -85,7 +93,7 @@ export default function WriteRecipeScreen() {
   const [isPicking, setIsPicking] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [form, setForm] = useState<Form | null>(
-    isEditing ? null : { title: "", servings: 4, ingredients: [], steps: [] },
+    isEditing ? null : { title: "", servings: 4, ingredients: [], steps: [], chefTip: "" },
   );
   const [hasFailed, setHasFailed] = useState(false);
   // Pourquoi le chargement a échoué : le message dit la vraie cause.
@@ -130,6 +138,7 @@ export default function WriteRecipeScreen() {
             foodId: ingredient.foodId,
           })),
           steps: recipe.steps.map((text) => ({ key: nextKey(), text })),
+          chefTip: recipe.chefTip ?? "",
         });
         setHasFailed(false);
       },
@@ -346,6 +355,7 @@ export default function WriteRecipeScreen() {
       servings: form.servings,
       ingredients: [...form.ingredients, ...pendingIngredients],
       steps: [...form.steps.map((step) => step.text), ...pendingSteps],
+      chefTip: form.chefTip,
     });
     if (!result.ok) {
       hapticReject();
@@ -667,6 +677,27 @@ export default function WriteRecipeScreen() {
           </Pressable>
         </View>
         {errors.steps ? <Text style={styles.error}>{errors.steps}</Text> : null}
+      </View>
+
+      {/* ─── astuce du chef, facultative ─── */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          L’astuce du chef <Text style={styles.count}>· facultative</Text>
+        </Text>
+        <Text style={styles.muted}>
+          Le geste qui fait la différence. Elle s’affiche avant les étapes, avec le chat cuisinier.
+        </Text>
+        <TextInput
+          value={form.chefTip}
+          onChangeText={(chefTip) => update({ chefTip })}
+          placeholder="Laisse reposer la pâte 1 h : les crêpes seront plus fines."
+          placeholderTextColor={theme.colors.textMuted}
+          accessibilityLabel="L’astuce du chef"
+          maxLength={RECIPE_CHEF_TIP_MAX_LENGTH}
+          multiline
+          style={[styles.input, styles.stepInput]}
+        />
+        {errors.chefTip ? <Text style={styles.error}>{errors.chefTip}</Text> : null}
       </View>
 
       {/* ─── photo, facultative ─── */}

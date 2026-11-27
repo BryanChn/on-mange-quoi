@@ -43,6 +43,8 @@ export type Recipe = RecipeSummary & {
   diets: RecipeDiet[];
   totalMinutes: number | null;
   budget: number | null;
+  // L'astuce du chef (encadré du chat cuisinier), null sans astuce.
+  chefTip: string | null;
 };
 
 // Ce que l'écran « Écrire une recette » envoie : tout d'un coup.
@@ -51,6 +53,7 @@ export type RecipeDraft = {
   servings: number;
   steps: string[];
   ingredients: RecipeIngredient[];
+  chefTip: string | null;
 };
 
 const RECIPE_COLUMNS = "id, title, servings, photo_path, source_recipe_id, updated_at";
@@ -107,7 +110,7 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
   const { data, error } = await supabase
     .from("recipes")
     .select(
-      `${RECIPE_COLUMNS}, group_id, steps, diets, total_minutes, budget,
+      `${RECIPE_COLUMNS}, group_id, steps, diets, total_minutes, budget, chef_tip,
       recipe_ingredients(position, raw, label, quantity, unit, food_id,
         food:foods(kcal, protein_g, carbs_g, fat_g, unit_weight_g))`,
     )
@@ -122,6 +125,7 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
     diets: data.diets,
     totalMinutes: data.total_minutes,
     budget: data.budget,
+    chefTip: data.chef_tip,
     ingredients: data.recipe_ingredients.map((row) => ({
       raw: row.raw,
       label: row.label,
@@ -205,6 +209,8 @@ export async function saveRecipe(
       food_id: ingredient.foodId,
     })),
     ...(recipeId ? { target_recipe_id: recipeId } : {}),
+    // Absent = null pour la base : enregistrer sans astuce efface celle qu'il y avait.
+    ...(draft.chefTip ? { recipe_chef_tip: draft.chefTip } : {}),
   });
   if (error) throw error;
   return data;

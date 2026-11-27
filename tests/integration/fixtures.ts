@@ -175,6 +175,12 @@ export async function setBaseRecipePhoto(recipeId: string): Promise<string> {
   return path;
 }
 
+// L'astuce d'une recette de base : écrite par les migrations, jamais par l'app (clé admin).
+export async function setBaseRecipeChefTip(recipeId: string, chefTip: string): Promise<void> {
+  const { error } = await admin.from("recipes").update({ chef_tip: chefTip }).eq("id", recipeId);
+  if (error) throw error;
+}
+
 // Le fichier existe-t-il encore ? Clé admin : voit au-delà des règles d'accès.
 export async function recipePhotoExists(path: string): Promise<boolean> {
   const { data, error } = await admin.storage.from("recipe-photos").download(path);

@@ -43,6 +43,7 @@ import {
   createGroup,
   createUser,
   deleteBaseRecipe,
+  setBaseRecipeChefTip,
   recipePhotoExists,
   removeBaseRecipePhoto,
   setBaseRecipePhoto,
@@ -85,6 +86,7 @@ const bolo: RecipeDraft = {
     { raw: "1 oignon", label: "oignon", quantity: 1, unit: null, foodId: null },
     { raw: "sel", label: "sel", quantity: null, unit: null, foodId: null },
   ],
+  chefTip: null,
 };
 
 describe("le carnet du foyer", () => {
@@ -329,6 +331,47 @@ describe("les photos des recettes", () => {
       .update({ photo_path: path(danFoyerId) })
       .eq("id", id);
     assert.ok(error, "le chemin doit commencer par le dossier du foyer");
+  });
+});
+
+describe("l'astuce du chef", () => {
+  test("écrite, modifiée puis effacée par le foyer, lue par tous ses membres", async () => {
+    await signInAs(alice);
+    const id = await saveRecipe(foyerId, null, { ...bolo, chefTip: "  Laisse   mijoter. " });
+
+    await signInAs(bea);
+    assert.equal((await fetchRecipe(id)).chefTip, "Laisse mijoter.");
+    await saveRecipe(foyerId, id, { ...bolo, chefTip: "Un trait de vin rouge." });
+    assert.equal((await fetchRecipe(id)).chefTip, "Un trait de vin rouge.");
+    // Enregistrer sans astuce l'efface (le champ vidé dans « Écrire une recette »).
+    await saveRecipe(foyerId, id, bolo);
+    assert.equal((await fetchRecipe(id)).chefTip, null);
+  });
+
+  test("la copie d'une recette de base garde son astuce", async () => {
+    const tipBaseId = await createBaseRecipe("Riz au lait (test)");
+    try {
+      await setBaseRecipeChefTip(tipBaseId, "Remue souvent, le riz attache.");
+      const groupId = await createGroup(alice, [bea]);
+      await signInAs(alice);
+      assert.equal((await fetchRecipe(tipBaseId)).chefTip, "Remue souvent, le riz attache.");
+      const copy = await fetchRecipe(await copyBaseRecipe(tipBaseId, groupId));
+      assert.equal(copy.chefTip, "Remue souvent, le riz attache.");
+    } finally {
+      await deleteBaseRecipe(tipBaseId);
+    }
+  });
+
+  test("la base refuse une astuce vide ou de plus de 300 caractères", async () => {
+    await signInAs(alice);
+    const id = await saveRecipe(foyerId, null, bolo);
+    const blank = await supabase.from("recipes").update({ chef_tip: "   " }).eq("id", id);
+    assert.equal(blank.error?.code, "23514");
+    const long = await supabase
+      .from("recipes")
+      .update({ chef_tip: "a".repeat(301) })
+      .eq("id", id);
+    assert.equal(long.error?.code, "22001");
   });
 });
 
@@ -645,6 +688,15 @@ describe("le carnet dans le vote", () => {
 });
 
 describe("les recettes de base, lot 1", () => {
+  test("chaque recette a son astuce du chef", async () => {
+    await signInAs(alice);
+    for (let n = 1; n <= 10; n += 1) {
+      const id = `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+      const recipe = await fetchRecipe(id);
+      assert.ok(recipe.chefTip && recipe.chefTip.length <= 300, recipe.title);
+    }
+  });
+
   test("9 photos dans base/<id>.jpg ; la blanquette sans photo", async () => {
     await signInAs(alice);
     const lot1 = (await fetchBaseRecipes()).filter((recipe) =>
