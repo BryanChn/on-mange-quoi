@@ -34,8 +34,10 @@ import {
   RECIPE_CHEF_TIP_MAX_LENGTH,
   RECIPE_STEP_MAX_LENGTH,
   RECIPE_TITLE_MAX_LENGTH,
+  BUDGET_LABELS,
   CATEGORY_LABELS,
   DIET_LABELS,
+  RECIPE_BUDGETS,
   RECIPE_CATEGORIES,
   RECIPE_DIETS,
   type RecipeCategory,
@@ -62,6 +64,9 @@ type Form = {
   chefTip: string;
   category: RecipeCategory | null;
   diets: RecipeDiet[];
+  // Temps total tel que tapé (« 35 »), budget de 1 à 3.
+  totalMinutes: string;
+  budget: number | null;
 };
 
 type Errors = {
@@ -70,6 +75,7 @@ type Errors = {
   ingredients?: string;
   steps?: string;
   chefTip?: string;
+  totalMinutes?: string;
   save?: string;
 };
 
@@ -112,6 +118,8 @@ export default function WriteRecipeScreen() {
           chefTip: "",
           category: null,
           diets: [],
+          totalMinutes: "",
+          budget: null,
         },
   );
   const [hasFailed, setHasFailed] = useState(false);
@@ -160,6 +168,8 @@ export default function WriteRecipeScreen() {
           chefTip: recipe.chefTip ?? "",
           category: recipe.category,
           diets: recipe.diets,
+          totalMinutes: recipe.totalMinutes ? String(recipe.totalMinutes) : "",
+          budget: recipe.budget,
         });
         setHasFailed(false);
       },
@@ -379,6 +389,8 @@ export default function WriteRecipeScreen() {
       chefTip: form.chefTip,
       category: form.category,
       diets: form.diets,
+      totalMinutes: form.totalMinutes,
+      budget: form.budget,
     });
     if (!result.ok) {
       hapticReject();
@@ -500,6 +512,59 @@ export default function WriteRecipeScreen() {
           })}
         </View>
         <Text style={styles.hint}>Il sert aux filtres du carnet.</Text>
+      </View>
+
+      {/* ─── temps et budget : les filtres « ≤ 30 min » et « Petit budget » les lisent ─── */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          Temps et budget <Text style={styles.count}>· facultatifs</Text>
+        </Text>
+        <View style={styles.timeRow}>
+          <View style={[styles.timeField, errors.totalMinutes ? styles.fieldError : null]}>
+            <TextInput
+              value={form.totalMinutes}
+              onChangeText={(totalMinutes) => update({ totalMinutes })}
+              placeholder="35"
+              placeholderTextColor={theme.colors.textMuted}
+              accessibilityLabel="Temps total, en minutes"
+              keyboardType="number-pad"
+              maxLength={4}
+              style={styles.timeInput}
+            />
+            <Text style={styles.timeUnit}>min</Text>
+          </View>
+          <View style={styles.budgets} accessibilityRole="radiogroup">
+            {RECIPE_BUDGETS.map((budget) => {
+              const isSelected = form.budget === budget;
+              return (
+                <Pressable
+                  key={budget}
+                  onPress={() => {
+                    hapticTick();
+                    update({ budget: isSelected ? null : budget });
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: isSelected }}
+                  accessibilityLabel={BUDGET_LABELS[budget]}
+                  style={({ pressed }) => [
+                    styles.budget,
+                    isSelected && styles.budgetSelected,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={[styles.budgetText, isSelected && styles.budgetTextSelected]}>
+                    {"€".repeat(budget)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        {errors.totalMinutes ? (
+          <Text style={styles.error}>{errors.totalMinutes}</Text>
+        ) : (
+          <Text style={styles.hint}>Préparation et cuisson comprises. € = petit budget.</Text>
+        )}
       </View>
 
       {/* ─── régimes : des chips à cocher ─── */}
@@ -1011,6 +1076,36 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     categorySelected: { borderColor: colors.primary, backgroundColor: colors.chipBg },
     categoryLabel: { color: colors.text, fontSize: fontSize.caption, fontWeight: "600" },
+    // Temps : un petit champ avec son unité ; budget : trois chips, une seule choisie.
+    timeRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    timeField: {
+      width: 104,
+      height: control.lg,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.md,
+      borderWidth: 1.5,
+      borderColor: colors.inputBorder,
+      backgroundColor: colors.surface,
+    },
+    timeInput: { flex: 1, minWidth: 0, color: colors.text, fontSize: fontSize.body },
+    timeUnit: { color: colors.textMuted, fontSize: fontSize.small },
+    budgets: { flex: 1, flexDirection: "row", gap: spacing.xs + 2 },
+    budget: {
+      flex: 1,
+      height: control.lg,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: radius.md,
+      borderWidth: 1.5,
+      borderColor: colors.surface,
+      backgroundColor: colors.surface,
+    },
+    budgetSelected: { borderColor: colors.primary, backgroundColor: colors.chipBg },
+    budgetText: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
+    budgetTextSelected: { color: colors.chipText },
     // Régimes : chips à cocher, basilic une fois cochées (comme les pills du carnet).
     diets: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
     diet: {

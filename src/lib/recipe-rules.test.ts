@@ -287,6 +287,8 @@ const form = {
   chefTip: "  Écume   souvent :\nle bouillon reste clair. ",
   category: "viande" as const,
   diets: ["sans_gluten" as const],
+  totalMinutes: " 180 ",
+  budget: 2,
 };
 
 test("écrire : le brouillon envoyé à la base", () => {
@@ -303,6 +305,8 @@ test("écrire : le brouillon envoyé à la base", () => {
       chefTip: "Écume souvent : le bouillon reste clair.",
       category: "viande",
       diets: ["sans_gluten"],
+      totalMinutes: 180,
+      budget: 2,
     },
   });
 });
@@ -509,4 +513,16 @@ test("carnet : durée, budget et un régime sous le nom", () => {
   );
   assert.equal(dietLabelForList(["sans_porc", "sans_gluten"]), "Sans gluten");
   assert.equal(dietLabelForList(["vegetarien", "sans_porc"]), null);
+});
+
+test("écrire : le temps total, en minutes, facultatif", () => {
+  const minutes = (totalMinutes: string) => buildRecipeDraft({ ...form, totalMinutes });
+  const ok = minutes("");
+  assert.ok(ok.ok && ok.draft.totalMinutes === null);
+  for (const wrong of ["abc", "0", "2000", "1h30", "12.5"]) {
+    const result = minutes(wrong);
+    assert.ok(!result.ok && result.errors.totalMinutes, wrong);
+  }
+  const quick = minutes("25");
+  assert.ok(quick.ok && quick.draft.totalMinutes === 25);
 });
