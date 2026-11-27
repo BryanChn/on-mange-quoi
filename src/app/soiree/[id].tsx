@@ -318,10 +318,7 @@ export default function SoireeScreen() {
             onClose={help.dismiss}
             lines={[
               { icon: "link", text: "Le lien : on rejoint sans l’app, avec un pseudo" },
-              {
-                icon: "hash",
-                text: `Le code ${soiree.inviteCode} : pour qui a déjà l’app`,
-              },
+              { icon: "hash", text: "Le code : pour qui a déjà l’app" },
               soiree.mode === "maison"
                 ? { icon: "gift", text: "Qui apporte quoi : chacun écrit, tous voient" }
                 : soiree.mode === "commande"

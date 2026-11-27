@@ -165,7 +165,8 @@ function roundAmount({ quantity, unit }: Amount, purpose: AmountPurpose): Amount
   switch (unit) {
     case "g":
     case "ml": {
-      const step = quantity < 10 ? 0.5 : quantity < 100 ? 1 : quantity < 1000 ? 5 : 10;
+      // Au-delà de 20 g, au 5 près : « 27 g de beurre » ne se pèse pas, 25 g si.
+      const step = quantity < 10 ? 0.5 : quantity < 20 ? 1 : quantity < 1000 ? 5 : 10;
       return { quantity: Math.max(step, roundTo(quantity, step)), unit };
     }
     case "cl":
@@ -226,9 +227,26 @@ const numberFormat = new Intl.NumberFormat("fr-FR", {
   useGrouping: false,
 });
 
-// « 375 g », « 1,5 c. à soupe », « 2 pincées », « 3 » (des pièces : le nom suit à l'écran).
+// Les pièces et les cuillères se lisent en fractions : « ½ oignon », « 1 ½ c. à soupe ».
+// Les poids et volumes gardent la virgule (7,5 g).
+const FRACTION_UNITS: ReadonlySet<IngredientUnit | null> = new Set([
+  null,
+  "cuillere_cafe",
+  "cuillere_soupe",
+  "pincee",
+]);
+
+function formatNumber(quantity: number, unit: IngredientUnit | null): string {
+  const whole = Math.floor(quantity);
+  if (FRACTION_UNITS.has(unit) && Math.abs(quantity - whole - 0.5) < 1e-9) {
+    return whole === 0 ? "½" : `${whole} ½`;
+  }
+  return numberFormat.format(quantity);
+}
+
+// « 375 g », « 1 ½ c. à soupe », « 2 pincées », « 3 » (des pièces : le nom suit à l'écran).
 export function formatAmount({ quantity, unit }: Amount): string {
-  const number = numberFormat.format(quantity);
+  const number = formatNumber(quantity, unit);
   if (unit === null) return number;
   const [singular, plural] = UNIT_LABELS[unit];
   return `${number} ${quantity >= 2 ? plural : singular}`;

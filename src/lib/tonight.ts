@@ -150,7 +150,7 @@ export function summarizeParticipation(
   };
 }
 
-// « 3 plats proposés · 2 personnes sur 3 ont voté ». Sans plat, personne ne peut voter ;
+// « 3 plats proposés · 2 sur 3 ont voté » (le même libellé que sous la liste du vote). Sans plat, personne ne peut voter ;
 // seul dans le groupe, le décompte des votants n'apprend rien : on ne l'affiche pas.
 export function voteProgressLabel(proposalCount: number, participation: Participation): string {
   if (proposalCount === 0) return "Aucun plat pour l’instant. Lance les idées !";
@@ -161,8 +161,8 @@ export function voteProgressLabel(proposalCount: number, participation: Particip
 
   let voters: string;
   if (votedCount === 0) voters = "personne n’a encore voté";
-  else if (votedCount === 1) voters = `1 personne sur ${memberCount} a voté`;
-  else voters = `${votedCount} personnes sur ${memberCount} ont voté`;
+  else if (votedCount === 1) voters = `1 sur ${memberCount} a voté`;
+  else voters = `${votedCount} sur ${memberCount} ont voté`;
   return `${proposals} · ${voters}`;
 }
 

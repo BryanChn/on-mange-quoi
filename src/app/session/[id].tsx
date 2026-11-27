@@ -438,16 +438,20 @@ export default function SessionScreen() {
                 {help.isVisible ? null : <HelpButton onPress={help.show} />}
               </View>
             </View>
-            <Text style={styles.muted}>
-              {proposals.length === 0
-                ? `Pas encore ${words.of}. Propose ${words.first} !`
-                : "Coche tout ce qui te tente."}
-            </Text>
+            {/* L'aide dit déjà « coche tout ce qui te tente » : pas deux fois la même phrase. */}
+            {proposals.length === 0 || !help.isVisible ? (
+              <Text style={styles.muted}>
+                {proposals.length === 0
+                  ? `Pas encore ${words.of}. Propose ${words.first} !`
+                  : "Coche tout ce qui te tente."}
+              </Text>
+            ) : null}
 
             {/* skipEntering : les plats déjà là à l'ouverture ne s'animent pas, seuls les
                 plats ajoutés ensuite apparaissent en fondu. */}
             <LayoutAnimationConfig skipEntering>
               {proposals.map((item) => {
+                const isRemovable = item.isMine && item.voteCount === 0;
                 const isLeading = hasVotes && leading.includes(item);
                 return (
                   <Animated.View
@@ -503,7 +507,7 @@ export default function SessionScreen() {
                         {item.voteCount}
                       </Animated.Text>
                     </Pressable>
-                    {item.isMine && item.voteCount === 0 ? (
+                    {isRemovable ? (
                       <Pressable
                         onPress={() => handleRemove(item)}
                         disabled={isBusy}
@@ -712,7 +716,8 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
         <SignatureCard style={styles.hero}>
           <SignatureCat size={96} />
           <Text style={styles.heroLabel}>
-            {closedAt
+            {/* « Ce soir, c'est… » dit déjà le moment : le groupe seul au-dessus. */}
+            {closedAt && !(isComing && session.moment)
               ? `${session.groupName} · ${dayLabel(closedAt, now, session.moment)}`
               : session.groupName}
           </Text>

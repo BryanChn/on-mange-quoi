@@ -128,7 +128,10 @@ test("lire une ligne : ce qui ne se lit pas reste en texte libre", () => {
 test("adapter aux parts : la règle de trois, arrondie à ce qui se mesure", () => {
   // Recette pour 4, foyer de 3.
   assert.deepEqual(scaleAmount(500, "g", 4, 3), { quantity: 375, unit: "g" });
-  assert.deepEqual(scaleAmount(100, "g", 3, 1), { quantity: 33, unit: "g" });
+  assert.deepEqual(scaleAmount(100, "g", 3, 1), { quantity: 35, unit: "g" });
+  // Au-delà de 20 g, au 5 près : 40 g pour 6 → 26,7 g pour 4 → 25 g, pas « 27 g ».
+  assert.deepEqual(scaleAmount(40, "g", 6, 4), { quantity: 25, unit: "g" });
+  assert.deepEqual(scaleAmount(15, "g", 1, 1), { quantity: 15, unit: "g" });
   assert.deepEqual(scaleAmount(1000, "g", 3, 1), { quantity: 335, unit: "g" });
   assert.deepEqual(scaleAmount(15, "g", 4, 2), { quantity: 7.5, unit: "g" });
   assert.deepEqual(scaleAmount(2, "cuillere_soupe", 4, 3), {
@@ -160,7 +163,11 @@ test("adapter aux parts : sans quantité ou parts impossibles, rien", () => {
 
 test("écrire une quantité", () => {
   assert.equal(formatAmount({ quantity: 375, unit: "g" }), "375 g");
-  assert.equal(formatAmount({ quantity: 1.5, unit: "cuillere_soupe" }), "1,5 c. à soupe");
+  assert.equal(formatAmount({ quantity: 1.5, unit: "cuillere_soupe" }), "1 ½ c. à soupe");
+  // Les pièces en fractions (« ½ oignon »), les poids gardent la virgule.
+  assert.equal(formatAmount({ quantity: 0.5, unit: null }), "½");
+  assert.equal(formatAmount({ quantity: 2.5, unit: null }), "2 ½");
+  assert.equal(formatAmount({ quantity: 7.5, unit: "g" }), "7,5 g");
   assert.equal(formatAmount({ quantity: 1, unit: "pincee" }), "1 pincée");
   assert.equal(formatAmount({ quantity: 2, unit: "pincee" }), "2 pincées");
   assert.equal(formatAmount({ quantity: 3, unit: null }), "3");
