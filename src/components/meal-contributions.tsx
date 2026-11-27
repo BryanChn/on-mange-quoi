@@ -69,7 +69,9 @@ export function MealContributions({ soiree, userId, isOwner, onChanged }: MealCo
         <Text style={styles.title} accessibilityRole="header">
           Qui apporte quoi
         </Text>
-        <Text style={styles.count}>{soiree.contributions.length}</Text>
+        {soiree.contributions.length > 0 ? (
+          <Text style={styles.count}>{soiree.contributions.length}</Text>
+        ) : null}
       </View>
 
       <View style={styles.composer}>
@@ -78,7 +80,7 @@ export function MealContributions({ soiree, userId, isOwner, onChanged }: MealCo
             value={label}
             onChangeText={setLabel}
             placeholder="J’apporte…"
-            placeholderTextColor={theme.colors.textMuted}
+            placeholderTextColor={theme.colors.placeholder}
             accessibilityLabel="Ce que tu apportes"
             autoCapitalize="sentences"
             maxLength={CONTRIBUTION_MAX_LENGTH}

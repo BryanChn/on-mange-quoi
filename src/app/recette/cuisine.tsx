@@ -139,8 +139,10 @@ export default function CookingScreen() {
       ]}
     >
       <View style={styles.progressRow} accessibilityElementsHidden>
-        {Array.from({ length: lastPage + 1 }, (_, index) => (
-          <View key={index} style={[styles.progress, index <= page && styles.progressDone]} />
+        {/* Un segment par étape (« Étape 2 sur 6 » : 2 segments sur 6) ; l'intro et la fin n'en
+          ont pas. */}
+        {Array.from({ length: stepCount }, (_, index) => (
+          <View key={index} style={[styles.progress, index < page && styles.progressDone]} />
         ))}
       </View>
 

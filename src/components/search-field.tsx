@@ -23,7 +23,7 @@ export function SearchField({ value, onChangeText, placeholder }: SearchFieldPro
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={theme.colors.textMuted}
+        placeholderTextColor={theme.colors.placeholder}
         accessibilityLabel={placeholder}
         returnKeyType="search"
         autoCorrect={false}

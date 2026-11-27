@@ -145,8 +145,12 @@ export default function CarnetScreen() {
   const matchingIdeas = carnet.baseRecipes.filter(
     (recipe) => matches(recipe) && !copies.has(recipe.id),
   );
-  const ideas =
-    isFiltering || showAllIdeas ? matchingIdeas : carnet.baseRecipes.slice(0, IDEAS_FOLDED);
+  // Repliées : d'abord les idées pas encore dans le carnet, une idée déjà copiée n'en est plus une.
+  const ideasByNovelty = [
+    ...carnet.baseRecipes.filter((recipe) => !copies.has(recipe.id)),
+    ...carnet.baseRecipes.filter((recipe) => copies.has(recipe.id)),
+  ];
+  const ideas = isFiltering || showAllIdeas ? matchingIdeas : ideasByNovelty.slice(0, IDEAS_FOLDED);
   const hiddenIdeas = isFiltering ? 0 : carnet.baseRecipes.length - IDEAS_FOLDED;
   const hasNoMatch = isFiltering && shown.length === 0 && matchingIdeas.length === 0;
 

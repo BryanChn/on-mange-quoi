@@ -525,7 +525,7 @@ export default function WriteRecipeScreen() {
               value={form.totalMinutes}
               onChangeText={(totalMinutes) => update({ totalMinutes })}
               placeholder="35"
-              placeholderTextColor={theme.colors.textMuted}
+              placeholderTextColor={theme.colors.placeholder}
               accessibilityLabel="Temps total, en minutes"
               keyboardType="number-pad"
               maxLength={4}
@@ -620,7 +620,7 @@ export default function WriteRecipeScreen() {
               value={newName}
               onChangeText={changeNewName}
               placeholder="Ingrédient"
-              placeholderTextColor={theme.colors.textMuted}
+              placeholderTextColor={theme.colors.placeholder}
               accessibilityLabel="Ingrédient à ajouter"
               autoCapitalize="sentences"
               maxLength={INGREDIENT_LABEL_MAX_LENGTH}
@@ -635,7 +635,7 @@ export default function WriteRecipeScreen() {
               value={newQuantity}
               onChangeText={setNewQuantity}
               placeholder="Qté"
-              placeholderTextColor={theme.colors.textMuted}
+              placeholderTextColor={theme.colors.placeholder}
               accessibilityLabel="Quantité, facultatif"
               maxLength={INGREDIENT_QUANTITY_MAX_LENGTH}
               returnKeyType="done"
@@ -715,7 +715,7 @@ export default function WriteRecipeScreen() {
                       value={editQuantity}
                       onChangeText={setEditQuantity}
                       placeholder="Qté"
-                      placeholderTextColor={theme.colors.textMuted}
+                      placeholderTextColor={theme.colors.placeholder}
                       accessibilityLabel="Quantité, facultatif"
                       maxLength={INGREDIENT_QUANTITY_MAX_LENGTH}
                       returnKeyType="done"
@@ -813,7 +813,7 @@ export default function WriteRecipeScreen() {
             value={newStep}
             onChangeText={setNewStep}
             placeholder={`Étape ${form.steps.length + 1} : ${form.steps.length === 0 ? "par quoi on commence ?" : "et ensuite ?"}`}
-            placeholderTextColor={theme.colors.textMuted}
+            placeholderTextColor={theme.colors.placeholder}
             accessibilityLabel={`Étape ${form.steps.length + 1} à ajouter`}
             maxLength={RECIPE_STEP_MAX_LENGTH}
             multiline
@@ -849,7 +849,7 @@ export default function WriteRecipeScreen() {
           value={form.chefTip}
           onChangeText={(chefTip) => update({ chefTip })}
           placeholder="Laisse reposer la pâte 1 h : les crêpes seront plus fines."
-          placeholderTextColor={theme.colors.textMuted}
+          placeholderTextColor={theme.colors.placeholder}
           accessibilityLabel="L’astuce du chef"
           maxLength={RECIPE_CHEF_TIP_MAX_LENGTH}
           multiline

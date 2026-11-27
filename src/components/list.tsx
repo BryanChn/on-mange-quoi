@@ -86,7 +86,8 @@ export function ListRow({
           {label}
         </Text>
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>
+          // Une action dangereuse dit tout ce qu'elle efface : deux lignes plutôt qu'une coupée.
+          <Text style={styles.subtitle} numberOfLines={isDanger ? 2 : 1}>
             {subtitle}
           </Text>
         ) : null}

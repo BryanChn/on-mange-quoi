@@ -678,7 +678,7 @@ export default function ShoppingListScreen() {
                 value={label}
                 onChangeText={setLabel}
                 placeholder="Ajouter un article…"
-                placeholderTextColor={theme.colors.textMuted}
+                placeholderTextColor={theme.colors.placeholder}
                 accessibilityLabel="Article à ajouter"
                 autoCapitalize="sentences"
                 maxLength={SHOPPING_LABEL_MAX_LENGTH}
@@ -692,7 +692,7 @@ export default function ShoppingListScreen() {
                 value={quantity}
                 onChangeText={setQuantity}
                 placeholder="Qté"
-                placeholderTextColor={theme.colors.textMuted}
+                placeholderTextColor={theme.colors.placeholder}
                 accessibilityLabel="Quantité, facultatif"
                 maxLength={SHOPPING_QUANTITY_MAX_LENGTH}
                 editable={!isAdding}

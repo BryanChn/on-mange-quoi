@@ -23,6 +23,8 @@ const lightColors = {
   surface2: "#FBE6D2",
   text: brand.espresso,
   textMuted: "#6B5244",
+  // Plus pâle que textMuted : un exemple dans un champ ne doit pas passer pour une saisie.
+  placeholder: "#A8907F",
   // Séparateurs décoratifs uniquement : trop pâle pour délimiter un champ.
   border: "#EBD5BF",
   inputBorder: "#9C836F",
@@ -74,6 +76,7 @@ const darkColors: typeof lightColors = {
   surface2: "#2B2928",
   text: "#F5EDE6",
   textMuted: "#ADA39C",
+  placeholder: "#77706A",
   border: "#2E2B29",
   inputBorder: "#736A64",
   // Corail désaturé : la tomate pure éblouit sur fond sombre.
