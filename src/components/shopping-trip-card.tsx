@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { clockLabel, tripToShow } from "@/lib/shopping-rules";
 import type { ShoppingTrip } from "@/lib/shopping";
@@ -11,24 +10,13 @@ type ShoppingTripCardProps = {
   trips: ShoppingTrip[];
   userId: string | undefined;
   nameOf: (profileId: string) => string;
-  // Seul dans le foyer : personne à prévenir, pas de bouton.
-  canStart: boolean;
   isBusy: boolean;
-  onStart: () => void;
   onEnd: () => void;
 };
 
-// « Je pars faire les courses » (CLAUDE.md, liste de courses) : partir, être aux courses
-// (« J'ai fini »), ou voir que quelqu'un y est.
-export function ShoppingTripCard({
-  trips,
-  userId,
-  nameOf,
-  canStart,
-  isBusy,
-  onStart,
-  onEnd,
-}: ShoppingTripCardProps) {
+// « Je pars faire les courses » (CLAUDE.md, liste de courses) : le bandeau quand on y est
+// (« J'ai fini ») ou quand quelqu'un y est. Partir se fait depuis l'en-tête de la liste.
+export function ShoppingTripCard({ trips, userId, nameOf, isBusy, onEnd }: ShoppingTripCardProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const shown = tripToShow(trips, userId);
@@ -63,16 +51,7 @@ export function ShoppingTripCard({
     );
   }
 
-  if (!canStart) return null;
-  return (
-    <PrimaryButton
-      label="Je pars faire les courses"
-      variant="secondary"
-      size="md"
-      onPress={onStart}
-      isLoading={isBusy}
-    />
-  );
+  return null;
 }
 
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {

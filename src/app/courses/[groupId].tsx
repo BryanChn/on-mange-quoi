@@ -1,8 +1,11 @@
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,10 +17,14 @@ import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { ShoppingTripCard } from "@/components/shopping-trip-card";
+import { CollapsingRow } from "@/components/collapsing-row";
+import { HeaderButton } from "@/components/header-button";
+import { ProgressRing } from "@/components/progress-ring";
 import { SectionHeader } from "@/components/section";
-import { SignatureCard } from "@/components/signature-card";
+import { ShoppingTripCard } from "@/components/shopping-trip-card";
 import { SignatureCat } from "@/components/signature-cat";
+import { StrikeLabel } from "@/components/strike-label";
+import { TextButton } from "@/components/text-button";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextField } from "@/components/text-field";
 import { fetchGroup } from "@/lib/groups";
@@ -30,14 +37,7 @@ import {
   hapticToggle,
 } from "@/lib/haptics";
 import type { Member } from "@/lib/members";
-import {
-  checkEntering,
-  colorTransition,
-  dishEntering,
-  dishExiting,
-  LIST_SETTLE_DELAY_MS,
-  listReorder,
-} from "@/lib/motion";
+import { checkEntering, colorTransition, countBump, ROW_SETTLE_DELAY_MS } from "@/lib/motion";
 import { useSession } from "@/lib/session";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import {
@@ -61,6 +61,7 @@ import {
   SHOPPING_QUANTITY_MAX_LENGTH,
   sortShoppingList,
   splitShoppingList,
+  tripToShow,
   type ShoppingSection,
   type ShoppingHistoryEntry,
   type ShoppingItem,
@@ -77,10 +78,11 @@ type ListState = {
   trips: ShoppingTrip[];
 };
 
-// La liste de courses d'un foyer (maquette du 24/11 : https://claude.ai/artifact/TbwTRnDRkExZVUx6rupwNC).
-// Carte signature avec la progression, ajout sur une ligne, « Souvent acheté », puis la liste :
-// un toucher coche (le geste du magasin), un appui long ouvre l'article sur place pour le
-// corriger ou le retirer. Tout le monde la voit bouger en direct.
+// La liste de courses d'un foyer (refonte du 27/11, option A :
+// https://claude.ai/artifact/YPfGj11em5YcWXtLSsjtrW). Grand titre et anneau de progression,
+// la liste « À acheter », « Déjà pris » replié en accordéon, et l'ajout en bas, sous le pouce.
+// Un toucher coche sur place (le nom se barre), puis la ligne se replie ; un appui long ouvre
+// l'article pour le corriger ou le retirer. Tout le monde la voit bouger en direct.
 export default function ShoppingListScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const theme = useTheme();
@@ -113,9 +115,14 @@ export default function ShoppingListScreen() {
   // Coches affichées dès le toucher, avant la réponse du serveur (on coche vite en magasin).
   const [pendingChecks, setPendingChecks] = useState<Map<string, boolean>>(new Map());
   // Les articles tout juste cochés ou décochés, retenus dans leur section d'avant pendant le
-  // temps de pose : la liste ne bouge pas sous le doigt, puis tout glisse ensemble.
+  // temps de pose (chacun le sien) : la ligne ne part pas sous le doigt.
   const [held, setHeld] = useState<Map<string, ShoppingSection>>(new Map());
-  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ceux dont le temps de pose est écoulé : leur ligne se replie, puis ils changent de section.
+  const [settling, setSettling] = useState<Set<string>>(new Set());
+  const settleTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  // « Déjà pris » replié par défaut : l'écran reste court en magasin.
+  const [isTakenOpen, setIsTakenOpen] = useState(false);
+  const headerHeight = useHeaderHeight();
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
@@ -292,18 +299,40 @@ export default function ShoppingListScreen() {
     }
   }
 
-  // Retient l'article à sa place, et relance le temps de pose : les articles cochés à la suite
-  // glissent ensemble, une fois qu'on a fini. Pas de nettoyage au démontage : mettre à jour un
-  // écran déjà quitté ne fait rien.
+  // Retient l'article à sa place, coche visible, puis replie sa ligne après le temps de pose.
+  // Chaque article a son propre délai : on enchaîne les coches sans que rien ne bouge sous le
+  // doigt. Pas de nettoyage au démontage : mettre à jour un écran déjà quitté ne fait rien.
   function holdInPlace(item: ShoppingItem) {
-    setHeld((current) =>
-      new Map(current).set(
-        item.id,
-        current.get(item.id) ?? (item.checkedAt === null ? "toBuy" : "taken"),
+    setHeld((current) => new Map(current).set(item.id, current.get(item.id) ?? sectionOf(item)));
+    setSettling((current) => withoutId(current, item.id));
+    clearTimeout(settleTimersRef.current.get(item.id));
+    settleTimersRef.current.set(
+      item.id,
+      setTimeout(
+        () => setSettling((current) => new Set(current).add(item.id)),
+        ROW_SETTLE_DELAY_MS,
       ),
     );
-    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
-    settleTimerRef.current = setTimeout(() => setHeld(new Map()), LIST_SETTLE_DELAY_MS);
+  }
+
+  // La ligne est repliée : l'article rejoint sa vraie section.
+  function finishMove(itemId: string) {
+    setHeld((current) => {
+      const next = new Map(current);
+      next.delete(itemId);
+      return next;
+    });
+    setSettling((current) => withoutId(current, itemId));
+  }
+
+  function toggleTaken() {
+    hapticTick();
+    // Replier « Déjà pris » démonte ses lignes : un article décoché qui y attendait rejoint
+    // « À acheter » tout de suite (sa ligne ne finirait jamais de se replier).
+    if (isTakenOpen) {
+      setHeld((current) => new Map([...current].filter(([, section]) => section !== "taken")));
+    }
+    setIsTakenOpen((value) => !value);
   }
 
   async function handleToggle(item: ShoppingItem) {
@@ -452,30 +481,32 @@ export default function ShoppingListScreen() {
     );
   }
 
-  // Une ligne posée à plat dans la colonne : elle porte elle-même le fond et les coins de sa
-  // section (première, dernière), pour pouvoir glisser d'une section à l'autre.
-  function renderItem(item: ShoppingItem, index: number, count: number) {
+  function renderItem(item: ShoppingItem, index: number, section: ShoppingSection) {
     const isTaken = item.checkedAt !== null;
-    const description = item.quantity ? `${item.label}, ${item.quantity}` : item.label;
     const checker = item.checkedBy ? list?.members.get(item.checkedBy) : undefined;
+    const description = [
+      item.label,
+      item.quantity,
+      isTaken ? `pris par ${nameOf(item.checkedBy)}` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    // Elle se replie si son temps de pose est écoulé et qu'elle doit changer de section.
+    const isCollapsing = settling.has(item.id) && held.get(item.id) !== sectionOf(item);
 
     return (
-      <Animated.View
+      <CollapsingRow
         key={item.id}
-        entering={dishEntering}
-        exiting={dishExiting}
-        layout={listReorder}
-        style={[
-          styles.itemBlock,
-          index === 0 && styles.itemFirst,
-          index === count - 1 && styles.itemLast,
-        ]}
+        isCollapsing={isCollapsing}
+        onCollapsed={() => finishMove(item.id)}
       >
+        {index > 0 ? <View style={styles.separator} /> : null}
         {item.id === editingId ? (
           renderEditPanel(item)
         ) : (
           <Pressable
             onPress={() => handleToggle(item)}
+            disabled={isCollapsing}
             // Toucher coche (le geste du magasin) ; appui long ouvre l'article, plus rare.
             onLongPress={() => {
               hapticLongPress();
@@ -488,149 +519,181 @@ export default function ShoppingListScreen() {
             onAccessibilityAction={(event) => {
               if (event.nativeEvent.actionName === "edit") startEdit(item);
             }}
-            style={({ pressed }) => [
-              styles.row,
-              index > 0 && styles.separated,
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
           >
             <Animated.View
               style={[styles.checkbox, colorTransition, isTaken && styles.checkboxChecked]}
             >
               {isTaken ? (
                 <Animated.View entering={checkEntering}>
-                  <Feather name="check" size={16} color={theme.colors.onPrimary} />
+                  <Feather name="check" size={15} color={theme.colors.onPrimary} />
                 </Animated.View>
               ) : null}
             </Animated.View>
-            <View style={styles.itemText}>
-              <Text style={[styles.itemLabel, isTaken && styles.itemTaken]} numberOfLines={2}>
-                {item.label}
-              </Text>
-              {isTaken ? (
-                <View style={styles.takenBy}>
-                  <Avatar
-                    name={checker?.name ?? nameOf(item.checkedBy)}
-                    avatar={checker?.avatar ?? null}
-                    photoPath={checker?.photoPath ?? null}
-                    size={18}
-                  />
-                  <Text style={styles.takenByText}>Pris par {nameOf(item.checkedBy)}</Text>
-                </View>
-              ) : null}
-            </View>
-            {item.quantity ? (
-              <View style={[styles.quantityChip, isTaken && styles.quantityChipTaken]}>
-                <Text style={[styles.quantityText, isTaken && styles.quantityTextTaken]}>
-                  {item.quantity}
-                </Text>
-              </View>
+            <StrikeLabel label={item.label} isStruck={isTaken} />
+            <View style={styles.spacer} />
+            {item.quantity ? <Text style={styles.quantity}>{item.quantity}</Text> : null}
+            {isTaken && section === "taken" ? (
+              <Avatar
+                name={checker?.name ?? nameOf(item.checkedBy)}
+                avatar={checker?.avatar ?? null}
+                photoPath={checker?.photoPath ?? null}
+                size={22}
+              />
             ) : null}
           </Pressable>
         )}
-      </Animated.View>
+      </CollapsingRow>
     );
   }
 
+  const trip = tripToShow(list.trips, userId);
+  // Partir aux courses n'a de sens qu'à plusieurs, et s'il n'y a pas déjà un passage en cours.
+  const canStartTrip = list.members.size >= 2 && trip === null;
+
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        { paddingBottom: insets.bottom + theme.spacing.xl },
-      ]}
-      // Clavier ouvert : « + » marche du premier toucher, et le clavier reste ouvert pour
-      // enchaîner les articles.
-      keyboardShouldPersistTaps="handled"
-    >
-      <SignatureCard>
-        <View style={styles.signatureTop}>
-          <View style={styles.signatureText}>
-            <Text style={styles.signatureGroup}>{list.groupName}</Text>
-            <Text style={styles.signatureTitle} accessibilityRole="header">
-              Les courses
-            </Text>
-            <Text style={styles.signatureSummary}>{summary}</Text>
-          </View>
-          <SignatureCat size={64} />
-        </View>
-        {total > 0 ? (
-          <View
-            style={styles.progressTrack}
-            accessible
-            accessibilityRole="progressbar"
-            accessibilityLabel={`${takenCount} pris sur ${total}`}
-            accessibilityValue={{ min: 0, max: total, now: takenCount }}
-          >
-            <View
-              style={[styles.progressFill, { width: `${Math.round((takenCount / total) * 100)}%` }]}
-            />
-          </View>
-        ) : null}
-      </SignatureCard>
-
-      <ShoppingTripCard
-        trips={list.trips}
-        userId={userId}
-        nameOf={(profileId) => list.members.get(profileId)?.name ?? "Quelqu’un"}
-        canStart={list.members.size >= 2}
-        isBusy={isTripBusy}
-        onStart={handleStartTrip}
-        onEnd={handleEndTrip}
+    <View style={styles.screen}>
+      {/* « Je pars faire les courses » dans l'en-tête : une action du moment, pas une carte. */}
+      <Stack.Screen
+        options={{
+          headerRight: canStartTrip
+            ? () => (
+                <HeaderButton
+                  label={isTripBusy ? "…" : "Je vais aux courses"}
+                  icon="shopping-bag"
+                  onPress={() => {
+                    if (!isTripBusy) handleStartTrip();
+                  }}
+                />
+              )
+            : undefined,
+        }}
       />
-
-      <View style={styles.addBlock}>
-        <View style={styles.composer}>
-          <View style={[styles.composerField, labelError !== null && styles.composerFieldError]}>
-            <TextInput
-              value={label}
-              onChangeText={setLabel}
-              placeholder="Ajouter un article…"
-              placeholderTextColor={theme.colors.textMuted}
-              accessibilityLabel="Article à ajouter"
-              autoCapitalize="sentences"
-              maxLength={SHOPPING_LABEL_MAX_LENGTH}
-              editable={!isAdding}
-              onSubmitEditing={handleAdd}
-              style={styles.composerInput}
-            />
-            <View style={styles.composerDivider} />
-            <TextInput
-              value={quantity}
-              onChangeText={setQuantity}
-              placeholder="Qté"
-              placeholderTextColor={theme.colors.textMuted}
-              accessibilityLabel="Quantité, facultatif"
-              maxLength={SHOPPING_QUANTITY_MAX_LENGTH}
-              editable={!isAdding}
-              onSubmitEditing={handleAdd}
-              style={styles.composerQuantity}
-            />
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          // Clavier ouvert : un toucher dans la liste coche du premier coup.
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.titleRow}>
+            <View style={styles.titleText}>
+              <Text style={styles.title} accessibilityRole="header">
+                Courses
+              </Text>
+              <Text style={styles.subtitle}>
+                {list.groupName} · {summary}
+              </Text>
+            </View>
+            {total > 0 ? (
+              <ProgressRing
+                progress={takenCount / total}
+                label={`${takenCount}/${total}`}
+                accessibilityLabel={`${takenCount} pris sur ${total}`}
+              />
+            ) : null}
           </View>
-          <Pressable
-            onPress={handleAdd}
-            disabled={isAdding}
-            accessibilityRole="button"
-            accessibilityLabel="Ajouter"
-            accessibilityState={{ busy: isAdding }}
-            style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
-          >
-            {isAdding ? (
-              <ActivityIndicator color={theme.colors.onPrimary} />
-            ) : (
-              <Feather name="plus" size={24} color={theme.colors.onPrimary} />
-            )}
-          </Pressable>
-        </View>
-        {labelError ? (
-          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            {labelError}
-          </Text>
-        ) : null}
 
-        {suggestions.length > 0 ? (
-          <View style={styles.suggestions}>
-            <Text style={styles.suggestionsTitle}>Souvent acheté</Text>
-            <View style={styles.suggestionList}>
+          <ShoppingTripCard
+            trips={list.trips}
+            userId={userId}
+            nameOf={(profileId) => list.members.get(profileId)?.name ?? "Quelqu’un"}
+            isBusy={isTripBusy}
+            onEnd={handleEndTrip}
+          />
+
+          {notice ? (
+            <Text style={styles.notice} accessibilityLiveRegion="polite">
+              {notice}
+            </Text>
+          ) : null}
+          {error ? (
+            <Text
+              style={styles.error}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+            >
+              {error}
+            </Text>
+          ) : null}
+
+          {/* Pas d'animation d'entrée au premier affichage : seulement quand la liste bouge. */}
+          <LayoutAnimationConfig skipEntering>
+            {toBuy.length > 0 ? (
+              <View style={styles.block}>
+                <SectionHeader title={`À acheter · ${toBuy.length}`} />
+                <View style={styles.group}>
+                  {toBuy.map((item, index) => renderItem(item, index, "toBuy"))}
+                </View>
+              </View>
+            ) : taken.length > 0 ? (
+              // Tout est pris : le chat, et on rentre.
+              <View style={styles.done}>
+                <SignatureCat size={64} />
+                <Text style={styles.doneTitle}>Tout est pris !</Text>
+                <Text style={styles.doneText}>Bon retour à la maison.</Text>
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>
+                La liste est vide. Ajoute ce qui manque à la maison, en bas de l’écran.
+              </Text>
+            )}
+
+            {taken.length > 0 ? (
+              // « Déjà pris » en accordéon : replié, une ligne et son compteur.
+              <View style={styles.group}>
+                <Pressable
+                  onPress={toggleTaken}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: isTakenOpen }}
+                  accessibilityLabel={`Déjà pris, ${taken.length}`}
+                  style={({ pressed }) => [styles.takenHead, pressed && styles.rowPressed]}
+                >
+                  <Text style={styles.takenTitle}>Déjà pris</Text>
+                  {/* Nouvelle clé à chaque arrivée : le compteur fait un petit bond. */}
+                  <Animated.View key={taken.length} entering={countBump} style={styles.badge}>
+                    <Text style={styles.badgeText}>{taken.length}</Text>
+                  </Animated.View>
+                  <View style={styles.spacer} />
+                  <Feather
+                    name={isTakenOpen ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color={theme.colors.textMuted}
+                  />
+                </Pressable>
+                {isTakenOpen ? (
+                  <>
+                    <View style={styles.separatorFull} />
+                    {taken.map((item, index) => renderItem(item, index, "taken"))}
+                    <View style={styles.clear}>
+                      <TextButton
+                        label={
+                          takenCount > 1 ? `Retirer les ${takenCount} achetés` : "Retirer l’acheté"
+                        }
+                        onPress={handleClear}
+                        isDisabled={isClearing}
+                      />
+                    </View>
+                  </>
+                ) : null}
+              </View>
+            ) : null}
+          </LayoutAnimationConfig>
+        </ScrollView>
+
+        {/* L'ajout en bas, sous le pouce : on remplit la liste sans remonter. */}
+        <View style={[styles.dock, { paddingBottom: insets.bottom + theme.spacing.sm }]}>
+          {suggestions.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.chips}
+              accessibilityLabel="Souvent acheté"
+            >
               {suggestions.map((suggestion) => (
                 <Pressable
                   key={suggestion.label}
@@ -639,115 +702,198 @@ export default function ShoppingListScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Ajouter ${suggestion.label}${suggestion.quantity ? `, ${suggestion.quantity}` : ""}`}
                   style={({ pressed }) => [
-                    styles.suggestion,
+                    styles.chip,
                     (pressed || addingSuggestion === suggestion.label) && styles.pressed,
                   ]}
                 >
-                  <Feather name="plus" size={16} color={theme.colors.primary} />
-                  <Text style={styles.suggestionText}>
-                    {suggestion.label}
-                    {suggestion.quantity ? ` · ${suggestion.quantity}` : ""}
-                  </Text>
+                  <Feather name="plus" size={14} color={theme.colors.primary} />
+                  <Text style={styles.chipText}>{suggestion.label}</Text>
                 </Pressable>
               ))}
-            </View>
-          </View>
-        ) : null}
-      </View>
-
-      {notice ? (
-        <Text style={styles.notice} accessibilityLiveRegion="polite">
-          {notice}
-        </Text>
-      ) : null}
-      {error ? (
-        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-          {error}
-        </Text>
-      ) : null}
-
-      {/* Pas d'animation d'entrée au premier affichage : seulement quand la liste bouge. */}
-      {/* Une seule colonne pour les deux sections : un article coché garde son identité et
-          glisse jusqu'à « Déjà pris » (au lieu de disparaître d'une liste pour réapparaître
-          dans l'autre). Pas d'animation d'entrée au premier affichage. */}
-      <LayoutAnimationConfig skipEntering>
-        <View>
-          <Animated.View layout={listReorder} style={styles.sectionHead}>
-            <SectionHeader title={`À acheter · ${toBuy.length}`} />
-          </Animated.View>
-          {toBuy.length === 0 ? (
-            <Animated.View
-              key="vide"
-              entering={dishEntering}
-              exiting={dishExiting}
-              layout={listReorder}
-              style={[styles.itemBlock, styles.itemFirst, styles.itemLast]}
-            >
-              <Text style={styles.empty}>
-                {taken.length === 0
-                  ? "La liste est vide. Ajoute ce qui manque à la maison."
-                  : "Tout est pris, bravo !"}
-              </Text>
-            </Animated.View>
-          ) : (
-            toBuy.map((item, index) => renderItem(item, index, toBuy.length))
-          )}
-
-          {taken.length > 0 ? (
-            <Animated.View
-              key="deja-pris"
-              entering={dishEntering}
-              exiting={dishExiting}
-              layout={listReorder}
-              style={[styles.sectionHead, styles.sectionGap]}
-            >
-              <SectionHeader
-                title={`Déjà pris · ${taken.length}`}
-                action={{
-                  label: takenCount > 1 ? `Retirer les ${takenCount} achetés` : "Retirer l’acheté",
-                  onPress: () => {
-                    if (!isClearing) handleClear();
-                  },
-                }}
-              />
-            </Animated.View>
+            </ScrollView>
           ) : null}
-          {taken.map((item, index) => renderItem(item, index, taken.length))}
+          <View style={styles.composer}>
+            <View style={[styles.composerField, labelError !== null && styles.composerFieldError]}>
+              <TextInput
+                value={label}
+                onChangeText={setLabel}
+                placeholder="Ajouter un article…"
+                placeholderTextColor={theme.colors.textMuted}
+                accessibilityLabel="Article à ajouter"
+                autoCapitalize="sentences"
+                maxLength={SHOPPING_LABEL_MAX_LENGTH}
+                editable={!isAdding}
+                onSubmitEditing={handleAdd}
+                submitBehavior="submit"
+                style={styles.composerInput}
+              />
+              <View style={styles.composerDivider} />
+              <TextInput
+                value={quantity}
+                onChangeText={setQuantity}
+                placeholder="Qté"
+                placeholderTextColor={theme.colors.textMuted}
+                accessibilityLabel="Quantité, facultatif"
+                maxLength={SHOPPING_QUANTITY_MAX_LENGTH}
+                editable={!isAdding}
+                onSubmitEditing={handleAdd}
+                style={styles.composerQuantity}
+              />
+            </View>
+            <Pressable
+              onPress={handleAdd}
+              disabled={isAdding}
+              accessibilityRole="button"
+              accessibilityLabel="Ajouter"
+              accessibilityState={{ busy: isAdding }}
+              style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
+            >
+              {isAdding ? (
+                <ActivityIndicator color={theme.colors.onPrimary} />
+              ) : (
+                <Feather name="plus" size={24} color={theme.colors.onPrimary} />
+              )}
+            </Pressable>
+          </View>
+          {labelError ? (
+            <Text
+              style={styles.error}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+            >
+              {labelError}
+            </Text>
+          ) : null}
         </View>
-      </LayoutAnimationConfig>
-    </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
+}
+
+function sectionOf(item: ShoppingItem): ShoppingSection {
+  return item.checkedAt === null ? "toBuy" : "taken";
+}
+
+function withoutId(ids: Set<string>, id: string): Set<string> {
+  if (!ids.has(id)) return ids;
+  const next = new Set(ids);
+  next.delete(id);
+  return next;
 }
 
 function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
-    container: { padding: spacing.lg, paddingTop: spacing.md, gap: spacing.xl },
+    screen: { flex: 1, backgroundColor: colors.background },
+    container: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xl,
+      gap: spacing.lg,
+    },
 
-    // Carte signature : groupe, titre, où on en est, le chat, la progression.
-    signatureTop: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
-    signatureText: { flex: 1, gap: spacing.xs },
-    signatureGroup: { color: colors.onSignatureMuted, fontSize: fontSize.small, fontWeight: "700" },
-    signatureTitle: {
-      color: colors.onSignature,
+    titleRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.md },
+    titleText: { flex: 1, gap: spacing.xs },
+    title: {
+      color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
       lineHeight: 34,
     },
-    signatureSummary: { color: colors.onSignatureMuted, fontSize: fontSize.small },
-    progressTrack: {
-      height: 8,
-      borderRadius: radius.pill,
-      backgroundColor: colors.signatureTrack,
+    subtitle: { color: colors.textMuted, fontSize: fontSize.small },
+
+    block: { gap: spacing.sm },
+    // Une liste groupée : une seule surface, une seule ombre.
+    group: {
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface,
+      boxShadow: cardShadow,
       overflow: "hidden",
     },
-    progressFill: {
-      height: "100%",
+    // Filet entre deux lignes, aligné sur le texte (marge 16 + case 24 + espace 12).
+    separator: {
+      position: "absolute",
+      top: 0,
+      left: 52,
+      right: 0,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+    },
+    separatorFull: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+
+    // Une ligne : toute la ligne coche, une grande cible d'une main dans le magasin.
+    row: {
+      minHeight: 54,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+    },
+    rowPressed: { backgroundColor: colors.surface2 },
+    // Case ronde, comme Rappels et Things : elle se remplit, la coche apparaît.
+    checkbox: {
+      width: 24,
+      height: 24,
+      alignItems: "center",
+      justifyContent: "center",
       borderRadius: radius.pill,
-      backgroundColor: colors.signatureButton,
+      borderWidth: 2,
+      borderColor: colors.inputBorder,
+    },
+    checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
+    spacer: { flex: 1 },
+    quantity: { color: colors.textMuted, fontSize: fontSize.small, fontVariant: ["tabular-nums"] },
+
+    takenHead: {
+      minHeight: 52,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+    },
+    takenTitle: { color: colors.textMuted, fontSize: fontSize.body - 1, fontWeight: "600" },
+    badge: {
+      minWidth: 24,
+      height: 24,
+      paddingHorizontal: 7,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface2,
+    },
+    badgeText: { color: colors.text, fontSize: fontSize.caption, fontWeight: "800" },
+    clear: { alignItems: "center", paddingBottom: spacing.xs },
+
+    done: { alignItems: "center", gap: spacing.xs, paddingVertical: spacing.lg },
+    doneTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.heading },
+    doneText: { color: colors.textMuted, fontSize: fontSize.small },
+    emptyText: {
+      color: colors.textMuted,
+      fontSize: fontSize.body,
+      lineHeight: 24,
+      paddingHorizontal: spacing.xs,
     },
 
-    // Ajout sur une ligne : le champ en pilule et le bouton rond.
-    addBlock: { gap: spacing.md },
+    // Le dock du bas : « Souvent acheté » en chips, puis le champ d'ajout.
+    dock: {
+      gap: spacing.sm,
+      paddingTop: spacing.sm,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    chips: { gap: spacing.xs + 2 },
+    chip: {
+      height: control.sm,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface2,
+    },
+    chipText: { color: colors.text, fontSize: fontSize.small, fontWeight: "600" },
     composer: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     composerField: {
       flex: 1,
@@ -776,74 +922,9 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       backgroundColor: colors.primary,
     },
 
-    suggestions: { gap: spacing.sm },
-    suggestionsTitle: { color: colors.textMuted, fontSize: fontSize.caption, fontWeight: "700" },
-    suggestionList: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-    // 44 de haut : une cible facile, même en marchant dans le magasin.
-    suggestion: {
-      minHeight: 44,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: 14,
-      borderRadius: radius.pill,
-      backgroundColor: colors.surface2,
-    },
-    suggestionText: { color: colors.text, fontSize: fontSize.small, fontWeight: "700" },
-
-    sectionHead: { paddingBottom: spacing.sm },
-    sectionGap: { paddingTop: spacing.xl },
-    // Le fond d'une ligne ; les coins arrondis vont à la première et à la dernière de la section.
-    // Chaque ligne recouvre l'ombre de la précédente : l'ensemble garde une seule ombre.
-    itemBlock: {
-      paddingHorizontal: spacing.lg,
-      backgroundColor: colors.surface,
-      boxShadow: cardShadow,
-    },
-    itemFirst: {
-      paddingTop: spacing.xs,
-      borderTopLeftRadius: radius.lg,
-      borderTopRightRadius: radius.lg,
-    },
-    itemLast: {
-      paddingBottom: spacing.xs,
-      borderBottomLeftRadius: radius.lg,
-      borderBottomRightRadius: radius.lg,
-    },
-    separated: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-    empty: { color: colors.textMuted, fontSize: fontSize.small, paddingVertical: spacing.lg },
-
-    // Une ligne : toute la ligne coche, une grande cible d'une main dans le magasin.
-    row: { minHeight: 60, flexDirection: "row", alignItems: "center", gap: 14 },
-    checkbox: {
-      width: 28,
-      height: 28,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: 9,
-      borderWidth: 2,
-      borderColor: colors.inputBorder,
-    },
-    checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
-    itemText: { flex: 1, minWidth: 0, gap: 3, paddingVertical: spacing.sm },
-    itemLabel: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
-    itemTaken: { color: colors.textMuted, textDecorationLine: "line-through" },
-    takenBy: { flexDirection: "row", alignItems: "center", gap: 6 },
-    takenByText: { color: colors.textMuted, fontSize: fontSize.caption },
-    quantityChip: {
-      paddingVertical: 5,
-      paddingHorizontal: 11,
-      borderRadius: radius.pill,
-      backgroundColor: colors.chipBg,
-    },
-    quantityChipTaken: { backgroundColor: colors.surface2 },
-    quantityText: { color: colors.chipText, fontSize: fontSize.small, fontWeight: "700" },
-    quantityTextTaken: { color: colors.textMuted },
-
     // L'article ouvert par un appui long : corriger ou retirer, sur place.
     editPanel: {
-      marginVertical: spacing.xs,
-      marginHorizontal: -spacing.sm,
+      margin: spacing.sm,
       padding: 14,
       gap: spacing.md,
       borderRadius: radius.md,
@@ -862,7 +943,6 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     removeText: { color: colors.danger, fontSize: fontSize.small, fontWeight: "700" },
     cancelText: { color: colors.textMuted, fontSize: fontSize.small, fontWeight: "700" },
-    spacer: { flex: 1 },
     okButton: {
       minWidth: 64,
       height: 44,
