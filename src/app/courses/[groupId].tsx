@@ -534,9 +534,23 @@ export default function ShoppingListScreen() {
         >
           <View style={styles.titleRow}>
             <View style={styles.titleText}>
-              <Text style={styles.title} accessibilityRole="header">
-                Courses
-              </Text>
+              <View style={styles.titleLine}>
+                <Text style={styles.title} accessibilityRole="header">
+                  Courses
+                </Text>
+                {/* L'aide, à revoir quand on veut. */}
+                {total > 0 && !isTipVisible ? (
+                  <Pressable
+                    onPress={() => setIsTipVisible(true)}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel="Revoir l’aide"
+                    style={({ pressed }) => pressed && styles.pressed}
+                  >
+                    <Feather name="help-circle" size={20} color={theme.colors.textMuted} />
+                  </Pressable>
+                ) : null}
+              </View>
               <Text style={styles.subtitle}>
                 {list.groupName} · {summary}
               </Text>
@@ -558,15 +572,34 @@ export default function ShoppingListScreen() {
             onEnd={handleEndTrip}
           />
 
-          {/* Le mode d'emploi, une seule fois : le bouton ⋯ et l'appui long ne se devinent pas. */}
+          {/* L'aide : affichée d'elle-même la première fois, puis par le « ? » du titre. Trois
+              gestes, un par ligne, plutôt qu'un paragraphe. */}
           {isTipVisible && total > 0 ? (
             <View style={styles.tip} accessibilityLiveRegion="polite">
-              <Feather name="info" size={18} color={theme.colors.chipText} />
-              <Text style={styles.tipText}>
-                Touche un article pour le cocher. <Text style={styles.tipStrong}>⋯</Text> ou un
-                appui long pour le modifier ou changer son rayon. Touche un rayon pour le replier.
-              </Text>
-              <TextButton label="Compris" onPress={dismissTip} />
+              <View style={styles.tipLines}>
+                {[
+                  { icon: "check-circle" as const, text: "Touche un article pour le cocher" },
+                  {
+                    icon: "more-horizontal" as const,
+                    text: "Ce bouton ou un appui long : modifier, changer de rayon",
+                  },
+                  { icon: "chevron-down" as const, text: "Touche un rayon pour le replier" },
+                ].map((line) => (
+                  <View key={line.icon} style={styles.tipLine}>
+                    <Feather name={line.icon} size={15} color={theme.colors.textMuted} />
+                    <Text style={styles.tipText}>{line.text}</Text>
+                  </View>
+                ))}
+              </View>
+              <Pressable
+                onPress={dismissTip}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Fermer l’aide"
+                style={({ pressed }) => [styles.tipClose, pressed && styles.pressed]}
+              >
+                <Feather name="x" size={18} color={theme.colors.textMuted} />
+              </Pressable>
             </View>
           ) : null}
 
@@ -770,19 +803,22 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize }: The
     },
     subtitle: { color: colors.textMuted, fontSize: fontSize.small },
 
-    // Le mode d'emploi : un bandeau teinté, une seule fois.
+    titleLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    // L'aide : une carte discrète, trois lignes courtes, une croix pour la fermer.
     tip: {
       flexDirection: "row",
       alignItems: "flex-start",
-      gap: spacing.sm,
-      paddingTop: spacing.md,
-      paddingLeft: spacing.md,
-      paddingRight: spacing.xs,
+      paddingVertical: spacing.md,
+      paddingLeft: spacing.lg,
+      paddingRight: spacing.sm,
       borderRadius: radius.lg,
-      backgroundColor: colors.surface2,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
     },
-    tipText: { flex: 1, color: colors.text, fontSize: fontSize.small, lineHeight: 20 },
-    tipStrong: { fontWeight: "800" },
+    tipLines: { flex: 1, gap: spacing.sm },
+    tipLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    tipText: { flex: 1, color: colors.textMuted, fontSize: fontSize.caption },
+    tipClose: { padding: spacing.xs },
 
     sections: { gap: spacing.md },
     // Filet entre deux lignes, aligné sur le texte (marge 16 + case 26 + espace 12).
