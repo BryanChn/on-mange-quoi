@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChefTip } from "@/components/chef-tip";
 import { IconButton } from "@/components/icon-button";
+import { IngredientList } from "@/components/ingredient-list";
 import { PrimaryButton } from "@/components/primary-button";
 import { RecipeBanner } from "@/components/recipe-tile";
 import { Section } from "@/components/section";
@@ -14,7 +15,7 @@ import { TextButton } from "@/components/text-button";
 import { hapticAdded, hapticReject } from "@/lib/haptics";
 import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { uploadRecipePhoto } from "@/lib/photo-storage";
-import { formatAmount, macrosPerServing, recipeMeta, scaleAmount } from "@/lib/recipe-rules";
+import { macrosPerServing, recipeMeta } from "@/lib/recipe-rules";
 import { copyBaseRecipe, fetchRecipe, subscribeToCarnet, type Recipe } from "@/lib/recipes";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
@@ -222,26 +223,11 @@ export default function RecipeScreen() {
                   : undefined
               }
             >
-              <View style={styles.card}>
-                {recipe.ingredients.map((ingredient, index) => {
-                  const amount = scaleAmount(
-                    ingredient.quantity,
-                    ingredient.unit,
-                    recipe.servings,
-                    servings,
-                  );
-                  return (
-                    <View
-                      key={index}
-                      style={[styles.ingredient, index > 0 && styles.ingredientDivider]}
-                      accessible
-                    >
-                      <Text style={styles.amount}>{amount ? formatAmount(amount) : ""}</Text>
-                      <Text style={styles.ingredientLabel}>{ingredient.label}</Text>
-                    </View>
-                  );
-                })}
-              </View>
+              <IngredientList
+                ingredients={recipe.ingredients}
+                recipeServings={recipe.servings}
+                servings={servings}
+              />
             </Section>
           ) : null}
 
@@ -328,7 +314,7 @@ export default function RecipeScreen() {
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
+function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     scroll: { flexGrow: 1, paddingBottom: spacing.xl },
@@ -350,17 +336,6 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
       gap: spacing.md,
     },
     kcal: { color: colors.textMuted, fontSize: fontSize.small },
-    card: { borderRadius: radius.lg, backgroundColor: colors.surface, boxShadow: cardShadow },
-    ingredient: {
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: spacing.md,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
-    },
-    ingredientDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-    amount: { width: 80, color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
-    ingredientLabel: { flex: 1, color: colors.text, fontSize: fontSize.body },
     steps: { gap: spacing.lg },
     step: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
     stepNumber: {
