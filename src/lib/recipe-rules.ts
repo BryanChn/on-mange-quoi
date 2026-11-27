@@ -394,6 +394,7 @@ export const RECIPE_TITLE_MAX_LENGTH = 80;
 export const RECIPE_MAX_INGREDIENTS = 60;
 export const RECIPE_MAX_STEPS = 40;
 export const RECIPE_STEP_MAX_LENGTH = 500;
+export const RECIPE_CHEF_TIP_MAX_LENGTH = 300;
 
 // Une ligne du formulaire : le nom et la quantité tapés dans deux champs (comme la liste de
 // courses), et l'aliment Ciqual choisi pour ce nom (perdu dès que le nom change : l'écran
@@ -405,6 +406,8 @@ export type RecipeFormInput = {
   servings: number;
   ingredients: IngredientFieldsInput[];
   steps: string[];
+  // L'astuce du chef, facultative : vide = pas d'astuce.
+  chefTip: string;
 };
 
 export type RecipeIngredientDraft = ParsedIngredient & { raw: string; foodId: number | null };
@@ -417,9 +420,13 @@ export type RecipeFormResult =
         servings: number;
         ingredients: RecipeIngredientDraft[];
         steps: string[];
+        chefTip: string | null;
       };
     }
-  | { ok: false; errors: { title?: string; ingredients?: string; steps?: string } };
+  | {
+      ok: false;
+      errors: { title?: string; ingredients?: string; steps?: string; chefTip?: string };
+    };
 
 function tidy(text: string): string {
   return text.trim().replace(/\s+/g, " ");
@@ -429,7 +436,7 @@ function tidy(text: string): string {
 // ingrédient lu. Les limites sont vérifiées ici pour un message clair ; la base les vérifie
 // aussi (le serveur ne fait jamais confiance à l'app).
 export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
-  const errors: { title?: string; ingredients?: string; steps?: string } = {};
+  const errors: { title?: string; ingredients?: string; steps?: string; chefTip?: string } = {};
 
   const title = tidy(form.title);
   if (title === "") errors.title = "Donne un nom à la recette.";
@@ -446,7 +453,12 @@ export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
   else if (steps.some((step) => step.length > RECIPE_STEP_MAX_LENGTH))
     errors.steps = `Une étape fait ${RECIPE_STEP_MAX_LENGTH} caractères au plus.`;
 
-  if (errors.title || errors.ingredients || errors.steps) return { ok: false, errors };
+  const chefTip = tidy(form.chefTip);
+  if (chefTip.length > RECIPE_CHEF_TIP_MAX_LENGTH)
+    errors.chefTip = `L’astuce fait ${RECIPE_CHEF_TIP_MAX_LENGTH} caractères au plus.`;
+
+  if (errors.title || errors.ingredients || errors.steps || errors.chefTip)
+    return { ok: false, errors };
   return {
     ok: true,
     draft: {
@@ -457,6 +469,7 @@ export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
         foodId: line.foodId,
       })),
       steps,
+      chefTip: chefTip === "" ? null : chefTip,
     },
   };
 }

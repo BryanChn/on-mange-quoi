@@ -257,14 +257,14 @@ isOneToOne: false
                   ]
                 },"recipes": {
                   Row: {
-                    "budget": number | null,"created_at": string,"created_by": string | null,"diets": (Database["public"]['Enums']["recipe_diet"])[],"group_id": string | null,"id": string,"photo_path": string | null,"servings": number,"source_recipe_id": string | null,"steps": (string)[],"title": string,"total_minutes": number | null,"updated_at": string
+                    "budget": number | null,"chef_tip": string | null,"created_at": string,"created_by": string | null,"diets": (Database["public"]['Enums']["recipe_diet"])[],"group_id": string | null,"id": string,"photo_path": string | null,"servings": number,"source_recipe_id": string | null,"steps": (string)[],"title": string,"total_minutes": number | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "budget"?: number | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title": string,"total_minutes"?: number | null,"updated_at"?: string
+                    "budget"?: number | null,"chef_tip"?: string | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title": string,"total_minutes"?: number | null,"updated_at"?: string
                   }
                   Update: {
-                    "budget"?: number | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title"?: string,"total_minutes"?: number | null,"updated_at"?: string
+                    "budget"?: number | null,"chef_tip"?: string | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title"?: string,"total_minutes"?: number | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -631,7 +631,7 @@ isOneToOne: false
 { Args: { "new_token": string }; Returns: undefined
                            },
 "save_recipe":
-{ Args: { "ingredients": Json,"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
+{ Args: { "ingredients": Json,"recipe_chef_tip"?: string,"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
                            },
 "search_foods":
 { Args: { "query": string }; Returns: {
