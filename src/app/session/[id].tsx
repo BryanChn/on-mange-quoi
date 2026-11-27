@@ -15,10 +15,10 @@ import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
-import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
 import { PrimaryButton } from "@/components/primary-button";
 import { Roulette } from "@/components/roulette";
+import { Section } from "@/components/section";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
@@ -412,7 +412,7 @@ export default function SessionScreen() {
         keyboardVerticalOffset={headerHeight}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Card>
+          <View style={styles.voteBlock}>
             <View style={styles.cardHeader}>
               <Chip label="Vote en direct" hasDot />
               <Text style={styles.caption}>
@@ -502,7 +502,7 @@ export default function SessionScreen() {
                 );
               })}
             </LayoutAnimationConfig>
-          </Card>
+          </View>
 
           {showParticipation ? (
             <View style={styles.participation}>
@@ -710,10 +710,11 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
 
         {/* Le gagnant vient du carnet : de la décision à la cuisine, sans chercher la recette. */}
         {winner?.recipeId && !session.isSoiree ? (
-          <Card style={styles.recipeLinks}>
+          <View style={styles.recipeLinks}>
             <PrimaryButton
               label="Voir la recette"
               variant="secondary"
+              size="md"
               onPress={() =>
                 router.push({
                   pathname: "/recette/[id]",
@@ -724,47 +725,50 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
             <PrimaryButton
               label="Ajouter aux courses"
               variant="secondary"
+              size="md"
               onPress={() =>
                 router.push({ pathname: "/recette/courses", params: { id: winner.recipeId ?? "" } })
               }
             />
-          </Card>
+          </View>
         ) : null}
 
-        <Card>
-          {session.proposals.map((proposal) => {
-            const isWinner = proposal.id === winner?.id;
-            return (
-              <View
-                key={proposal.id}
-                style={styles.result}
-                accessible
-                accessibilityLabel={`${proposal.name}, ${proposal.voteCount} sur ${scale}${
-                  isWinner ? ", gagnant" : ""
-                }`}
-              >
-                <View style={styles.resultLine}>
-                  <Text style={[styles.resultName, isWinner && styles.resultNameWinner]}>
-                    {proposal.name}
-                  </Text>
-                  {/* « 2 sur 3 » : chacun pouvait cocher plusieurs plats, la barre se lit seule. */}
-                  <Text style={styles.caption}>
-                    {proposal.voteCount} sur {scale}
-                  </Text>
+        <Section title="Les votes">
+          <View style={styles.results}>
+            {session.proposals.map((proposal) => {
+              const isWinner = proposal.id === winner?.id;
+              return (
+                <View
+                  key={proposal.id}
+                  style={styles.result}
+                  accessible
+                  accessibilityLabel={`${proposal.name}, ${proposal.voteCount} sur ${scale}${
+                    isWinner ? ", gagnant" : ""
+                  }`}
+                >
+                  <View style={styles.resultLine}>
+                    <Text style={[styles.resultName, isWinner && styles.resultNameWinner]}>
+                      {proposal.name}
+                    </Text>
+                    {/* « 2 sur 3 » : chacun pouvait cocher plusieurs plats, la barre se lit seule. */}
+                    <Text style={styles.caption}>
+                      {proposal.voteCount} sur {scale}
+                    </Text>
+                  </View>
+                  <View style={styles.track}>
+                    <View
+                      style={[
+                        styles.bar,
+                        isWinner && styles.barWinner,
+                        { width: `${Math.round((proposal.voteCount / scale) * 100)}%` },
+                      ]}
+                    />
+                  </View>
                 </View>
-                <View style={styles.track}>
-                  <View
-                    style={[
-                      styles.bar,
-                      isWinner && styles.barWinner,
-                      { width: `${Math.round((proposal.voteCount / scale) * 100)}%` },
-                    ]}
-                  />
-                </View>
-              </View>
-            );
-          })}
-        </Card>
+              );
+            })}
+          </View>
+        </Section>
       </ScrollView>
       <View style={styles.footer}>
         {session.isSoiree ? (
@@ -785,7 +789,8 @@ function SessionResult({ session, now, styles }: SessionResultProps) {
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     safeArea: { flex: 1 },
-    content: { padding: spacing.xl, gap: spacing.lg },
+    content: { padding: spacing.lg, gap: spacing.lg },
+    voteBlock: { gap: spacing.sm },
     cardHeader: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -800,15 +805,16 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       flexDirection: "row",
       alignItems: "center",
       paddingRight: spacing.sm,
-      borderRadius: 18,
+      borderRadius: radius.lg,
+      // Contour invisible au repos : la ligne ne bouge pas quand on la coche.
       borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.surface2,
+      borderColor: colors.surface,
+      backgroundColor: colors.surface,
     },
     rowChecked: { borderColor: colors.brand, backgroundColor: colors.chipBg },
     vote: {
       flex: 1,
-      minHeight: 68,
+      minHeight: 64,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
@@ -842,18 +848,16 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       backgroundColor: colors.surface2,
     },
     suggestionText: { color: colors.text, fontSize: fontSize.small, fontWeight: "600" },
-    recipeLinks: { gap: spacing.sm },
+    recipeLinks: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     dishText: { flex: 1, gap: spacing.xs },
     dishLine: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm },
-    dish: { flexShrink: 1, color: colors.text, fontFamily: fonts.displayBold, fontSize: 19 },
+    dish: { flexShrink: 1, color: colors.text, fontSize: fontSize.body + 1, fontWeight: "700" },
     participation: {
       alignItems: "center",
       gap: spacing.sm,
       padding: spacing.lg,
       borderRadius: radius.lg,
-      borderWidth: 1.5,
-      borderStyle: "dashed",
-      borderColor: colors.border,
+      backgroundColor: colors.surface2,
     },
     avatars: { flexDirection: "row", gap: spacing.sm },
     participationText: {
@@ -872,10 +876,10 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     },
     footer: {
       gap: spacing.sm,
-      paddingHorizontal: spacing.xl,
-      paddingTop: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
       paddingBottom: spacing.md,
-      borderTopWidth: 1,
+      borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.border,
     },
     panelText: { color: colors.text, fontSize: fontSize.body, lineHeight: 26 },
@@ -886,8 +890,14 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       color: colors.onSignature,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
       textAlign: "center",
+    },
+    results: {
+      gap: spacing.md,
+      padding: spacing.lg,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface,
     },
     result: { gap: 6 },
     resultLine: {
