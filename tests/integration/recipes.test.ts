@@ -688,7 +688,7 @@ describe("le carnet dans le vote", () => {
 });
 
 describe("les recettes de base, lot 2", () => {
-  test("10 recettes, chaque ligne reliée à Ciqual ; un poulet compte sa part mangée", async () => {
+  test("10 recettes avec leur astuce, chaque ligne reliée à Ciqual ; un poulet compte sa part mangée", async () => {
     await signInAs(alice);
     const lot2 = (await fetchBaseRecipes()).filter((recipe) =>
       /^00000000-0000-4000-8000-0000000000(1[1-9]|20)$/.test(recipe.id),
@@ -700,6 +700,7 @@ describe("les recettes de base, lot 2", () => {
         recipe.ingredients.every((line) => line.food !== null),
         `${recipe.title} : chaque ligne a son aliment`,
       );
+      assert.ok(recipe.chefTip, `${recipe.title} : une astuce du chef`);
     }
 
     const chili = await fetchRecipe("00000000-0000-4000-8000-000000000013");
