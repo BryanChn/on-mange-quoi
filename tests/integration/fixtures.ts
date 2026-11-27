@@ -162,6 +162,31 @@ export async function listPhotos(userId: string): Promise<string[]> {
   return data.map((file) => `${userId}/${file.name}`);
 }
 
+// Photo d'une recette de base (migration base_recipe_photos) : envoyée avec la clé admin,
+// comme en ligne, puis posée sur la recette. Renvoie son chemin.
+export async function setBaseRecipePhoto(recipeId: string): Promise<string> {
+  const path = `base/${recipeId}.jpg`;
+  const { error: uploadError } = await admin.storage
+    .from("recipe-photos")
+    .upload(path, new Uint8Array(2048).fill(9), { contentType: "image/jpeg", upsert: true });
+  if (uploadError) throw uploadError;
+  const { error } = await admin.from("recipes").update({ photo_path: path }).eq("id", recipeId);
+  if (error) throw error;
+  return path;
+}
+
+// Le fichier existe-t-il encore ? Clé admin : voit au-delà des règles d'accès.
+export async function recipePhotoExists(path: string): Promise<boolean> {
+  const { data, error } = await admin.storage.from("recipe-photos").download(path);
+  if (error) return false;
+  return data.size > 0;
+}
+
+export async function removeBaseRecipePhoto(path: string): Promise<void> {
+  const { error } = await admin.storage.from("recipe-photos").remove([path]);
+  if (error) throw error;
+}
+
 // Exécute ce que pg_cron lance toutes les heures, à l'heure choisie.
 export async function purgeSoirees(referenceTime: Date): Promise<number> {
   const { data, error } = await admin.rpc("purge_soirees", {
