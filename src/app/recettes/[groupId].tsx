@@ -223,7 +223,7 @@ export default function CarnetScreen() {
                       ? "Déjà dans le carnet"
                       : recipeSubtitle(recipe.servings, recipe.ingredientCount)
                   }
-                  leading={<RecipeTile recipeId={recipe.id} />}
+                  leading={<RecipeTile recipeId={recipe.id} photoPath={recipe.photoPath} />}
                   hasChevron
                   onPress={() => openRecipe(copyId ?? recipe.id)}
                 />

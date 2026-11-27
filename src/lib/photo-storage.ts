@@ -8,6 +8,18 @@ const BUCKET = "avatars";
 // Photos des recettes (migration recipes) : <foyer>/<uuid>.jpg, visibles par le foyer.
 export const RECIPE_BUCKET = "recipe-photos";
 
+// Photo d'une recette de base (migration base_recipe_photos) : base/<uuid>.jpg, partagée par
+// toutes ses copies. L'app ne l'efface jamais (le stockage le refuserait aussi) : une copie
+// qui change ou retire sa photo laisse l'originale aux autres foyers.
+export function isBaseRecipePhoto(path: string): boolean {
+  return path.startsWith("base/");
+}
+
+async function removeOwnRecipePhoto(path: string): Promise<void> {
+  if (isBaseRecipePhoto(path)) return;
+  await supabase.storage.from(RECIPE_BUCKET).remove([path]);
+}
+
 // Lien temporaire : valable 1 h, redemandé 5 min avant la fin.
 const URL_LIFETIME_S = 60 * 60;
 const URL_MARGIN_MS = 5 * 60 * 1000;
@@ -130,7 +142,7 @@ export async function uploadRecipePhoto(
   }
 
   // L'ancienne photo ne sert plus. Un échec ici ne change rien pour l'utilisateur.
-  if (previousPath) await supabase.storage.from(RECIPE_BUCKET).remove([previousPath]);
+  if (previousPath) await removeOwnRecipePhoto(previousPath);
   return path;
 }
 
@@ -138,11 +150,11 @@ export async function uploadRecipePhoto(
 export async function removeRecipePhoto(recipeId: string, path: string): Promise<void> {
   const { error } = await supabase.from("recipes").update({ photo_path: null }).eq("id", recipeId);
   if (error) throw error;
-  await supabase.storage.from(RECIPE_BUCKET).remove([path]);
+  await removeOwnRecipePhoto(path);
 }
 
 // Après le retrait d'une recette : son fichier ne sert plus (Supabase interdit de l'effacer
 // en SQL). Un échec laisse un fichier orphelin, sans gêner personne (purge prévue au backlog).
 export async function removeRecipePhotoFile(path: string): Promise<void> {
-  await supabase.storage.from(RECIPE_BUCKET).remove([path]);
+  await removeOwnRecipePhoto(path);
 }

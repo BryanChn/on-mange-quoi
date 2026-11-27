@@ -20,8 +20,11 @@ import {
 } from "../../src/lib/recipes.ts";
 import { fetchHome } from "../../src/lib/home.ts";
 import {
+  clearPhotoUrlCache,
+  getPhotoUrl,
   RECIPE_BUCKET,
   removeRecipePhoto,
+  removeRecipePhotoFile,
   uploadRecipePhoto,
 } from "../../src/lib/photo-storage.ts";
 import { macrosPerServing } from "../../src/lib/recipe-rules.ts";
@@ -40,7 +43,11 @@ import {
   createGroup,
   createUser,
   deleteBaseRecipe,
+  recipePhotoExists,
+  removeBaseRecipePhoto,
+  setBaseRecipePhoto,
   signInAs,
+  signInAsNewGuest,
   type TestUser,
 } from "./fixtures.ts";
 import { supabase } from "./supabase-test-client.ts";
@@ -322,6 +329,81 @@ describe("les photos des recettes", () => {
       .update({ photo_path: path(danFoyerId) })
       .eq("id", id);
     assert.ok(error, "le chemin doit commencer par le dossier du foyer");
+  });
+});
+
+describe("les photos des recettes de base", () => {
+  let photoBaseId: string;
+  let basePath: string;
+  const photo = () => new Uint8Array(2048).fill(7);
+
+  before(async () => {
+    photoBaseId = await createBaseRecipe("Riz cantonais (test)");
+    basePath = await setBaseRecipePhoto(photoBaseId);
+  });
+
+  after(async () => {
+    await deleteBaseRecipe(photoBaseId);
+    await removeBaseRecipePhoto(basePath);
+  });
+
+  test("visible par tous les comptes, même sans foyer commun ; pas par un invité", async () => {
+    await signInAs(dan);
+    clearPhotoUrlCache();
+    const base = (await fetchBaseRecipes()).find((summary) => summary.id === photoBaseId);
+    assert.equal(base?.photoPath, basePath);
+    const url = await getPhotoUrl(basePath, RECIPE_BUCKET);
+    assert.ok(url, "Dan voit la photo d'une recette de base");
+    assert.equal((await fetch(url)).status, 200);
+
+    await signInAsNewGuest();
+    const guest = await supabase.storage.from(RECIPE_BUCKET).createSignedUrl(basePath, 60);
+    assert.ok(guest.error, "un invité anonyme ne voit pas les recettes de base");
+  });
+
+  test("personne n'envoie, ne remplace ni n'efface une photo de base depuis l'app", async () => {
+    await signInAs(alice);
+    const bucket = supabase.storage.from(RECIPE_BUCKET);
+    const sent = await bucket.upload(`base/${crypto.randomUUID()}.jpg`, photo(), {
+      contentType: "image/jpeg",
+    });
+    assert.ok(sent.error, "envoi dans base/");
+    const replaced = await bucket.upload(basePath, photo(), {
+      contentType: "image/jpeg",
+      upsert: true,
+    });
+    assert.ok(replaced.error, "remplacement de la photo de base");
+    await bucket.remove([basePath]);
+    assert.equal(await recipePhotoExists(basePath), true, "la photo de base est toujours là");
+  });
+
+  test("la copie garde la photo ; la changer ou la retirer laisse l'originale", async () => {
+    const groupId = await createGroup(alice, [bea]);
+    await signInAs(alice);
+    const copyId = await copyBaseRecipe(photoBaseId, groupId);
+    assert.equal((await fetchRecipe(copyId)).photoPath, basePath);
+
+    const own = await uploadRecipePhoto(groupId, copyId, photo(), basePath);
+    assert.match(own, new RegExp(`^${groupId}/`));
+    assert.equal(await recipePhotoExists(basePath), true, "après le changement");
+
+    await removeRecipePhoto(copyId, own);
+    assert.equal((await fetchRecipe(copyId)).photoPath, null);
+
+    // Retour à la photo de base (c'est elle que pointe une nouvelle copie), puis retrait de la
+    // recette : le fichier de base ne bouge pas.
+    const back = await supabase.from("recipes").update({ photo_path: basePath }).eq("id", copyId);
+    assert.equal(back.error, null);
+    await deleteRecipe(copyId);
+    await removeRecipePhotoFile(basePath);
+    assert.equal(await recipePhotoExists(basePath), true, "après le retrait de la copie");
+  });
+
+  test("une recette écrite par le foyer ne pointe pas vers base/", async () => {
+    await signInAs(alice);
+    const id = await saveRecipe(foyerId, null, bolo);
+    const { error } = await supabase.from("recipes").update({ photo_path: basePath }).eq("id", id);
+    assert.equal(error?.code, "23514");
   });
 });
 
