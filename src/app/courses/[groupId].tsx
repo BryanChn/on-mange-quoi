@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
 import { ShoppingTripCard } from "@/components/shopping-trip-card";
-import { Section } from "@/components/section";
+import { SectionHeader } from "@/components/section";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
@@ -35,7 +35,8 @@ import {
   colorTransition,
   dishEntering,
   dishExiting,
-  dishLayout,
+  LIST_SETTLE_DELAY_MS,
+  listReorder,
 } from "@/lib/motion";
 import { useSession } from "@/lib/session";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
@@ -59,6 +60,8 @@ import {
   SHOPPING_LABEL_MAX_LENGTH,
   SHOPPING_QUANTITY_MAX_LENGTH,
   sortShoppingList,
+  splitShoppingList,
+  type ShoppingSection,
   type ShoppingHistoryEntry,
   type ShoppingItem,
   type ShoppingSuggestion,
@@ -109,6 +112,10 @@ export default function ShoppingListScreen() {
   const [addingSuggestion, setAddingSuggestion] = useState<string | null>(null);
   // Coches affichées dès le toucher, avant la réponse du serveur (on coche vite en magasin).
   const [pendingChecks, setPendingChecks] = useState<Map<string, boolean>>(new Map());
+  // Les articles tout juste cochés ou décochés, retenus dans leur section d'avant pendant le
+  // temps de pose : la liste ne bouge pas sous le doigt, puis tout glisse ensemble.
+  const [held, setHeld] = useState<Map<string, ShoppingSection>>(new Map());
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
@@ -171,16 +178,18 @@ export default function ShoppingListScreen() {
     }),
   );
   const suggestions = buildSuggestions(list.history, items);
-  const toBuy = items.filter((item) => item.checkedAt === null);
-  const taken = items.filter((item) => item.checkedAt !== null);
+  // Le résumé et la barre comptent tout de suite ; les sections attendent le temps de pose.
+  const toBuyCount = items.filter((item) => item.checkedAt === null).length;
+  const takenCount = items.length - toBuyCount;
+  const { toBuy, taken } = splitShoppingList(items, held);
   const total = items.length;
 
   const summary =
     total === 0
       ? "Rien à acheter pour l’instant"
-      : toBuy.length === 0
+      : toBuyCount === 0
         ? "Tout est pris, bravo !"
-        : `${toBuy.length} à acheter${taken.length > 0 ? ` · ${taken.length} déjà pris` : ""}`;
+        : `${toBuyCount} à acheter${takenCount > 0 ? ` · ${takenCount} déjà pris` : ""}`;
 
   function nameOf(profileId: string | null): string {
     if (profileId === null) return "quelqu’un";
@@ -283,9 +292,24 @@ export default function ShoppingListScreen() {
     }
   }
 
+  // Retient l'article à sa place, et relance le temps de pose : les articles cochés à la suite
+  // glissent ensemble, une fois qu'on a fini. Pas de nettoyage au démontage : mettre à jour un
+  // écran déjà quitté ne fait rien.
+  function holdInPlace(item: ShoppingItem) {
+    setHeld((current) =>
+      new Map(current).set(
+        item.id,
+        current.get(item.id) ?? (item.checkedAt === null ? "toBuy" : "taken"),
+      ),
+    );
+    if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = setTimeout(() => setHeld(new Map()), LIST_SETTLE_DELAY_MS);
+  }
+
   async function handleToggle(item: ShoppingItem) {
     const checked = item.checkedAt === null;
     hapticToggle(checked);
+    holdInPlace(item);
     setError(null);
     setPendingChecks((current) => new Map(current).set(item.id, checked));
     try {
@@ -428,7 +452,9 @@ export default function ShoppingListScreen() {
     );
   }
 
-  function renderItem(item: ShoppingItem, index: number) {
+  // Une ligne posée à plat dans la colonne : elle porte elle-même le fond et les coins de sa
+  // section (première, dernière), pour pouvoir glisser d'une section à l'autre.
+  function renderItem(item: ShoppingItem, index: number, count: number) {
     const isTaken = item.checkedAt !== null;
     const description = item.quantity ? `${item.label}, ${item.quantity}` : item.label;
     const checker = item.checkedBy ? list?.members.get(item.checkedBy) : undefined;
@@ -438,8 +464,12 @@ export default function ShoppingListScreen() {
         key={item.id}
         entering={dishEntering}
         exiting={dishExiting}
-        layout={dishLayout}
-        style={index > 0 && styles.separated}
+        layout={listReorder}
+        style={[
+          styles.itemBlock,
+          index === 0 && styles.itemFirst,
+          index === count - 1 && styles.itemLast,
+        ]}
       >
         {item.id === editingId ? (
           renderEditPanel(item)
@@ -458,7 +488,11 @@ export default function ShoppingListScreen() {
             onAccessibilityAction={(event) => {
               if (event.nativeEvent.actionName === "edit") startEdit(item);
             }}
-            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.row,
+              index > 0 && styles.separated,
+              pressed && styles.pressed,
+            ]}
           >
             <Animated.View
               style={[styles.checkbox, colorTransition, isTaken && styles.checkboxChecked]}
@@ -476,7 +510,7 @@ export default function ShoppingListScreen() {
               {isTaken ? (
                 <View style={styles.takenBy}>
                   <Avatar
-                    name={nameOf(item.checkedBy)}
+                    name={checker?.name ?? nameOf(item.checkedBy)}
                     avatar={checker?.avatar ?? null}
                     photoPath={checker?.photoPath ?? null}
                     size={18}
@@ -524,14 +558,11 @@ export default function ShoppingListScreen() {
             style={styles.progressTrack}
             accessible
             accessibilityRole="progressbar"
-            accessibilityLabel={`${taken.length} pris sur ${total}`}
-            accessibilityValue={{ min: 0, max: total, now: taken.length }}
+            accessibilityLabel={`${takenCount} pris sur ${total}`}
+            accessibilityValue={{ min: 0, max: total, now: takenCount }}
           >
             <View
-              style={[
-                styles.progressFill,
-                { width: `${Math.round((taken.length / total) * 100)}%` },
-              ]}
+              style={[styles.progressFill, { width: `${Math.round((takenCount / total) * 100)}%` }]}
             />
           </View>
         ) : null}
@@ -636,34 +667,53 @@ export default function ShoppingListScreen() {
       ) : null}
 
       {/* Pas d'animation d'entrée au premier affichage : seulement quand la liste bouge. */}
+      {/* Une seule colonne pour les deux sections : un article coché garde son identité et
+          glisse jusqu'à « Déjà pris » (au lieu de disparaître d'une liste pour réapparaître
+          dans l'autre). Pas d'animation d'entrée au premier affichage. */}
       <LayoutAnimationConfig skipEntering>
-        <Section title={`À acheter · ${toBuy.length}`}>
-          <View style={styles.listCard}>
-            {toBuy.length === 0 ? (
+        <View>
+          <Animated.View layout={listReorder} style={styles.sectionHead}>
+            <SectionHeader title={`À acheter · ${toBuy.length}`} />
+          </Animated.View>
+          {toBuy.length === 0 ? (
+            <Animated.View
+              key="vide"
+              entering={dishEntering}
+              exiting={dishExiting}
+              layout={listReorder}
+              style={[styles.itemBlock, styles.itemFirst, styles.itemLast]}
+            >
               <Text style={styles.empty}>
                 {taken.length === 0
                   ? "La liste est vide. Ajoute ce qui manque à la maison."
                   : "Tout est pris, bravo !"}
               </Text>
-            ) : (
-              toBuy.map(renderItem)
-            )}
-          </View>
-        </Section>
+            </Animated.View>
+          ) : (
+            toBuy.map((item, index) => renderItem(item, index, toBuy.length))
+          )}
 
-        {taken.length > 0 ? (
-          <Section
-            title={`Déjà pris · ${taken.length}`}
-            action={{
-              label: taken.length > 1 ? `Retirer les ${taken.length} achetés` : "Retirer l’acheté",
-              onPress: () => {
-                if (!isClearing) handleClear();
-              },
-            }}
-          >
-            <View style={styles.listCard}>{taken.map(renderItem)}</View>
-          </Section>
-        ) : null}
+          {taken.length > 0 ? (
+            <Animated.View
+              key="deja-pris"
+              entering={dishEntering}
+              exiting={dishExiting}
+              layout={listReorder}
+              style={[styles.sectionHead, styles.sectionGap]}
+            >
+              <SectionHeader
+                title={`Déjà pris · ${taken.length}`}
+                action={{
+                  label: takenCount > 1 ? `Retirer les ${takenCount} achetés` : "Retirer l’acheté",
+                  onPress: () => {
+                    if (!isClearing) handleClear();
+                  },
+                }}
+              />
+            </Animated.View>
+          ) : null}
+          {taken.map((item, index) => renderItem(item, index, taken.length))}
+        </View>
       </LayoutAnimationConfig>
     </ScrollView>
   );
@@ -741,12 +791,24 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     suggestionText: { color: colors.text, fontSize: fontSize.small, fontWeight: "700" },
 
-    listCard: {
+    sectionHead: { paddingBottom: spacing.sm },
+    sectionGap: { paddingTop: spacing.xl },
+    // Le fond d'une ligne ; les coins arrondis vont à la première et à la dernière de la section.
+    // Chaque ligne recouvre l'ombre de la précédente : l'ensemble garde une seule ombre.
+    itemBlock: {
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.xs,
-      borderRadius: radius.lg,
       backgroundColor: colors.surface,
       boxShadow: cardShadow,
+    },
+    itemFirst: {
+      paddingTop: spacing.xs,
+      borderTopLeftRadius: radius.lg,
+      borderTopRightRadius: radius.lg,
+    },
+    itemLast: {
+      paddingBottom: spacing.xs,
+      borderBottomLeftRadius: radius.lg,
+      borderBottomRightRadius: radius.lg,
     },
     separated: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
     empty: { color: colors.textMuted, fontSize: fontSize.small, paddingVertical: spacing.lg },

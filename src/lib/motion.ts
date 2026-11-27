@@ -55,3 +55,17 @@ export const dishExiting = FadeOut.duration(150).easing(EASE_OUT).reduceMotion(R
 export const dishLayout = LinearTransition.duration(200)
   .easing(EASE_IN_OUT)
   .reduceMotion(ReduceMotion.System);
+
+// Liste de courses : un article coché glisse jusqu'à « Déjà pris » comme si on l'y déposait
+// (ressort amorti, sans rebond visible : il part vite et se pose en douceur). Plus lent que
+// dishLayout parce que le trajet est long (d'une section à l'autre). En mouvements réduits,
+// il change de place sans glisser.
+export const listReorder = LinearTransition.springify()
+  .damping(26)
+  .stiffness(200)
+  .mass(1)
+  .reduceMotion(ReduceMotion.System);
+
+// Le temps de pose avant que les articles cochés glissent : assez pour cocher le suivant
+// sans que la liste bouge sous le doigt, assez court pour voir le résultat.
+export const LIST_SETTLE_DELAY_MS = 900;

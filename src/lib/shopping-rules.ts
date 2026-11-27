@@ -16,17 +16,41 @@ export type ShoppingItem = {
   createdAt: string;
 };
 
+// Ordre d'ajout ; deux articles ajoutés d'un coup (même instant, depuis une recette) gardent
+// toujours le même ordre entre eux : sans ça, cocher l'un pouvait faire sauter l'autre.
+function byAddedOrder(a: ShoppingItem, b: ShoppingItem): number {
+  return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
+}
+
 // Ce qui reste à acheter d'abord, dans l'ordre d'ajout (on remplit la liste au fil de la
 // semaine) ; puis ce qui est déjà pris, le dernier pris en tête (on voit ce qui vient
 // d'être mis dans le caddie).
 export function sortShoppingList(items: ShoppingItem[]): ShoppingItem[] {
-  const toBuy = items
-    .filter((item) => item.checkedAt === null)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const toBuy = items.filter((item) => item.checkedAt === null).sort(byAddedOrder);
   const taken = items
     .filter((item) => item.checkedAt !== null)
     .sort((a, b) => (b.checkedAt ?? "").localeCompare(a.checkedAt ?? ""));
   return [...toBuy, ...taken];
+}
+
+export type ShoppingSection = "toBuy" | "taken";
+
+// Les deux sections affichées. Un article qu'on vient de cocher (ou décocher) reste un instant
+// dans sa section d'avant (held), à sa place : on peut cocher le suivant sans que la liste
+// bouge sous le doigt, puis tout glisse ensemble. Même ordre que sortShoppingList.
+export function splitShoppingList(
+  items: ShoppingItem[],
+  held: ReadonlyMap<string, ShoppingSection>,
+): Record<ShoppingSection, ShoppingItem[]> {
+  const sectionOf = (item: ShoppingItem): ShoppingSection =>
+    held.get(item.id) ?? (item.checkedAt === null ? "toBuy" : "taken");
+  return {
+    toBuy: items.filter((item) => sectionOf(item) === "toBuy").sort(byAddedOrder),
+    // Un article décoché retenu ici n'a plus d'heure : il reste en bas de la section.
+    taken: items
+      .filter((item) => sectionOf(item) === "taken")
+      .sort((a, b) => (b.checkedAt ?? "").localeCompare(a.checkedAt ?? "")),
+  };
 }
 
 // Texte saisi → valeurs à enregistrer : espaces superflus retirés, quantité vide = null.
