@@ -120,7 +120,7 @@ function RootNavigator() {
           options={{
             presentation: "formSheet",
             headerShown: false,
-            sheetAllowedDetents: [0.85, 1],
+            sheetAllowedDetents: [0.92],
             sheetGrabberVisible: true,
             sheetCornerRadius: 20,
           }}

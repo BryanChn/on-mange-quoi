@@ -1,13 +1,13 @@
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { IngredientList } from "@/components/ingredient-list";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { servingsLabel } from "@/lib/recipe-rules";
 import { fetchRecipe, type Recipe } from "@/lib/recipes";
 import { loadErrorMessage } from "@/lib/network-errors";
+import { useSheetBottomInset } from "@/lib/use-sheet-bottom-inset";
 import { useTheme, type Theme } from "@/theme";
 
 // La feuille des ingrédients, ouverte depuis une étape du mode cuisine (feuille native :
@@ -17,7 +17,7 @@ export default function IngredientsSheet() {
   const { id, servings: servingsParam } = useLocalSearchParams<{ id: string; servings?: string }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const insets = useSafeAreaInsets();
+  const bottomInset = useSheetBottomInset();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
 
@@ -50,7 +50,7 @@ export default function IngredientsSheet() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + theme.spacing.xl }]}
+      contentContainerStyle={[styles.content, { paddingBottom: bottomInset + theme.spacing.xl }]}
     >
       <Text style={styles.title} accessibilityRole="header">
         Ingrédients · {servingsLabel(servings)}
