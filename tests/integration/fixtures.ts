@@ -321,6 +321,17 @@ export async function mealDigestState(groupId: string): Promise<MealDigestState>
   };
 }
 
+// Antidate l'arrivée d'un participant (posée « maintenant » par la base) : les nouveautés d'un
+// repas se comptent d'après elle.
+export async function setJoinedAt(groupId: string, profileId: string, at: Date): Promise<void> {
+  const { error } = await admin
+    .from("group_members")
+    .update({ joined_at: at.toISOString() })
+    .eq("group_id", groupId)
+    .eq("profile_id", profileId);
+  if (error) throw error;
+}
+
 // Antidate les marques d'un repas (les triggers les posent « maintenant »).
 export async function setMealDigest(
   groupId: string,
