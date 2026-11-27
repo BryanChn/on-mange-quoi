@@ -191,8 +191,8 @@ test("voteProgressLabel : sans plat, seul, personne, singulier, pluriel", () => 
   assert.equal(voteProgressLabel(0, of(0, 3)), "Aucun plat pour l’instant. Lance les idées !");
   assert.equal(voteProgressLabel(1, of(0, 1)), "1 plat proposé");
   assert.equal(voteProgressLabel(2, of(0, 3)), "2 plats proposés · personne n’a encore voté");
-  assert.equal(voteProgressLabel(1, of(1, 3)), "1 plat proposé · 1 personne sur 3 a voté");
-  assert.equal(voteProgressLabel(3, of(2, 3)), "3 plats proposés · 2 personnes sur 3 ont voté");
+  assert.equal(voteProgressLabel(1, of(1, 3)), "1 plat proposé · 1 sur 3 a voté");
+  assert.equal(voteProgressLabel(3, of(2, 3)), "3 plats proposés · 2 sur 3 ont voté");
 });
 
 test("participationLine : on attend encore quelqu'un", () => {

@@ -3,9 +3,9 @@ import {
   BricolageGrotesque_800ExtraBold,
   useFonts,
 } from "@expo-google-fonts/bricolage-grotesque";
-import { Stack, useSegments } from "expo-router";
+import { router, Stack, useSegments, type ErrorBoundaryProps } from "expo-router";
 
-import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
+import { CrashScreen, ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { errorMessage } from "@/lib/network-errors";
 import { useNotificationRedirect, usePushRegistration } from "@/lib/notifications";
 import { ProfileProvider, useProfile } from "@/lib/profile";
@@ -18,6 +18,21 @@ import { useTheme } from "@/theme";
 export const unstable_settings = {
   initialRouteName: "index",
 };
+
+// Filet anti-crash : une erreur pendant l'affichage d'un écran (donnée inattendue, bug) montre
+// ce message au lieu d'un écran blanc. Expo Router l'utilise pour tous les écrans sans le leur.
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  console.error("Écran en erreur", error);
+  return (
+    <CrashScreen
+      onRetry={retry}
+      onGoHome={() => {
+        router.replace("/");
+        void retry();
+      }}
+    />
+  );
+}
 
 export default function RootLayout() {
   return (
