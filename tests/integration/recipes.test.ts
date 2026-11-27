@@ -687,6 +687,31 @@ describe("le carnet dans le vote", () => {
   });
 });
 
+describe("les recettes de base, lot 2", () => {
+  test("10 recettes avec leur astuce, chaque ligne reliée à Ciqual ; un poulet compte sa part mangée", async () => {
+    await signInAs(alice);
+    const lot2 = (await fetchBaseRecipes()).filter((recipe) =>
+      /^00000000-0000-4000-8000-0000000000(1[1-9]|20)$/.test(recipe.id),
+    );
+    assert.equal(lot2.length, 10);
+    for (const summary of lot2) {
+      const recipe = await fetchRecipe(summary.id);
+      assert.ok(
+        recipe.ingredients.every((line) => line.food !== null),
+        `${recipe.title} : chaque ligne a son aliment`,
+      );
+      assert.ok(recipe.chefTip, `${recipe.title} : une astuce du chef`);
+    }
+
+    const chili = await fetchRecipe("00000000-0000-4000-8000-000000000013");
+    assert.ok(chili.diets.includes("vegan"));
+    // 1 poulet = 1 000 g mangés (pas 1,5 kg avec la carcasse) : moins de 800 kcal la part.
+    const poulet = await fetchRecipe("00000000-0000-4000-8000-000000000014");
+    const macros = macrosPerServing(poulet.ingredients, poulet.servings);
+    assert.ok(macros && macros.kcal > 600 && macros.kcal < 800, `${macros?.kcal} kcal`);
+  });
+});
+
 describe("les recettes de base, lot 1", () => {
   test("chaque recette a son astuce du chef", async () => {
     await signInAs(alice);

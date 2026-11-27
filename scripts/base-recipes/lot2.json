@@ -1,0 +1,281 @@
+{
+  "lot": 2,
+  "unitWeights": [
+    [26043, 150, "Cabillaud, cru (un dos)"],
+    [36016, 1000, "Poulet, viande et peau crues (la part mangée d'un poulet de 1,5 kg)"]
+  ],
+  "recipes": [
+    {
+      "n": 11,
+      "title": "Lasagnes à la bolognaise",
+      "servings": 6,
+      "minutes": 110,
+      "budget": 2,
+      "diets": ["sans_porc"],
+      "steps": [
+        "Hache finement l'oignon, la carotte et l'ail, et fais-les fondre 8 min dans l'huile à feu doux : c'est la base du goût.",
+        "Monte le feu, ajoute le bœuf et laisse-le dorer avant de l'émietter. Verse le coulis, sale, poivre et laisse mijoter au moins 30 min à feu doux, à demi couvert.",
+        "Béchamel : fais fondre le beurre, ajoute la farine et remue 1 min sans colorer. Verse le lait petit à petit en fouettant, jusqu'à ce que la sauce nappe la cuillère. Sale, poivre et ajoute la muscade.",
+        "Préchauffe le four à 180 °C. Dans un plat, alterne trois fois une couche de sauce à la viande, des feuilles de lasagne et de la béchamel.",
+        "Finis par la béchamel et l'emmental. Enfourne 35 min, jusqu'à ce que le dessus soit doré et que ça bouillonne sur les bords. Laisse reposer 10 min avant de couper."
+      ],
+      "chefTip": "Une lasagne se mérite deux fois : au mijotage, puis au repos. 30 min de sauce, c'est le minimum pour que la viande et la tomate se marient. Et 10 min hors du four, c'est ce qui donne des parts nettes au lieu d'une coulée.",
+      "ingredients": [
+        ["Feuilles de lasagne", "250 g", 9810],
+        ["Bœuf haché", "500 g", 6254],
+        ["Coulis de tomate", "500 g", 20260],
+        ["Oignon", "1", 20034],
+        ["Carotte", "1", 20009],
+        ["Gousses d'ail", "2", 11000],
+        ["Huile d'olive", "2 c. à soupe", 17270],
+        ["Beurre", "50 g", 16400],
+        ["Farine", "50 g", 9435],
+        ["Lait", "60 cl", 19041],
+        ["Muscade", "1 pincée", 11048],
+        ["Emmental râpé", "100 g", 12118],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 12,
+      "title": "Quiche poireaux et chèvre",
+      "servings": 6,
+      "minutes": 70,
+      "budget": 1,
+      "diets": ["vegetarien", "sans_porc"],
+      "steps": [
+        "Préchauffe le four à 180 °C. Étale la pâte dans un moule et pique-la à la fourchette. Couvre-la de papier cuisson et de légumes secs, et cuis-la 15 min à blanc.",
+        "Pendant ce temps, lave les poireaux, coupe-les en fines rondelles et fais-les fondre 10 min dans le beurre à feu doux, avec une pincée de sel, jusqu'à ce qu'il ne reste plus d'eau dans la poêle.",
+        "Bats les œufs avec la crème et le lait. Poivre et ajoute un peu de muscade.",
+        "Retire le papier et les légumes secs. Répartis les poireaux sur la pâte, puis le chèvre en rondelles, et verse les œufs battus.",
+        "Cuis 30 min, jusqu'à ce que la quiche soit dorée et à peine tremblante au centre. Attends 10 min avant de la découper."
+      ],
+      "chefTip": "Un fond croustillant se gagne avant la garniture. Cuire la pâte à blanc la saisit, et des poireaux bien fondus, sans eau, ne la détrempent pas. Sors la quiche quand le centre tremble encore un peu : elle finit de prendre en tiédissant.",
+      "ingredients": [
+        ["Pâte brisée", "1", 23414],
+        ["Poireaux", "3", 20039],
+        ["Fromage de chèvre (bûche)", "150 g", 12812],
+        ["Œufs", "3", 22000],
+        ["Crème fraîche", "20 cl", 19410],
+        ["Lait", "10 cl", 19041],
+        ["Beurre", "15 g", 16400],
+        ["Muscade", "1 pincée", 11048],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 13,
+      "title": "Chili sin carne",
+      "servings": 4,
+      "minutes": 45,
+      "budget": 1,
+      "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Cuis le riz selon le paquet.",
+        "Émince l'oignon, coupe le poivron en dés et hache l'ail. Fais-les revenir 6 à 8 min dans l'huile, jusqu'à ce que l'oignon commence à dorer.",
+        "Ajoute le cumin, le paprika et le piment, et remue 1 min dans l'huile pour réveiller les épices.",
+        "Verse les tomates, les haricots rouges rincés et le maïs. Sale et laisse mijoter 20 min à feu doux en remuant de temps en temps. Écrase quelques haricots contre la paroi pour lier la sauce.",
+        "Goûte, ajuste le piment et sers avec le riz."
+      ],
+      "chefTip": "Sans viande, un chili a besoin de profondeur. Les épices grillées dans l'huile en donnent, les haricots écrasés donnent du moelleux. Comme tous les plats mijotés, il est encore meilleur le lendemain.",
+      "ingredients": [
+        ["Haricots rouges en conserve (égouttés)", "500 g", 20524],
+        ["Maïs doux en conserve (égoutté)", "150 g", 20066],
+        ["Tomates concassées", "400 g", 20137],
+        ["Oignon", "1", 20034],
+        ["Poivron rouge", "1", 20087],
+        ["Gousses d'ail", "2", 11000],
+        ["Cumin", "1 c. à café", 11042],
+        ["Paprika", "1 c. à café", 11049],
+        ["Piment de Cayenne", "1 pincée", 11088],
+        ["Huile d'olive", "1 c. à soupe", 17270],
+        ["Riz", "250 g", 9100],
+        ["Sel", "au goût", 11017]
+      ]
+    },
+    {
+      "n": 14,
+      "title": "Poulet rôti et pommes de terre",
+      "servings": 4,
+      "minutes": 100,
+      "budget": 2,
+      "diets": ["sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Si tu peux, sale le poulet quelques heures avant, ou la veille, et laisse-le à découvert au réfrigérateur : la peau sèche et sera plus croustillante. Sors-le 30 min avant de le cuire.",
+        "Préchauffe le four à 200 °C. Épluche les pommes de terre, coupe-les en gros morceaux et mets-les dans un grand plat avec l'ail en chemise, le thym, 2 c. à soupe d'huile, du sel et du poivre.",
+        "Sèche bien le poulet avec du papier absorbant, pose-le au centre, badigeonne-le du reste de l'huile et poivre-le.",
+        "Enfourne 1 h 15, en l'arrosant de son jus toutes les 20 min et en retournant les pommes de terre une fois.",
+        "Il est cuit quand le jus qui coule de la cuisse est clair, ou à 74 °C à cœur au thermomètre. Laisse-le reposer 10 min sous une feuille d'aluminium avant de le découper."
+      ],
+      "chefTip": "La peau croustillante se prépare à l'avance. Le sel posé tôt tire l'eau de la peau, et une peau sèche dore au lieu de bouillir. Le repos de 10 min, lui, garde le jus dans la chair au lieu de le laisser couler sur la planche.",
+      "ingredients": [
+        ["Poulet entier (1,5 kg)", "1", 36016],
+        ["Pommes de terre", "1 kg", 4008],
+        ["Gousses d'ail", "6", 11000],
+        ["Thym", "quelques branches", 11070],
+        ["Huile d'olive", "3 c. à soupe", 17270],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 15,
+      "title": "Velouté de potiron",
+      "servings": 4,
+      "minutes": 40,
+      "budget": 1,
+      "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Épluche le potiron et les pommes de terre, et coupe-les en cubes. Émince l'oignon.",
+        "Fais fondre l'oignon 3 min dans l'huile, ajoute les légumes et laisse-les colorer légèrement 5 min en remuant.",
+        "Couvre avec le bouillon et cuis 25 min à petits bouillons, jusqu'à ce que les légumes s'écrasent à la fourchette.",
+        "Mixe longuement, 1 à 2 min, jusqu'à ce que ce soit bien lisse. Ajoute le lait de coco, sale, poivre et râpe un peu de muscade. Rallonge d'eau si c'est trop épais."
+      ],
+      "chefTip": "Le goût se construit avant le bouillon. Quelques minutes de coloration dans l'huile donnent des notes caramélisées qu'aucune épice ne remplace. Pour aller plus loin, rôtis le potiron 30 min au four à 220 °C avant de le mixer.",
+      "ingredients": [
+        ["Potiron (épluché)", "1 kg", 20044],
+        ["Pommes de terre", "300 g", 4008],
+        ["Oignon", "1", 20034],
+        ["Bouillon de légumes", "1 l", 25948],
+        ["Lait de coco", "10 cl", 18041],
+        ["Huile d'olive", "1 c. à soupe", 17270],
+        ["Muscade", "1 pincée", 11048],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 16,
+      "title": "Salade de lentilles",
+      "servings": 4,
+      "minutes": 35,
+      "budget": 1,
+      "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Rince les lentilles et mets-les dans trois fois leur volume d'eau froide. Cuis-les 20 à 25 min à petits frémissements : elles doivent rester un peu fermes. Sale à la fin et égoutte.",
+        "Pendant ce temps, cisèle l'échalote et mets-la dans le vinaigre avec une pincée de sel. Épluche les carottes, coupe-les en petits dés et cisèle le persil.",
+        "Ajoute la moutarde au vinaigre, puis l'huile en fouettant, et poivre.",
+        "Verse les lentilles encore tièdes dans la vinaigrette, avec les carottes et le persil, et mélange. Sers tiède ou froid."
+      ],
+      "chefTip": "Le vinaigre apprivoise l'échalote. Dix minutes dans l'acide et elle perd son piquant pour devenir douce et parfumée. Et des lentilles encore tièdes boivent la vinaigrette jusqu'au cœur.",
+      "ingredients": [
+        ["Lentilles vertes", "250 g", 20585],
+        ["Carottes", "2", 20009],
+        ["Échalote", "1", 20097],
+        ["Persil", "quelques brins", 11014],
+        ["Moutarde", "1 c. à soupe", 11013],
+        ["Vinaigre de vin", "2 c. à soupe", 11220],
+        ["Huile", "4 c. à soupe", 17440],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 17,
+      "title": "Pâtes au pesto et tomates cerises",
+      "servings": 4,
+      "minutes": 20,
+      "budget": 1,
+      "diets": ["vegetarien", "sans_porc"],
+      "steps": [
+        "Mets une grande casserole d'eau salée à bouillir et cuis les pâtes selon le paquet.",
+        "Fais griller les pignons 2 min à sec dans une poêle, jusqu'à ce qu'ils sentent bon, puis laisse-les refroidir.",
+        "Mixe le basilic, l'ail, les pignons, le parmesan et l'huile par petites impulsions, avec un glaçon, juste assez pour une sauce encore un peu granuleuse. Sale.",
+        "Coupe les tomates cerises en deux.",
+        "Égoutte les pâtes en gardant un peu d'eau de cuisson. Mélange-les au pesto hors du feu avec 2 ou 3 c. à soupe d'eau de cuisson, ajoute les tomates et sers aussitôt."
+      ],
+      "chefTip": "Le basilic déteste la chaleur. Un mixeur qui tourne longtemps le chauffe et le fait noircir : des impulsions courtes et un glaçon gardent le pesto bien vert. Et jamais sur le feu, la chaleur des pâtes suffit.",
+      "ingredients": [
+        ["Pâtes (penne ou fusilli)", "400 g", 9810],
+        ["Basilic frais", "50 g", 11033],
+        ["Pignons de pin", "30 g", 15025],
+        ["Parmesan râpé", "50 g", 12120],
+        ["Gousse d'ail", "1", 11000],
+        ["Huile d'olive", "10 cl", 17270],
+        ["Tomates cerises", "250 g", 20172],
+        ["Sel", "au goût", 11017]
+      ]
+    },
+    {
+      "n": 18,
+      "title": "Wok de nouilles, légumes et tofu",
+      "servings": 4,
+      "minutes": 30,
+      "budget": 2,
+      "diets": ["vegan", "vegetarien", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Cuis les nouilles selon le paquet, égoutte-les et passe-les sous l'eau froide pour qu'elles ne collent pas.",
+        "Coupe le tofu en cubes et sèche-le bien dans un torchon. Fais-le dorer 8 min dans la moitié de l'huile, à feu vif, sans trop le remuer, puis réserve-le.",
+        "Coupe le poivron en lanières, les carottes en bâtonnets et le brocoli en petits bouquets. Hache l'ail et râpe le gingembre : au wok, tout va très vite, alors tout doit être prêt avant.",
+        "Chauffe le reste de l'huile jusqu'à ce qu'elle fume légèrement et fais sauter les légumes 4 à 5 min à feu vif, avec l'ail et le gingembre : ils doivent rester croquants.",
+        "Ajoute les nouilles, le tofu et la sauce soja, mélange 2 min sur le feu et parsème de sésame."
+      ],
+      "chefTip": "Au wok, la chaleur et l'espace comptent plus que la recette. Trop de légumes d'un coup et ils cuisent à la vapeur au lieu de saisir : fais-les en deux fois si besoin. Un tofu bien sec dore, un tofu humide bout.",
+      "ingredients": [
+        ["Nouilles de blé (sans œuf)", "250 g", 9810],
+        ["Tofu nature", "400 g", 20904],
+        ["Poivron rouge", "1", 20087],
+        ["Carottes", "2", 20009],
+        ["Brocoli", "300 g", 20057],
+        ["Gousses d'ail", "2", 11000],
+        ["Gingembre frais", "1 morceau de 3 cm", 11074],
+        ["Sauce soja", "4 c. à soupe", 11104],
+        ["Huile", "2 c. à soupe", 17440],
+        ["Graines de sésame", "1 c. à soupe", 15010]
+      ]
+    },
+    {
+      "n": 19,
+      "title": "Cabillaud en papillote",
+      "servings": 4,
+      "minutes": 35,
+      "budget": 2,
+      "diets": ["sans_gluten", "sans_lactose", "sans_porc"],
+      "steps": [
+        "Préchauffe le four à 200 °C et cuis le riz selon le paquet.",
+        "Coupe les courgettes en fines rondelles, les tomates cerises en deux et le citron en rondelles.",
+        "Sur 4 grandes feuilles de papier cuisson, répartis les courgettes, pose un dos de cabillaud, puis les tomates, une rondelle de citron et le thym. Sale, poivre et arrose d'huile.",
+        "Ferme chaque papillote en repliant les bords plusieurs fois, bien serré, pour garder la vapeur à l'intérieur.",
+        "Cuis 15 à 18 min : la papillote gonfle, et le poisson est cuit quand sa chair se détache en lamelles nacrées. Ouvre les papillotes à table."
+      ],
+      "chefTip": "La papillote cuit le poisson dans son propre parfum. Rien ne s'échappe : le citron, le thym et l'huile infusent la chair pendant la cuisson. Ouvre-la devant tout le monde, la vapeur fait le spectacle.",
+      "ingredients": [
+        ["Dos de cabillaud", "4", 26043],
+        ["Courgettes", "2", 20020],
+        ["Tomates cerises", "200 g", 20172],
+        ["Citron", "1", 2028],
+        ["Thym", "quelques branches", 11070],
+        ["Huile d'olive", "2 c. à soupe", 17270],
+        ["Riz basmati", "250 g", 9119],
+        ["Sel", "au goût", 11017],
+        ["Poivre", "au goût", 11015]
+      ]
+    },
+    {
+      "n": 20,
+      "title": "Gâteau au chocolat",
+      "servings": 8,
+      "minutes": 40,
+      "budget": 1,
+      "diets": ["vegetarien", "sans_porc"],
+      "steps": [
+        "Préchauffe le four à 180 °C et beurre un moule d'environ 22 cm.",
+        "Fais fondre le chocolat et le beurre ensemble, doucement, au bain-marie ou au micro-ondes par tranches de 30 s en remuant.",
+        "Hors du feu, ajoute le sucre, puis les œufs un à un en mélangeant bien entre chaque.",
+        "Ajoute la farine et le sel, et mélange juste assez pour qu'il ne reste plus de traces de farine.",
+        "Verse dans le moule et cuis 20 à 25 min : la lame d'un couteau doit ressortir avec quelques miettes humides. Laisse tiédir avant de démouler."
+      ],
+      "chefTip": "Sors le fondant quand tu as l'impression qu'il lui manque 2 minutes : il finit de cuire et se raffermit en refroidissant. La pincée de sel n'est pas une erreur, elle fait ressortir le goût du chocolat.",
+      "ingredients": [
+        ["Chocolat noir à pâtisser", "200 g", 31085],
+        ["Beurre", "150 g", 16400],
+        ["Sucre", "120 g", 31016],
+        ["Œufs", "4", 22000],
+        ["Farine", "50 g", 9435],
+        ["Sel", "1 pincée", 11017]
+      ]
+    }
+  ]
+}
