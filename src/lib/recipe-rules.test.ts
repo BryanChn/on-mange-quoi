@@ -292,6 +292,7 @@ const form = {
     { name: "Gros sel", quantity: "", foodId: null },
   ],
   steps: ["  Écumer\nle bouillon  ", "", "Servir"],
+  chefTip: "  Écume   souvent :\nle bouillon reste clair. ",
 };
 
 test("écrire : le brouillon envoyé à la base", () => {
@@ -305,8 +306,14 @@ test("écrire : le brouillon envoyé à la base", () => {
         { raw: "Gros sel", label: "Gros sel", quantity: null, unit: null, foodId: null },
       ],
       steps: ["Écumer le bouillon", "Servir"],
+      chefTip: "Écume souvent : le bouillon reste clair.",
     },
   });
+});
+
+test("écrire : une astuce vide n'est pas une astuce", () => {
+  const result = buildRecipeDraft({ ...form, chefTip: "   " });
+  assert.equal(result.ok && result.draft.chefTip, null);
 });
 
 test("écrire : un message clair pour chaque limite", () => {
@@ -329,6 +336,9 @@ test("écrire : un message clair pour chaque limite", () => {
   });
   assert.deepEqual(errorsOf({ steps: Array.from({ length: 41 }, () => "Remuer") }), {
     steps: "40 étapes au plus.",
+  });
+  assert.deepEqual(errorsOf({ chefTip: "a".repeat(301) }), {
+    chefTip: "L’astuce fait 300 caractères au plus.",
   });
   // Sans ingrédient ni étape : permis (on peut noter une idée et la compléter plus tard).
   assert.equal(buildRecipeDraft({ ...form, ingredients: [], steps: [] }).ok, true);
