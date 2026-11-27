@@ -9,42 +9,83 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne (#122 à #148) : migrations jusqu'à `base_recipe_photos_lot2`, mise à jour EAS du 27/11 après-midi (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande. Au travail : 5G (le Wi-Fi bloque le serveur).
+Tout est mergé et en ligne (#122 à #161) : migrations jusqu'à `recipe_category`, mise à jour EAS du 27/11 au soir (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Claude écrit tout, je relis les PR ; il lance `db:push` et `npm run update` quand je le lui demande (migration d'abord, JavaScript ensuite). Au travail : 5G (le Wi-Fi bloque le serveur).
 
-**0. En premier : inspecter le carnet du chef dans l'app** (livré le 27/11) : l'encadré « L'astuce du chef » (chat à la toque) entre les ingrédients et les étapes ; les étapes au tutoiement ; 16 photos sur 20 (sans photo : blanquette, velouté, wok, cabillaud) ; écrire puis effacer une astuce dans une recette du carnet. Planche : https://claude.ai/artifact/Y4zHRLa7FoN176GLY3CXMy. Si le chat paraît petit (44 px), passer à 52.
+**0. En premier : tester sur le téléphone ce qui est sorti le 27/11 au soir**
+- **Accueil** : « Salut Bryan, » en tête, pastilles de groupes (point tomate = vote en cours, basilic = décidé), cartes « Ce soir » en couleur à faire glisser, « Bientôt » pour les repas à venir. Supprimer un groupe affiché : l'accueil revient au premier.
+- **Courses** : cocher trois articles à la suite (chacun se barre, reste 0,7 s, puis se replie), l'accordéon « Déjà pris », le composer en bas, « Je vais aux courses » dans l'en-tête.
+- **Carnet** : filtres Viande / Poisson / Végé / Dessert, « ≤ 30 min », « Petit budget » ; badge du type sur les vignettes ; type et régimes dans « Écrire une recette ».
+- Toute la refonte v4 (carnet, recette avec barre « Cuisiner » en bas, mode cuisine avec feuille d'ingrédients, vote, repas, Mon compte), en clair et en sombre.
 
-**1. Tout de suite : mes retours**
+**1. Pistes ouvertes, à trancher**
 
-| # | Tâche | Détail |
+| # | Piste | Détail |
 | --- | --- | --- |
-| 1 | Relire le lot 1 dans l'app | Carnet → « Des idées pour commencer » : cuisson, quantité, ordre des étapes, étiquettes (« 35 min · € · Vegan… »), calories. Corrections dans le lot suivant (ids fixes : mise à jour sans doublon) |
-| 2 | Tester le mode cuisine en vrai | Ingrédients à cocher, une étape par écran, écran qui reste allumé, photo du plat à la fin |
-| 3 | La boucle avec le carnet | Au prochain vote : « Du carnet » sous « Proposer un plat » → résultat → « Voir la recette », « Ajouter aux courses » |
+| 1 | Champ **durée** (et budget) dans « Écrire une recette » | Sans lui, « ≤ 30 min » et « Petit budget » écartent toujours les recettes écrites par le foyer |
+| 2 | Chip « Sans gluten » dans les filtres | Le régime n'est montré que dans la ligne d'une recette |
+| 3 | **Test instable** `meal-digest.test.ts` (« 1 min après le changement ») | La tâche planifiée de la base passe entre deux étapes et envoie le résumé à l'heure réelle. Relancé, il passe. Petite PR pour qu'il ne dépende plus de la tâche planifiée |
+| 4 | Écran « Tous les repas » | Pas de lien sur l'accueil tant qu'il n'existe pas |
+| 5 | Installer `ffmpeg` (`sudo apt install ffmpeg`) | Pour que Claude puisse découper mes vidéos d'écran en images (lecture `.mp4` impossible sans) |
 
 **2. Avant de déclarer la V1 livrée** (audit du 26/11 : https://claude.ai/artifact/GzYDvY54jnoo6ow8DsKoAu)
 
 | # | Tâche | Qui |
 | --- | --- | --- |
-| 1 | ~~Recettes de base~~ : **terminé le 27/11, 20 recettes en deux lots, on s'arrête là**. Corriger une recette : modifier `scripts/base-recipes/lotN.json`, régénérer avec `scripts/base-recipes-to-sql.ts` dans une nouvelle migration | — |
-| 2 | Refonte de l'accueil et du carnet, composant de bouton partagé (maquette d'abord) | Claude, je valide |
-| 3 | Test réel avec des invités sans l'app, test des 5 secondes sur l'accueil | Moi, avec des proches |
-| 4 | Audit de sécurité (RLS, fonctions serveur, `npm audit`) | Claude |
+| 1 | ~~Recettes de base~~ : terminé le 27/11, 20 recettes en deux lots | — |
+| 2 | ~~Refonte graphique~~ : terminée le 27/11 (#154 à #161) | — |
+| 3 | ~~Audit de sécurité~~ : fait le 27/11 (#153, `docs/audit-securite-2026-11-27.md`) | — |
+| 4 | Test réel avec des invités sans l'app, test des 5 secondes sur l'accueil | Moi, avec des proches |
 | 5 | Retirer les données de test du foyer Maison | Moi ou Claude |
 
-Noté le 26/11 au soir : **des étiquettes plus sympas** (pastilles plutôt qu'une ligne de texte, un **code couleur** pour végétarien et vegan, à décider avec la refonte du design et contrastes vérifiés en clair et en sombre) ; **trier et chercher par étiquette et par budget** dans le carnet (les filtres de la V2, déjà prévus).
-
-Noté le 26/11, fin de soirée (à traiter avec la refonte de fin de V1) :
-- **Carnet trop long** : pouvoir replier les sections (« Notre carnet », « Des idées pour commencer ») ou n'en montrer que quelques-unes avec « Voir tout », pour éviter de faire défiler.
-- **Plusieurs repas à venir sur l'accueil** : un repas lointain ne dérange pas (le « Mercredi chez Bryan » qui traînait était un repas sans date, créé avant « Quand ? », purgé depuis). Le sujet : 5 ou 6 repas à venir empileraient 5 ou 6 grandes cartes. Étude rapide du 26/11 : Google Agenda (vue Planning) liste les rendez-vous par jour ; Partiful sépare « À venir » et « J'organise » en onglets ; un guide de design (Harvard) conseille de montrer les 3 à 5 prochains puis « Voir tout » ; aucune source ne montre qu'un carrousel horizontal fasse mieux (le contenu caché à droite est peu vu). **Piste** : le prochain repas en carte, les autres en lignes compactes groupées « Cette semaine » / « Plus tard », puis « Mes repas » (liste par jour, façon agenda). Maquette avec 5 ou 6 repas simulés avant de coder.
+Réglé le 27/11 parmi les notes du 26/11 : étiquettes en pastilles et code couleur (badges et filtres, #161), carnet trop long (idées repliées à trois, « Voir tout »), plusieurs repas à venir (« Bientôt » en petites cartes glissables, #155). Reste à trancher :
 - **Historique « Mes repas passés »** dans le profil : **à trancher**, car il contredit l'effacement 24 h après le repas (décidé pour les données minimales, RGPD, et pour effacer les comptes invités). Piste compatible : garder pour les membres un résumé léger (nom, date, menu ou resto choisi), sans commande ni invités.
 
-Plus tard : filtres (régime, temps, budget, peu calorique, protéines) en **V2**, les étiquettes sont déjà posées ; « spaghetti » propose d'abord « Courge spaghetti » (autocomplétion) ; minuteur dans le mode cuisine ; « Retirer de la liste les articles d'une recette » ; une galerie de photos par recette (non décidé).
+Plus tard : filtres par régime et difficulté, peu calorique, protéines (V2) ; « spaghetti » propose d'abord « Courge spaghetti » (autocomplétion) ; minuteur dans le mode cuisine ; « Retirer de la liste les articles d'une recette » ; une galerie de photos par recette (non décidé).
 
 **Données de test dans le vrai foyer Maison** (ajoutées le 26/11, à retirer quand je veux) : 5 recettes (Pot-au-feu, Gratin dauphinois, Quiche lorraine, Soupe de légumes, Chili con carne) reliées à Ciqual, leurs photos et celle de ma Bolognaise (Wikimedia Commons : Quiche, Chili, Bolognaise en CC0 ; Pot-au-feu CC BY-SA 4.0 Tsaag Valren, Gratin CC BY-SA 3.0 Ludovic Péron, Soupe CC BY-SA 2.0 Scott Teresi : ne jamais les reprendre dans les recettes de base ni sur les stores), et 5 votes clos datés du 16 au 22/11 (insérés déclencheurs coupés : aucune notification). Retrait : supprimer les recettes depuis l'app ; les votes : `delete from vote_sessions where group_id = '3e055308-…' and created_at < '2026-11-23'` (après accord).
 
-**3. Avant les stores** (backlog) : inchangé, voir la session du 25/11.
+**3. Avant les stores** (backlog) : inchangé, voir la session du 25/11 ; en plus, les en-têtes de sécurité du web dans `app.json` au prochain build (ils changent l'empreinte) et un CAPTCHA sur la connexion.
 
 **4. Indicateur** : requête `private.feu_vert` le lundi 30/11.
+
+#### 🗓️ Session du 2026-11-27 (après-midi et soir) : mode cuisine, audit, refonte v4, courses, étiquettes
+
+| PR | Contenu |
+| --- | --- |
+| #149 | Journal : carnet du chef et fin des recettes de base |
+| #150 | Mode cuisine : la mise en place devient claire |
+| #151 | Mode cuisine (option A) : « Avant de commencer » (astuce du chef, ingrédients pour les parts choisies, à lire sans rien cocher), puis « Ingrédients » depuis chaque étape |
+| #152 | Haptique : repli Android selon le niveau d'API (`playFirstSupported`), tic d'horloge sur la roulette, appui long |
+| #153 | **Audit de sécurité** de fin de V1 : droits de table resserrés (`truncate`, `trigger`, `references` retirés ; rien pour `anon`), `join_group` limité à 10 codes faux en 15 min (`private.join_attempts`) ; rapport `docs/audit-securite-2026-11-27.md` |
+| #154 | **Refonte v4** (maquette https://claude.ai/artifact/Urnh3dx331ZmK2oxcaWipx), tokens : contrôles 48 / 40 / 36, coins 12 / 16 / 20, une ombre courte ; `PrimaryButton` en trois tailles (`lg`, `md`, `sm`), police système demi-grasse ; champs et lignes allégés |
+| #155 | Accueil : pastilles de groupes avec point d'état, une carte « Ce soir » par groupe à faire glisser (`PeekCarousel`), « Bientôt » (repas par date), outils du groupe affiché ; « Salut Bryan, » gardé en tête, toutes les cartes en couleur |
+| #156 | Refonte v4 de tous les écrans, un commit par écran ; composants partagés `Section`, `HeaderButton`, `SearchField`, `IconButton`, `IngredientList` ; feuille native (`formSheet`) pour les ingrédients du mode cuisine |
+| #157 | Accueil : le carrousel se recale quand une carte disparaît (plus de carte vide après la suppression d'un groupe) |
+| #158 | Courses : premier essai d'animation (l'article voyageait jusqu'à « Déjà pris ») ; jugé pas intuitif, remplacé par #159 |
+| #159 | **Courses refaites** (recherche Things 3, Bring!, Keep, Listonic ; maquette https://claude.ai/artifact/YPfGj11em5YcWXtLSsjtrW) : coche en place, nom barré, temps de pose de 0,7 s par article, puis la ligne se replie (`CollapsingRow`) ; « Déjà pris » en accordéon ; anneau de progression en `View` (pas de `react-native-svg` dans l'APK) ; composer en bas ; « Je vais aux courses » dans l'en-tête |
+| #160 | Courses : plus de retour à l'état décoché juste après une coche (course entre la mise à jour optimiste et le rechargement) |
+| #161 | **Type de plat et filtres du carnet**, entrés en V1 (maquette https://claude.ai/artifact/Pg5e2H8YsqvDJYxgzz4dSS) : migration `recipe_category`, les 20 recettes typées, badge en line icon sur les vignettes, filtres type / ≤ 30 min / petit budget, type et régimes dans le formulaire |
+
+**Décisions du jour**
+- **Toute l'app suit la maquette v4** : boutons 48 px en bas d'écran, 36-40 px ailleurs ; listes groupées plutôt que cartes ; Bricolage pour les titres seulement ; en-têtes et feuilles natifs.
+- **La carte qui dépasse à droite reste** dans les carrousels : elle montre qu'on peut faire glisser.
+- **Courses** : on coche sur place puis la ligne se replie (comme Things 3, Google Keep), plutôt qu'un article qui traverse l'écran. Temps de pose 0,7 s, à ajuster après un passage en magasin (`ROW_SETTLE_DELAY_MS`).
+- **Filtres du carnet en V1** (validé le 27/11, CLAUDE.md à jour) ; **line icons** plutôt qu'emoji (même famille que l'app, suivent les couleurs, identiques Android / iPhone).
+- **Maquette interactive avant tout gros changement d'écran** : on compare au toucher, puis on code.
+- **Vocabulaire** : Claude nomme chaque élément par son terme technique (primary button, accordion, bottom sheet, filter chip…), traduit à la première apparition.
+
+**Pièges trouvés le 2026-11-27 (soir)**
+- **Mise à jour optimiste** : ne retirer la valeur affichée en avance qu'à l'arrivée d'une liste rechargée **après** la confirmation du serveur (numéro de requête), pas dès la réponse « OK » ; sinon l'écran montre un instant l'ancien état (#160).
+- **Animation entre deux listes** : un élément ne glisse d'une liste à l'autre que s'il garde sa `key` **sous le même parent** ; entre deux parents, React le détruit et le recrée.
+- **Animations Reanimated** : partir d'une `useSharedValue` à la bonne valeur et lancer l'animation dans un effet au changement de prop ; `useDerivedValue(() => withTiming(…))` peut animer dès le montage. Le lint du React Compiler refuse `sharedValue.value = …` dans un handler : `sharedValue.set(…)`.
+- **`ScrollView` horizontal dans une colonne en `flexGrow`** : il s'étire en hauteur ; `style={ flexGrow: 0 }`.
+- **Pas de `react-native-svg` dans l'APK** : un anneau de progression se dessine avec deux demi-cercles en `View` masqués qui pivotent ; masquer une moitié vide (sinon un trait d'un pixel à la jonction).
+- **Merge de plusieurs PR** : `main` exige une branche à jour ; après un merge, la suivante est « BEHIND ». `gh pr update-branch` n'a rien fait ici : fusionner `main` dans la branche en local, pousser, attendre la CI.
+- **Heredoc** : les backticks sont exécutés par le shell (*command substitution*) ; `<<'EOF'` garde le texte tel quel.
+- **`gh pr edit` en erreur** (GraphQL, Projects classic retiré) : `gh api -X PATCH repos/<owner>/<repo>/pulls/<n> -F body=@fichier`.
+- **Captures de l'app connectée** : jeu de données local (script de seed), export web vers la base locale, session injectée dans `localStorage` (`sb-127-auth-token`), Playwright. Penser à `npx supabase migration up --local` et à déposer les photos de base dans le stockage local.
+- **Mesurer un clignotement sans vidéo** : relever toutes les 40 ms le nom accessible d'une ligne (qui change avec son état) dans Playwright, réseau ralenti ; avant et après la correction.
+- **Test instable** : lire l'erreur avant de relancer ; ici la valeur « actual » tombait sur l'heure réelle, signe de la tâche planifiée.
 
 #### 🗓️ Session du 2026-11-27 : photos et carnet du chef
 
@@ -568,7 +609,8 @@ Plus tard : icône d'app et écran de démarrage (invisibles dans Expo Go, à fa
 
 ## 6. Mode de travail
 
-- **Bryan** écrit la logique des écrans (`TODO(human)`), découpée en petites étapes ; Claude relit comme une PR (indice, puis indice plus fort, puis réponse).
+- **Depuis le 2026-11-19, Claude écrit tout le code** ; Bryan relit et valide les PR (avant : Bryan écrivait la logique des écrans en `TODO(human)`).
+- **Gros changement d'écran** : recherche, maquette interactive, validation, puis code ; captures en clair et en sombre à chaque PR.
 - **SQL** : Bryan décide de la logique, Claude valide ou challenge, puis écrit.
 - **Git** : Claude s'occupe des branches, commits, push, PR et du ménage ; il demande avant tout merge (« ok merge » ou approbation sur GitHub).
 - **Périmètre strict** : toute idée hors MVP va dans `docs/backlog.md`.
@@ -586,5 +628,7 @@ Le 2026-11-10 : une erreur traverse plusieurs couches (app → passerelle → se
 Le 2026-11-12 : **build** natif contre **mise à jour** JavaScript (OTA, EAS Update), version runtime et politique `fingerprint`, canal ; variables `EXPO_PUBLIC_*` embarquées dans l'APK (lisibles par tous : seule la clé publique y va) ; identifiant d'application définitif sur les stores ; keystore (signature de l'APK). **RLS qui filtre en silence** : un `delete` refusé renvoie 0 ligne et `error: null`, donc vérifier le nombre de lignes (`.select()`) ; cascade exécutée avec les droits du propriétaire de la table (cas 13). Un état se pose **avant** l'action qu'il décrit (`leaving` avant l'`await`). Message d'erreur : ce qui a raté, puis quoi faire, sans inventer de cause (« Vous ne pouvez pas » mentait). Fonction pure et heure en paramètre (testable), union discriminée (`Tonight`), problème N+1 et jointures PostgREST, `Children.toArray`, debounce, contraste AA 4,5:1 (la tomate vive échouait à 3,98:1), tokens par rôle. Revue de code : repérer la duplication (deux types `Member`, quatre copies).
 
 À consolider (2026-11-12) : `handleLeave` écrit avec les étapes dans le mauvais ordre (« leaving » posé après l'`await`), puis terminé par Claude : à refaire seul. La refonte et ses corrections ont été écrites par Claude à ma demande : relire `src/lib/tonight.ts` et ses tests pour pouvoir l'expliquer en entretien.
+
+Le 2026-11-27 (soir), vocabulaire et concepts à retenir : **design tokens** et composant partagé à variantes (`size="lg" | "md" | "sm"`), un token nommé d'après son usage (`cardTitle` séparé de `button`) ; **filter chip**, **accordion**, **badge**, **header button**, **bottom sheet / form sheet**, **empty state**, **progress ring**, **strikethrough**, **settle delay**, **collapse animation** ; **shared value** et **UI thread** (Reanimated) contre JS thread ; **race condition** entre une mise à jour optimiste et un rechargement, et quand retirer la valeur optimiste ; **expand then contract** (base élargie d'abord, code ensuite : `db:push` avant `npm run update`) ; *flaky test* (lire l'erreur avant de relancer) ; *command substitution* dans un heredoc ; *merge queue* (pourquoi une PR doit être à jour avant le merge).
 
 Mode de travail ajusté le 2026-11-03 : Bryan préfère des recommandations directes et argumentées à une série de questions ; au plus une question de vérification quand un concept est vraiment nouveau.
