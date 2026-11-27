@@ -685,7 +685,7 @@ export default function ShoppingListScreen() {
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
+function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     container: { padding: spacing.xl, paddingTop: spacing.md, gap: spacing.xl },
 
@@ -718,7 +718,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     composerField: {
       flex: 1,
       minWidth: 0,
-      height: 52,
+      height: control.lg,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
@@ -735,7 +735,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     composerQuantity: { width: 52, color: colors.text, fontSize: fontSize.body },
     addButton: {
       width: 52,
-      height: 52,
+      height: control.lg,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",

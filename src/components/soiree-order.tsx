@@ -380,7 +380,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       textAlign: "center",
       color: colors.text,
       fontFamily: fonts.displayBold,
-      fontSize: fontSize.button,
+      fontSize: fontSize.cardTitle,
       fontVariant: ["tabular-nums"],
     },
     summaryLine: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
@@ -388,12 +388,16 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       minWidth: 34,
       color: colors.primary,
       fontFamily: fonts.displayBold,
-      fontSize: fontSize.button,
+      fontSize: fontSize.cardTitle,
       fontVariant: ["tabular-nums"],
     },
     waiting: { color: colors.textMuted, fontSize: fontSize.small, fontStyle: "italic" },
     error: { color: colors.danger, fontSize: fontSize.small },
     notice: { color: colors.success, fontSize: fontSize.small, textAlign: "center" },
-    confirmTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    confirmTitle: {
+      color: colors.text,
+      fontFamily: fonts.displayBold,
+      fontSize: fontSize.cardTitle,
+    },
   });
 }

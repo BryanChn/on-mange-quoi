@@ -101,7 +101,7 @@ export function NotificationSettingsCard() {
 function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     block: { gap: spacing.sm },
-    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     error: { color: colors.danger, fontSize: fontSize.small },
     hint: { color: colors.textMuted, fontSize: fontSize.caption },
   });

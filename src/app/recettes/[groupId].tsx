@@ -261,7 +261,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     },
     cookedTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
     pressed: { opacity: 0.6 },
-    emptyTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    emptyTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     emptyText: { color: colors.textMuted, fontSize: fontSize.body, lineHeight: 24 },
   });
 }

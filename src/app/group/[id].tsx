@@ -449,6 +449,10 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     error: { color: colors.danger, fontSize: fontSize.small },
     lastResult: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     lastWinner: { flex: 1 },
-    confirmTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    confirmTitle: {
+      color: colors.text,
+      fontFamily: fonts.displayBold,
+      fontSize: fontSize.cardTitle,
+    },
   });
 }

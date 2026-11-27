@@ -86,7 +86,7 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
       padding: spacing.xl,
       backgroundColor: colors.background,
     },
-    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     muted: { color: colors.textMuted, fontSize: fontSize.small },
   });
 }

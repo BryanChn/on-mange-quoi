@@ -31,13 +31,13 @@ export function TextField({ label, error, style, ...inputProps }: TextFieldProps
   );
 }
 
-function createStyles({ colors, spacing, radius, fontSize }: Theme) {
+function createStyles({ colors, spacing, radius, control, fontSize }: Theme) {
   return StyleSheet.create({
     container: { gap: spacing.sm },
     label: { color: colors.text, fontSize: fontSize.small, fontWeight: "600" },
     input: {
-      height: 54,
-      borderWidth: 2,
+      height: control.lg,
+      borderWidth: 1.5,
       borderColor: colors.inputBorder,
       borderRadius: radius.md,
       backgroundColor: colors.surface,

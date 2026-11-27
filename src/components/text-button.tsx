@@ -45,10 +45,11 @@ export function TextButton({
 
 function createStyles({ colors, fontSize }: Theme) {
   return StyleSheet.create({
-    // 48 de haut : taille minimale confortable pour un doigt.
-    button: { minHeight: 48, alignItems: "center", justifyContent: "center" },
+    // 44 de haut : la zone tactile minimale d'Apple, même si le texte paraît plus petit.
+    button: { minHeight: 44, alignItems: "center", justifyContent: "center" },
     pressed: { opacity: 0.6 },
-    label: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
+    // La couleur d'action (refonte du 2026-11-27) : un lien se reconnaît sans fond.
+    label: { color: colors.primary, fontSize: fontSize.button, fontWeight: "600" },
     labelDanger: { color: colors.danger },
     labelDisabled: { color: colors.textMuted, fontWeight: "400" },
   });
