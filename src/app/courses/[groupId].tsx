@@ -1,7 +1,8 @@
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,18 +17,15 @@ import {
 import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AisleSection } from "@/components/aisle-section";
 import { Avatar } from "@/components/avatar";
-import { CollapsingRow } from "@/components/collapsing-row";
 import { HeaderButton } from "@/components/header-button";
 import { ProgressRing } from "@/components/progress-ring";
-import { SegmentedControl } from "@/components/segmented-control";
-import { SectionHeader } from "@/components/section";
 import { ShoppingTripCard } from "@/components/shopping-trip-card";
 import { SignatureCat } from "@/components/signature-cat";
+import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { StrikeLabel } from "@/components/strike-label";
 import { TextButton } from "@/components/text-button";
-import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
-import { TextField } from "@/components/text-field";
 import { fetchGroup } from "@/lib/groups";
 import {
   hapticAdded,
@@ -38,37 +36,33 @@ import {
   hapticToggle,
 } from "@/lib/haptics";
 import type { Member } from "@/lib/members";
-import { checkEntering, colorTransition, countBump, ROW_SETTLE_DELAY_MS } from "@/lib/motion";
-import { useSession } from "@/lib/session";
+import { checkEntering, colorTransition } from "@/lib/motion";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
+import { useSession } from "@/lib/session";
 import {
   addShoppingItem,
   clearCheckedItems,
   endShoppingTrip,
   fetchActiveTrips,
   fetchAisleSettings,
-  setShoppingItemImportant,
-  type AisleSettings,
   fetchShoppingHistory,
   fetchShoppingList,
-  removeShoppingItem,
   setShoppingItemChecked,
+  setShoppingItemImportant,
   startShoppingTrip,
   subscribeToShoppingList,
-  updateShoppingItem,
+  type AisleSettings,
   type ShoppingTrip,
 } from "@/lib/shopping";
 import {
   AISLE_LABELS,
   buildSuggestions,
-  groupShoppingItems,
+  byAddedOrder,
   findDuplicate,
+  groupShoppingItems,
   SHOPPING_LABEL_MAX_LENGTH,
   SHOPPING_QUANTITY_MAX_LENGTH,
-  sortShoppingList,
-  splitShoppingList,
   tripToShow,
-  type ShoppingSection,
   type ShoppingHistoryEntry,
   type ShoppingItem,
   type ShoppingSuggestion,
@@ -86,16 +80,22 @@ type ListState = {
   aisles: AisleSettings;
 };
 
-// La liste de courses d'un foyer (refonte du 27/11, option A :
-// https://claude.ai/artifact/YPfGj11em5YcWXtLSsjtrW). Grand titre et anneau de progression,
-// la liste « À acheter », « Déjà pris » replié en accordéon, et l'ajout en bas, sous le pouce.
-// Un toucher coche sur place (le nom se barre), puis la ligne se replie ; un appui long ouvre
-// l'article pour le corriger ou le retirer. Tout le monde la voit bouger en direct.
+type PendingMap<T> = Map<string, { value: T; confirmedFor: number | null }>;
+
+// Le mode d'emploi n'apparaît qu'une fois par téléphone.
+const TIP_KEY = "omq.courses.tip-seen";
+
+// La liste de courses d'un foyer, rangée par rayon (maquette du 27/11 :
+// https://claude.ai/artifact/7mpAE8Dc6HmkNigkPi4GV3). Chaque rayon est un accordéon avec son
+// avancement (« 2/5 ») ; terminé, il se replie avec une coche. Un toucher coche (le geste du
+// magasin) ; ⋯ ou un appui long ouvre la fiche de l'article. L'ajout est en bas, sous le pouce.
+// Tout le monde la voit bouger en direct.
 export default function ShoppingListScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const { session } = useSession();
   const userId = session?.user.id;
 
@@ -111,39 +111,20 @@ export default function ShoppingListScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   // Un article qui vient d'arriver dans « Autres » : on propose de le ranger tout de suite.
   const [unsortedItem, setUnsortedItem] = useState<ShoppingItem | null>(null);
-  // Par rayon (le magasin) ou par ajout (l'ordre où on a rempli la liste).
-  const [sortMode, setSortMode] = useState<"aisle" | "added">("aisle");
-  // Étoiles affichées dès le toucher ; même règle que les coches en attente.
-  const [pendingStars, setPendingStars] = useState<
-    Map<string, { important: boolean; confirmedFor: number | null }>
-  >(new Map());
   const [isAdding, setIsAdding] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isTripBusy, setIsTripBusy] = useState(false);
-  // Article ouvert par un appui long, et ses champs.
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editLabel, setEditLabel] = useState("");
-  const [editQuantity, setEditQuantity] = useState("");
-  const [editError, setEditError] = useState<string | null>(null);
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
   // Suggestion en cours d'ajout : pas de double ajout sur un double toucher.
   const [addingSuggestion, setAddingSuggestion] = useState<string | null>(null);
-  // Coches affichées dès le toucher, avant la réponse du serveur (on coche vite en magasin).
-  // confirmedFor : le numéro du rechargement lancé après la confirmation du serveur. La coche
-  // en attente ne s'efface qu'à l'arrivée de ce rechargement (ou d'un plus récent) : avant, la
-  // liste affichée date d'avant la coche, et l'article revenait un instant à son état d'avant.
-  const [pendingChecks, setPendingChecks] = useState<
-    Map<string, { checked: boolean; confirmedFor: number | null }>
-  >(new Map());
-  // Les articles tout juste cochés ou décochés, retenus dans leur section d'avant pendant le
-  // temps de pose (chacun le sien) : la ligne ne part pas sous le doigt.
-  const [held, setHeld] = useState<Map<string, ShoppingSection>>(new Map());
-  // Ceux dont le temps de pose est écoulé : leur ligne se replie, puis ils changent de section.
-  const [settling, setSettling] = useState<Set<string>>(new Set());
-  const settleTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  // « Déjà pris » replié par défaut : l'écran reste court en magasin.
-  const [isTakenOpen, setIsTakenOpen] = useState(false);
-  const headerHeight = useHeaderHeight();
+  // Coches et étoiles affichées dès le toucher, avant la réponse du serveur. confirmedFor : le
+  // numéro du rechargement lancé après la confirmation ; la valeur en attente ne s'efface qu'à
+  // son arrivée (sinon l'écran montrerait un instant l'état d'avant).
+  const [pendingChecks, setPendingChecks] = useState<PendingMap<boolean>>(new Map());
+  const [pendingStars, setPendingStars] = useState<PendingMap<boolean>>(new Map());
+  // Les rayons repliés ou ouverts à la main ; sans choix, un rayon terminé est replié.
+  const [openOverrides, setOpenOverrides] = useState<Map<string, boolean>>(new Map());
+  // null : on ne sait pas encore (lecture du téléphone en cours) ; rien ne s'affiche.
+  const [isTipVisible, setIsTipVisible] = useState(false);
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
@@ -169,30 +150,14 @@ export default function ShoppingListScreen() {
           trips,
           aisles,
         });
-        setPendingStars((current) => {
-          const done = [...current].filter(
-            ([, pending]) => pending.confirmedFor !== null && requestId >= pending.confirmedFor,
-          );
-          if (done.length === 0) return current;
-          const next = new Map(current);
-          for (const [id] of done) next.delete(id);
-          return next;
-        });
-        // Ce rechargement suit la confirmation de ces coches : la liste fait foi.
-        setPendingChecks((current) => {
-          const done = [...current].filter(
-            ([, pending]) => pending.confirmedFor !== null && requestId >= pending.confirmedFor,
-          );
-          if (done.length === 0) return current;
-          const next = new Map(current);
-          for (const [id] of done) next.delete(id);
-          return next;
-        });
+        // Ce rechargement suit la confirmation de ces coches et étoiles : la liste fait foi.
+        setPendingChecks((current) => withoutConfirmed(current, requestId));
+        setPendingStars((current) => withoutConfirmed(current, requestId));
         setHasFailed(false);
       },
-      (error: unknown) => {
+      (cause: unknown) => {
         if (latestRequestRef.current !== requestId) return;
-        setLoadError(error);
+        setLoadError(cause);
         setHasFailed(true);
       },
     );
@@ -205,6 +170,20 @@ export default function ShoppingListScreen() {
     }, [groupId, loadList]),
   );
 
+  // Le stockage du téléphone est un système extérieur : on y lit une fois si le mode d'emploi a
+  // déjà été vu. En cas d'échec, on ne l'affiche pas (mieux vaut rien qu'un rappel à chaque fois).
+  useEffect(() => {
+    AsyncStorage.getItem(TIP_KEY).then(
+      (seen) => setIsTipVisible(seen === null),
+      () => setIsTipVisible(false),
+    );
+  }, []);
+
+  function dismissTip() {
+    setIsTipVisible(false);
+    AsyncStorage.setItem(TIP_KEY, "1").catch(() => undefined);
+  }
+
   if (hasFailed && !list) {
     return (
       <ErrorScreen
@@ -216,31 +195,34 @@ export default function ShoppingListScreen() {
   }
   if (!list) return <LoadingScreen />;
 
-  // La liste telle qu'affichée : les coches en attente comptent déjà.
-  const items = sortShoppingList(
-    list.items.map((item) => {
-      const star = pendingStars.get(item.id)?.important;
-      if (star !== undefined && star !== item.isImportant) item = { ...item, isImportant: star };
-      const pending = pendingChecks.get(item.id)?.checked;
-      if (pending === undefined || pending === (item.checkedAt !== null)) return item;
-      return pending
-        ? { ...item, checkedAt: new Date().toISOString(), checkedBy: userId ?? null }
-        : { ...item, checkedAt: null, checkedBy: null };
-    }),
-  );
+  // La liste telle qu'affichée : coches et étoiles en attente comprises, dans l'ordre d'ajout
+  // (un article coché reste à sa place, barré : rien ne bouge sous le doigt).
+  const items = list.items
+    .map((item) => {
+      let shown = item;
+      const star = pendingStars.get(item.id)?.value;
+      if (star !== undefined && star !== item.isImportant) shown = { ...shown, isImportant: star };
+      const checked = pendingChecks.get(item.id)?.value;
+      if (checked !== undefined && checked !== (item.checkedAt !== null)) {
+        shown = checked
+          ? { ...shown, checkedAt: new Date().toISOString(), checkedBy: userId ?? null }
+          : { ...shown, checkedAt: null, checkedBy: null };
+      }
+      return shown;
+    })
+    .sort(byAddedOrder);
   const suggestions = buildSuggestions(list.history, items);
-  // Le résumé et la barre comptent tout de suite ; les sections attendent le temps de pose.
-  const toBuyCount = items.filter((item) => item.checkedAt === null).length;
-  const takenCount = items.length - toBuyCount;
-  const { toBuy, taken } = splitShoppingList(items, held);
+  const takenCount = items.filter((item) => item.checkedAt !== null).length;
+  const toBuyCount = items.length - takenCount;
   const total = items.length;
+  const groups = groupShoppingItems(items, list.aisles.order);
 
   const summary =
     total === 0
       ? "Rien à acheter pour l’instant"
       : toBuyCount === 0
         ? "Tout est pris, bravo !"
-        : `${toBuyCount} à acheter${takenCount > 0 ? ` · ${takenCount} déjà pris` : ""}`;
+        : `${toBuyCount} à acheter${takenCount > 0 ? ` · ${takenCount} pris` : ""}`;
 
   function nameOf(profileId: string | null): string {
     if (profileId === null) return "quelqu’un";
@@ -263,9 +245,9 @@ export default function ShoppingListScreen() {
           : "Ce que le foyer ajoute t’arrive pendant 1 h.",
       );
       loadList();
-    } catch (error) {
+    } catch (cause) {
       hapticReject();
-      setError(failureMessage("Le départ n’est pas passé", error));
+      setError(failureMessage("Le départ n’est pas passé", cause));
     } finally {
       setIsTripBusy(false);
     }
@@ -278,9 +260,9 @@ export default function ShoppingListScreen() {
     try {
       await endShoppingTrip(groupId);
       loadList();
-    } catch (error) {
+    } catch (cause) {
       hapticReject();
-      setError(failureMessage("Ce n’est pas passé", error));
+      setError(failureMessage("Ce n’est pas passé", cause));
     } finally {
       setIsTripBusy(false);
     }
@@ -308,7 +290,7 @@ export default function ShoppingListScreen() {
     try {
       if (duplicate) {
         await setShoppingItemChecked(duplicate.id, false);
-        setNotice(`« ${duplicate.label} » était déjà pris : remis dans « À acheter ».`);
+        setNotice(`« ${duplicate.label} » était déjà pris : remis à acheter.`);
       } else {
         const added = await addShoppingItem(groupId, { label, quantity }, list?.aisles.chosen);
         // Pas reconnu : on propose de le ranger, et le foyer s'en souviendra.
@@ -318,9 +300,9 @@ export default function ShoppingListScreen() {
       setLabel("");
       setQuantity("");
       loadList();
-    } catch (error) {
+    } catch (cause) {
       hapticReject();
-      setError(failureMessage("L’article n’a pas été ajouté", error));
+      setError(failureMessage("L’article n’a pas été ajouté", cause));
     } finally {
       setIsAdding(false);
     }
@@ -339,157 +321,84 @@ export default function ShoppingListScreen() {
       );
       hapticAdded();
       loadList();
-    } catch (error) {
+    } catch (cause) {
       hapticReject();
-      setError(failureMessage("L’article n’a pas été ajouté", error));
+      setError(failureMessage("L’article n’a pas été ajouté", cause));
     } finally {
       setAddingSuggestion(null);
     }
   }
 
-  // Retient l'article à sa place, coche visible, puis replie sa ligne après le temps de pose.
-  // Chaque article a son propre délai : on enchaîne les coches sans que rien ne bouge sous le
-  // doigt. Pas de nettoyage au démontage : mettre à jour un écran déjà quitté ne fait rien.
-  function holdInPlace(item: ShoppingItem) {
-    setHeld((current) => new Map(current).set(item.id, current.get(item.id) ?? sectionOf(item)));
-    setSettling((current) => withoutId(current, item.id));
-    clearTimeout(settleTimersRef.current.get(item.id));
-    settleTimersRef.current.set(
-      item.id,
-      setTimeout(
-        () => setSettling((current) => new Set(current).add(item.id)),
-        ROW_SETTLE_DELAY_MS,
-      ),
-    );
-  }
-
-  // La ligne est repliée : l'article rejoint sa vraie section.
-  function finishMove(itemId: string) {
-    setHeld((current) => {
-      const next = new Map(current);
-      next.delete(itemId);
-      return next;
-    });
-    setSettling((current) => withoutId(current, itemId));
-  }
-
-  function toggleTaken() {
-    hapticTick();
-    // Replier « Déjà pris » démonte ses lignes : un article décoché qui y attendait rejoint
-    // « À acheter » tout de suite (sa ligne ne finirait jamais de se replier).
-    if (isTakenOpen) {
-      setHeld((current) => new Map([...current].filter(([, section]) => section !== "taken")));
-    }
-    setIsTakenOpen((value) => !value);
-  }
-
-  async function handleToggle(item: ShoppingItem) {
-    const checked = item.checkedAt === null;
-    hapticToggle(checked);
-    holdInPlace(item);
+  // Coche ou étoile : affichée tout de suite, confirmée par le serveur, effacée à l'arrivée du
+  // rechargement suivant. Un échec remet l'état d'avant.
+  async function applyOptimistic(
+    setPending: (update: (current: PendingMap<boolean>) => PendingMap<boolean>) => void,
+    itemId: string,
+    value: boolean,
+    save: () => Promise<void>,
+    failure: string,
+  ) {
     setError(null);
-    setPendingChecks((current) => new Map(current).set(item.id, { checked, confirmedFor: null }));
+    setPending((current) => new Map(current).set(itemId, { value, confirmedFor: null }));
     try {
-      await setShoppingItemChecked(item.id, checked);
-      // Le prochain rechargement porte ce numéro : c'est lui qui effacera la coche en attente.
+      await save();
       const nextRequest = latestRequestRef.current + 1;
-      setPendingChecks((current) => {
-        const pending = current.get(item.id);
+      setPending((current) => {
+        const pending = current.get(itemId);
         // Un autre toucher a pris le relais entre-temps : c'est lui qui compte.
-        if (!pending || pending.checked !== checked) return current;
-        return new Map(current).set(item.id, { checked, confirmedFor: nextRequest });
-      });
-      loadList();
-    } catch (error) {
-      hapticReject();
-      setError(failureMessage("La coche n’est pas passée", error));
-      // Échec : l'article revient à son vrai état.
-      setPendingChecks((current) => {
-        const next = new Map(current);
-        next.delete(item.id);
-        return next;
-      });
-    }
-  }
-
-  // L'étoile « indispensable » : affichée tout de suite, effacée seulement quand une liste
-  // rechargée après la confirmation arrive (sinon elle clignoterait, comme les coches).
-  async function handleToggleStar(item: ShoppingItem) {
-    const important = !item.isImportant;
-    hapticTick();
-    setError(null);
-    setPendingStars((current) => new Map(current).set(item.id, { important, confirmedFor: null }));
-    try {
-      await setShoppingItemImportant(item.id, important);
-      const nextRequest = latestRequestRef.current + 1;
-      setPendingStars((current) => {
-        const pending = current.get(item.id);
-        if (!pending || pending.important !== important) return current;
-        return new Map(current).set(item.id, { important, confirmedFor: nextRequest });
+        if (!pending || pending.value !== value) return current;
+        return new Map(current).set(itemId, { value, confirmedFor: nextRequest });
       });
       loadList();
     } catch (cause) {
       hapticReject();
-      setError(failureMessage("L’étoile n’a pas été posée", cause));
-      setPendingStars((current) => {
+      setError(failureMessage(failure, cause));
+      setPending((current) => {
         const next = new Map(current);
-        next.delete(item.id);
+        next.delete(itemId);
         return next;
       });
     }
   }
 
-  // « Choisir le rayon » : une feuille native ; la liste se recharge en reprenant la main.
-  function openAisleSheet(item: ShoppingItem) {
-    setEditingId(null);
+  function handleToggle(item: ShoppingItem) {
+    const checked = item.checkedAt === null;
+    hapticToggle(checked);
+    applyOptimistic(
+      setPendingChecks,
+      item.id,
+      checked,
+      () => setShoppingItemChecked(item.id, checked),
+      "La coche n’est pas passée",
+    );
+  }
+
+  function handleToggleStar(item: ShoppingItem) {
+    const important = !item.isImportant;
+    hapticTick();
+    applyOptimistic(
+      setPendingStars,
+      item.id,
+      important,
+      () => setShoppingItemImportant(item.id, important),
+      "L’étoile n’a pas été posée",
+    );
+  }
+
+  // La fiche d'un article : une feuille native ; la liste se recharge en reprenant la main.
+  function openItem(item: ShoppingItem) {
     setUnsortedItem(null);
     router.push({
-      pathname: "/courses/rayon",
-      params: { itemId: item.id, label: item.label, aisle: item.aisle },
+      pathname: "/courses/article",
+      params: {
+        itemId: item.id,
+        groupId,
+        label: item.label,
+        quantity: item.quantity ?? "",
+        aisle: item.aisle,
+        important: item.isImportant ? "1" : "0",
+      },
     });
-  }
-
-  function startEdit(item: ShoppingItem) {
-    hapticTick();
-    setEditingId(item.id);
-    setEditLabel(item.label);
-    setEditQuantity(item.quantity ?? "");
-    setEditError(null);
-  }
-
-  async function handleSaveEdit(item: ShoppingItem) {
-    if (editLabel.trim() === "") {
-      setEditError("Écris le nom de l’article.");
-      return;
-    }
-    const duplicate = findDuplicate(items, editLabel, item.id);
-    if (duplicate) {
-      setEditError(`« ${duplicate.label} » est déjà dans la liste.`);
-      return;
-    }
-    setIsSavingEdit(true);
-    try {
-      await updateShoppingItem(item.id, { label: editLabel, quantity: editQuantity });
-      setEditingId(null);
-      loadList();
-    } catch (error) {
-      hapticReject();
-      setEditError(failureMessage("L’article n’a pas été modifié", error));
-    } finally {
-      setIsSavingEdit(false);
-    }
-  }
-
-  async function handleRemove(item: ShoppingItem) {
-    setError(null);
-    try {
-      await removeShoppingItem(item.id);
-      setEditingId(null);
-      loadList();
-    } catch (error) {
-      hapticReject();
-      setEditError(failureMessage("L’article n’a pas été retiré", error));
-    }
   }
 
   async function handleClear() {
@@ -498,92 +407,20 @@ export default function ShoppingListScreen() {
     try {
       await clearCheckedItems(groupId);
       loadList();
-    } catch (error) {
+    } catch (cause) {
       hapticReject();
-      setError(failureMessage("Les achetés n’ont pas été retirés", error));
+      setError(failureMessage("Les articles pris n’ont pas été retirés", cause));
     } finally {
       setIsClearing(false);
     }
   }
 
-  function renderEditPanel(item: ShoppingItem) {
-    return (
-      <View style={styles.editPanel}>
-        <View style={styles.editFields}>
-          <View style={styles.editLabelField}>
-            <TextField
-              label="Article"
-              value={editLabel}
-              onChangeText={setEditLabel}
-              error={editError}
-              autoCapitalize="sentences"
-              autoFocus
-              maxLength={SHOPPING_LABEL_MAX_LENGTH}
-              editable={!isSavingEdit}
-              onSubmitEditing={() => handleSaveEdit(item)}
-            />
-          </View>
-          <View style={styles.editQuantityField}>
-            <TextField
-              label="Quantité"
-              value={editQuantity}
-              onChangeText={setEditQuantity}
-              maxLength={SHOPPING_QUANTITY_MAX_LENGTH}
-              editable={!isSavingEdit}
-              onSubmitEditing={() => handleSaveEdit(item)}
-            />
-          </View>
-        </View>
-        <Pressable
-          onPress={() => openAisleSheet(item)}
-          accessibilityRole="button"
-          accessibilityLabel={`Rayon : ${AISLE_LABELS[item.aisle]}. Changer de rayon`}
-          style={({ pressed }) => [styles.aisleRow, pressed && styles.pressed]}
-        >
-          <Text style={styles.aisleRowLabel}>Rayon</Text>
-          <Text style={styles.aisleRowValue}>{AISLE_LABELS[item.aisle]}</Text>
-          <Feather name="chevron-right" size={18} color={theme.colors.textMuted} />
-        </Pressable>
-        <View style={styles.editActions}>
-          <Pressable
-            onPress={() => handleRemove(item)}
-            disabled={isSavingEdit}
-            accessibilityRole="button"
-            accessibilityLabel={`Retirer ${item.label} de la liste`}
-            style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}
-          >
-            <Feather name="trash-2" size={18} color={theme.colors.danger} />
-            <Text style={styles.removeText}>Retirer</Text>
-          </Pressable>
-          <View style={styles.spacer} />
-          <Pressable
-            onPress={() => setEditingId(null)}
-            disabled={isSavingEdit}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}
-          >
-            <Text style={styles.cancelText}>Annuler</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => handleSaveEdit(item)}
-            disabled={isSavingEdit}
-            accessibilityRole="button"
-            accessibilityLabel="Enregistrer"
-            accessibilityState={{ busy: isSavingEdit }}
-            style={({ pressed }) => [styles.okButton, pressed && styles.pressed]}
-          >
-            {isSavingEdit ? (
-              <ActivityIndicator color={theme.colors.onPrimary} />
-            ) : (
-              <Text style={styles.okText}>OK</Text>
-            )}
-          </Pressable>
-        </View>
-      </View>
-    );
+  function toggleSection(key: string, isOpen: boolean) {
+    hapticTick();
+    setOpenOverrides((current) => new Map(current).set(key, !isOpen));
   }
 
-  function renderItem(item: ShoppingItem, index: number, section: ShoppingSection) {
+  function renderItem(item: ShoppingItem, index: number) {
     const isTaken = item.checkedAt !== null;
     const checker = item.checkedBy ? list?.members.get(item.checkedBy) : undefined;
     const description = [
@@ -593,76 +430,73 @@ export default function ShoppingListScreen() {
     ]
       .filter(Boolean)
       .join(", ");
-    // Elle se replie si son temps de pose est écoulé et qu'elle doit changer de section.
-    const isCollapsing = settling.has(item.id) && held.get(item.id) !== sectionOf(item);
 
     return (
-      <CollapsingRow
-        key={item.id}
-        isCollapsing={isCollapsing}
-        onCollapsed={() => finishMove(item.id)}
-      >
+      <View key={item.id}>
         {index > 0 ? <View style={styles.separator} /> : null}
-        {item.id === editingId ? (
-          renderEditPanel(item)
-        ) : (
-          <Pressable
-            onPress={() => handleToggle(item)}
-            disabled={isCollapsing}
-            // Toucher coche (le geste du magasin) ; appui long ouvre l'article, plus rare.
-            onLongPress={() => {
-              hapticLongPress();
-              startEdit(item);
-            }}
-            accessibilityRole="checkbox"
-            accessibilityLabel={description}
-            accessibilityState={{ checked: isTaken }}
-            accessibilityActions={[{ name: "edit", label: "Modifier ou retirer" }]}
-            onAccessibilityAction={(event) => {
-              if (event.nativeEvent.actionName === "edit") startEdit(item);
-            }}
-            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        <Pressable
+          onPress={() => handleToggle(item)}
+          // Toucher coche (le geste du magasin) ; appui long : la fiche, comme le bouton ⋯.
+          onLongPress={() => {
+            hapticLongPress();
+            openItem(item);
+          }}
+          accessibilityRole="checkbox"
+          accessibilityLabel={description}
+          accessibilityState={{ checked: isTaken }}
+          accessibilityActions={[{ name: "edit", label: "Modifier l’article" }]}
+          onAccessibilityAction={(event) => {
+            if (event.nativeEvent.actionName === "edit") openItem(item);
+          }}
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        >
+          <Animated.View
+            style={[styles.checkbox, colorTransition, isTaken && styles.checkboxChecked]}
           >
-            <Animated.View
-              style={[styles.checkbox, colorTransition, isTaken && styles.checkboxChecked]}
+            {isTaken ? (
+              <Animated.View entering={checkEntering}>
+                <Feather name="check" size={15} color={theme.colors.onPrimary} />
+              </Animated.View>
+            ) : null}
+          </Animated.View>
+          <StrikeLabel label={item.label} isStruck={isTaken} />
+          <View style={styles.spacer} />
+          {item.quantity ? <Text style={styles.quantity}>{item.quantity}</Text> : null}
+          {isTaken ? (
+            <Avatar
+              name={checker?.name ?? nameOf(item.checkedBy)}
+              avatar={checker?.avatar ?? null}
+              photoPath={checker?.photoPath ?? null}
+              size={22}
+            />
+          ) : (
+            <Pressable
+              onPress={() => handleToggleStar(item)}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.label} : indispensable`}
+              accessibilityState={{ selected: item.isImportant }}
+              style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
             >
-              {isTaken ? (
-                <Animated.View entering={checkEntering}>
-                  <Feather name="check" size={15} color={theme.colors.onPrimary} />
-                </Animated.View>
-              ) : null}
-            </Animated.View>
-            <StrikeLabel label={item.label} isStruck={isTaken} />
-            <View style={styles.spacer} />
-            {item.quantity ? <Text style={styles.quantity}>{item.quantity}</Text> : null}
-            {section === "toBuy" ? (
-              <Pressable
-                onPress={() => handleToggleStar(item)}
-                hitSlop={6}
-                accessibilityRole="button"
-                accessibilityLabel={`${item.label} : indispensable`}
-                accessibilityState={{ selected: item.isImportant }}
-                style={({ pressed }) => [styles.star, pressed && styles.pressed]}
-              >
-                <MaterialCommunityIcons
-                  name={item.isImportant ? "star" : "star-outline"}
-                  size={22}
-                  // Vide : la couleur du contour des cases, lisible en clair comme en sombre.
-                  color={item.isImportant ? theme.colors.star : theme.colors.inputBorder}
-                />
-              </Pressable>
-            ) : null}
-            {isTaken && section === "taken" ? (
-              <Avatar
-                name={checker?.name ?? nameOf(item.checkedBy)}
-                avatar={checker?.avatar ?? null}
-                photoPath={checker?.photoPath ?? null}
+              <MaterialCommunityIcons
+                name={item.isImportant ? "star" : "star-outline"}
                 size={22}
+                // Vide : la couleur du contour des cases, lisible en clair comme en sombre.
+                color={item.isImportant ? theme.colors.star : theme.colors.inputBorder}
               />
-            ) : null}
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => openItem(item)}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={`Options de ${item.label}`}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+          >
+            <Feather name="more-horizontal" size={20} color={theme.colors.textMuted} />
           </Pressable>
-        )}
-      </CollapsingRow>
+        </Pressable>
+      </View>
     );
   }
 
@@ -672,7 +506,7 @@ export default function ShoppingListScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* « Je pars faire les courses » dans l'en-tête : une action du moment, pas une carte. */}
+      {/* « Je vais aux courses » dans l'en-tête : une action du moment, pas une carte. */}
       <Stack.Screen
         options={{
           headerRight: canStartTrip
@@ -724,6 +558,18 @@ export default function ShoppingListScreen() {
             onEnd={handleEndTrip}
           />
 
+          {/* Le mode d'emploi, une seule fois : le bouton ⋯ et l'appui long ne se devinent pas. */}
+          {isTipVisible && total > 0 ? (
+            <View style={styles.tip} accessibilityLiveRegion="polite">
+              <Feather name="info" size={18} color={theme.colors.chipText} />
+              <Text style={styles.tipText}>
+                Touche un article pour le cocher. <Text style={styles.tipStrong}>⋯</Text> ou un
+                appui long pour le modifier ou changer son rayon. Touche un rayon pour le replier.
+              </Text>
+              <TextButton label="Compris" onPress={dismissTip} />
+            </View>
+          ) : null}
+
           {notice ? (
             <Text style={styles.notice} accessibilityLiveRegion="polite">
               {notice}
@@ -732,11 +578,11 @@ export default function ShoppingListScreen() {
           {unsortedItem ? (
             <View style={styles.unsorted} accessibilityLiveRegion="polite">
               <Text style={styles.unsortedText}>
-                «{"\u00A0"}
+                «{" "}
                 {unsortedItem.label}
-                {"\u00A0"}» est rangé dans Autres.
+                {" "}» est rangé dans Autres.
               </Text>
-              <TextButton label="Choisir le rayon" onPress={() => openAisleSheet(unsortedItem)} />
+              <TextButton label="Choisir le rayon" onPress={() => openItem(unsortedItem)} />
             </View>
           ) : null}
           {error ? (
@@ -749,99 +595,62 @@ export default function ShoppingListScreen() {
             </Text>
           ) : null}
 
+          {total === 0 ? (
+            <Text style={styles.emptyText}>
+              La liste est vide. Ajoute ce qui manque à la maison, en bas de l’écran.
+            </Text>
+          ) : toBuyCount === 0 ? (
+            // Tout est pris : le chat, et on rentre.
+            <View style={styles.done}>
+              <SignatureCat size={64} />
+              <Text style={styles.doneTitle}>Tout est pris !</Text>
+              <Text style={styles.doneText}>Bon retour à la maison.</Text>
+            </View>
+          ) : null}
+
           {/* Pas d'animation d'entrée au premier affichage : seulement quand la liste bouge. */}
           <LayoutAnimationConfig skipEntering>
-            {toBuy.length > 0 ? (
-              <View style={styles.sections}>
-                <SegmentedControl
-                  accessibilityLabel="Trier la liste"
-                  value={sortMode}
-                  onChange={setSortMode}
-                  options={[
-                    { value: "aisle", label: "Par rayon" },
-                    { value: "added", label: "Par ajout" },
-                  ]}
-                />
-                {groupShoppingItems(toBuy, list.aisles.order, sortMode).map((group) => (
-                  <View key={group.key} style={styles.block}>
-                    <SectionHeader
-                      title={`${
-                        group.key === "important"
-                          ? "★ Indispensable"
-                          : group.key === "all"
-                            ? "À acheter"
-                            : AISLE_LABELS[group.key]
-                      } · ${group.items.length}`}
-                    />
-                    <View style={styles.group}>
-                      {group.items.map((item, index) => renderItem(item, index, "toBuy"))}
-                    </View>
-                  </View>
-                ))}
-                {sortMode === "aisle" ? (
-                  <View style={styles.orderLink}>
-                    <TextButton
-                      label="Ordre des rayons"
-                      onPress={() =>
-                        router.push({ pathname: "/courses/rayons", params: { groupId } })
-                      }
-                    />
-                  </View>
-                ) : null}
-              </View>
-            ) : taken.length > 0 ? (
-              // Tout est pris : le chat, et on rentre.
-              <View style={styles.done}>
-                <SignatureCat size={64} />
-                <Text style={styles.doneTitle}>Tout est pris !</Text>
-                <Text style={styles.doneText}>Bon retour à la maison.</Text>
-              </View>
-            ) : (
-              <Text style={styles.emptyText}>
-                La liste est vide. Ajoute ce qui manque à la maison, en bas de l’écran.
-              </Text>
-            )}
-
-            {taken.length > 0 ? (
-              // « Déjà pris » en accordéon : replié, une ligne et son compteur.
-              <View style={styles.group}>
-                <Pressable
-                  onPress={toggleTaken}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: isTakenOpen }}
-                  accessibilityLabel={`Déjà pris, ${taken.length}`}
-                  style={({ pressed }) => [styles.takenHead, pressed && styles.rowPressed]}
-                >
-                  <Text style={styles.takenTitle}>Déjà pris</Text>
-                  {/* Nouvelle clé à chaque arrivée : le compteur fait un petit bond. */}
-                  <Animated.View key={taken.length} entering={countBump} style={styles.badge}>
-                    <Text style={styles.badgeText}>{taken.length}</Text>
-                  </Animated.View>
-                  <View style={styles.spacer} />
-                  <Feather
-                    name={isTakenOpen ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color={theme.colors.textMuted}
-                  />
-                </Pressable>
-                {isTakenOpen ? (
-                  <>
-                    <View style={styles.separatorFull} />
-                    {taken.map((item, index) => renderItem(item, index, "taken"))}
-                    <View style={styles.clear}>
-                      <TextButton
-                        label={
-                          takenCount > 1 ? `Retirer les ${takenCount} achetés` : "Retirer l’acheté"
-                        }
-                        onPress={handleClear}
-                        isDisabled={isClearing}
-                      />
-                    </View>
-                  </>
-                ) : null}
-              </View>
-            ) : null}
+            <View style={styles.sections}>
+              {groups.map((group) => {
+                const groupTaken = group.items.filter((item) => item.checkedAt !== null).length;
+                const isDone = groupTaken === group.items.length;
+                const isOpen = openOverrides.get(group.key) ?? !isDone;
+                return (
+                  <AisleSection
+                    key={group.key}
+                    aisle={group.key}
+                    title={group.key === "important" ? "Indispensable" : AISLE_LABELS[group.key]}
+                    takenCount={groupTaken}
+                    total={group.items.length}
+                    isOpen={isOpen}
+                    onToggle={() => toggleSection(group.key, isOpen)}
+                  >
+                    {group.items.map(renderItem)}
+                  </AisleSection>
+                );
+              })}
+            </View>
           </LayoutAnimationConfig>
+
+          {takenCount > 0 || toBuyCount > 0 ? (
+            <View style={styles.footerLinks}>
+              {takenCount > 0 ? (
+                <TextButton
+                  label={
+                    takenCount > 1
+                      ? `Retirer les ${takenCount} articles pris`
+                      : "Retirer l’article pris"
+                  }
+                  onPress={handleClear}
+                  isDisabled={isClearing}
+                />
+              ) : null}
+              <TextButton
+                label="Ordre des rayons"
+                onPress={() => router.push({ pathname: "/courses/rayons", params: { groupId } })}
+              />
+            </View>
+          ) : null}
         </ScrollView>
 
         {/* L'ajout en bas, sous le pouce : on remplit la liste sans remonter. */}
@@ -930,18 +739,18 @@ export default function ShoppingListScreen() {
   );
 }
 
-function sectionOf(item: ShoppingItem): ShoppingSection {
-  return item.checkedAt === null ? "toBuy" : "taken";
-}
-
-function withoutId(ids: Set<string>, id: string): Set<string> {
-  if (!ids.has(id)) return ids;
-  const next = new Set(ids);
-  next.delete(id);
+// Les valeurs en attente confirmées avant ce rechargement : la liste rechargée fait foi.
+function withoutConfirmed<T>(pending: PendingMap<T>, requestId: number): PendingMap<T> {
+  const done = [...pending].filter(
+    ([, entry]) => entry.confirmedFor !== null && requestId >= entry.confirmedFor,
+  );
+  if (done.length === 0) return pending;
+  const next = new Map(pending);
+  for (const [id] of done) next.delete(id);
   return next;
 }
 
-function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
+function createStyles({ colors, spacing, radius, control, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     container: {
@@ -961,10 +770,66 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     subtitle: { color: colors.textMuted, fontSize: fontSize.small },
 
-    block: { gap: spacing.sm },
-    sections: { gap: spacing.lg },
-    orderLink: { alignItems: "center", marginTop: -spacing.sm },
-    star: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+    // Le mode d'emploi : un bandeau teinté, une seule fois.
+    tip: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+      paddingTop: spacing.md,
+      paddingLeft: spacing.md,
+      paddingRight: spacing.xs,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface2,
+    },
+    tipText: { flex: 1, color: colors.text, fontSize: fontSize.small, lineHeight: 20 },
+    tipStrong: { fontWeight: "800" },
+
+    sections: { gap: spacing.md },
+    // Filet entre deux lignes, aligné sur le texte (marge 16 + case 26 + espace 12).
+    separator: {
+      position: "absolute",
+      top: 0,
+      left: 54,
+      right: 0,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+    },
+    // Une ligne : toute la ligne coche, une grande cible d'une main dans le magasin.
+    row: {
+      minHeight: 54,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      paddingLeft: spacing.lg,
+      paddingRight: spacing.xs,
+      paddingVertical: spacing.xs,
+    },
+    rowPressed: { backgroundColor: colors.surface2 },
+    checkbox: {
+      width: 26,
+      height: 26,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: radius.pill,
+      borderWidth: 2,
+      borderColor: colors.inputBorder,
+    },
+    checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
+    spacer: { flex: 1 },
+    quantity: { color: colors.textMuted, fontSize: fontSize.small, fontVariant: ["tabular-nums"] },
+    iconButton: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
+
+    footerLinks: { alignItems: "center", gap: spacing.xs },
+    done: { alignItems: "center", gap: spacing.xs, paddingVertical: spacing.sm },
+    doneTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.heading },
+    doneText: { color: colors.textMuted, fontSize: fontSize.small },
+    emptyText: {
+      color: colors.textMuted,
+      fontSize: fontSize.body,
+      lineHeight: 24,
+      paddingHorizontal: spacing.xs,
+    },
+
     // « Rangé dans Autres » : un bandeau teinté avec son action.
     unsorted: {
       flexDirection: "row",
@@ -976,95 +841,6 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       backgroundColor: colors.surface2,
     },
     unsortedText: { flex: 1, color: colors.text, fontSize: fontSize.small },
-    // Dans l'article ouvert : son rayon, qui ouvre la feuille « Choisir le rayon ».
-    aisleRow: {
-      minHeight: 44,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.md,
-      borderRadius: radius.md,
-      backgroundColor: colors.surface,
-    },
-    aisleRowLabel: { color: colors.textMuted, fontSize: fontSize.small },
-    aisleRowValue: {
-      flex: 1,
-      textAlign: "right",
-      color: colors.text,
-      fontSize: fontSize.small,
-      fontWeight: "600",
-    },
-    // Une liste groupée : une seule surface, une seule ombre.
-    group: {
-      borderRadius: radius.lg,
-      backgroundColor: colors.surface,
-      boxShadow: cardShadow,
-      overflow: "hidden",
-    },
-    // Filet entre deux lignes, aligné sur le texte (marge 16 + case 24 + espace 12).
-    separator: {
-      position: "absolute",
-      top: 0,
-      left: 52,
-      right: 0,
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.border,
-    },
-    separatorFull: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
-
-    // Une ligne : toute la ligne coche, une grande cible d'une main dans le magasin.
-    row: {
-      minHeight: 54,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.sm,
-    },
-    rowPressed: { backgroundColor: colors.surface2 },
-    // Case ronde, comme Rappels et Things : elle se remplit, la coche apparaît.
-    checkbox: {
-      width: 24,
-      height: 24,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: radius.pill,
-      borderWidth: 2,
-      borderColor: colors.inputBorder,
-    },
-    checkboxChecked: { borderColor: colors.primary, backgroundColor: colors.primary },
-    spacer: { flex: 1 },
-    quantity: { color: colors.textMuted, fontSize: fontSize.small, fontVariant: ["tabular-nums"] },
-
-    takenHead: {
-      minHeight: 52,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingHorizontal: spacing.lg,
-    },
-    takenTitle: { color: colors.textMuted, fontSize: fontSize.body - 1, fontWeight: "600" },
-    badge: {
-      minWidth: 24,
-      height: 24,
-      paddingHorizontal: 7,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: radius.pill,
-      backgroundColor: colors.surface2,
-    },
-    badgeText: { color: colors.text, fontSize: fontSize.caption, fontWeight: "800" },
-    clear: { alignItems: "center", paddingBottom: spacing.xs },
-
-    done: { alignItems: "center", gap: spacing.xs, paddingVertical: spacing.lg },
-    doneTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.heading },
-    doneText: { color: colors.textMuted, fontSize: fontSize.small },
-    emptyText: {
-      color: colors.textMuted,
-      fontSize: fontSize.body,
-      lineHeight: 24,
-      paddingHorizontal: spacing.xs,
-    },
 
     // Le dock du bas : « Souvent acheté » en chips, puis le champ d'ajout.
     dock: {
@@ -1113,38 +889,6 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       justifyContent: "center",
       backgroundColor: colors.primary,
     },
-
-    // L'article ouvert par un appui long : corriger ou retirer, sur place.
-    editPanel: {
-      margin: spacing.sm,
-      padding: 14,
-      gap: spacing.md,
-      borderRadius: radius.md,
-      backgroundColor: colors.surface2,
-    },
-    editFields: { flexDirection: "row", gap: spacing.sm },
-    editLabelField: { flex: 1 },
-    editQuantityField: { width: 96 },
-    editActions: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-    textAction: {
-      minHeight: 44,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: spacing.sm,
-    },
-    removeText: { color: colors.danger, fontSize: fontSize.small, fontWeight: "700" },
-    cancelText: { color: colors.textMuted, fontSize: fontSize.small, fontWeight: "700" },
-    okButton: {
-      minWidth: 64,
-      height: 44,
-      paddingHorizontal: spacing.lg,
-      borderRadius: radius.pill,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.primary,
-    },
-    okText: { color: colors.onPrimary, fontSize: fontSize.button, fontWeight: "600" },
 
     pressed: { opacity: 0.6 },
     error: { color: colors.danger, fontSize: fontSize.small },

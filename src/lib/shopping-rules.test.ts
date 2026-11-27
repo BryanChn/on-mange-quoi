@@ -5,7 +5,10 @@ import {
   buildSuggestions,
   cleanShoppingInput,
   clockLabel,
+  aisleFromCiqualGroup,
+  ciqualMatchesLabel,
   findDuplicate,
+  resolveAisle,
   groupShoppingItems,
   guessAisle,
   moveAisle,
@@ -14,7 +17,7 @@ import {
   normalizeLabel,
   planShoppingAdditions,
   sortShoppingList,
-  splitShoppingList,
+  byAddedOrder,
   tripToShow,
   type ShoppingItem,
 } from "./shopping-rules.ts";
@@ -46,63 +49,27 @@ test("liste : ce qui reste à acheter d'abord (ordre d'ajout), puis le dernier p
   );
 });
 
-test("liste : un article tout juste coché reste à sa place, puis rejoint « Déjà pris »", () => {
-  const items = [
-    item("lait", "2026-11-24T10:01:00Z"),
-    // Coché à l'instant, mais encore retenu dans « À acheter ».
-    item("beurre", "2026-11-24T10:02:00Z", "2026-11-24T18:10:00Z"),
-    item("pain", "2026-11-24T10:03:00Z"),
-    item("oeufs", "2026-11-24T10:00:00Z", "2026-11-24T18:05:00Z"),
-  ];
-  const held = splitShoppingList(items, new Map([["beurre", "toBuy"]]));
-  assert.deepEqual(
-    held.toBuy.map((entry) => entry.id),
-    ["lait", "beurre", "pain"],
-  );
-  assert.deepEqual(
-    held.taken.map((entry) => entry.id),
-    ["oeufs"],
-  );
-
-  // Plus rien de retenu : il glisse en tête de « Déjà pris » (le dernier pris).
-  const settled = splitShoppingList(items, new Map());
-  assert.deepEqual(
-    settled.toBuy.map((entry) => entry.id),
-    ["lait", "pain"],
-  );
-  assert.deepEqual(
-    settled.taken.map((entry) => entry.id),
-    ["beurre", "oeufs"],
-  );
-});
-
-test("liste : des articles ajoutés au même instant gardent leur ordre quand on en coche un", () => {
+test("liste : des articles ajoutés au même instant gardent toujours le même ordre", () => {
   const sameTime = "2026-11-24T10:00:00Z";
-  const before = splitShoppingList(
-    [item("c", sameTime), item("a", sameTime), item("b", sameTime)],
-    new Map(),
-  );
-  const held = splitShoppingList(
-    [item("c", sameTime), item("a", sameTime, "2026-11-24T18:00:00Z"), item("b", sameTime)],
-    new Map([["a", "toBuy"]]),
-  );
-  assert.deepEqual(
-    held.toBuy.map((entry) => entry.id),
-    before.toBuy.map((entry) => entry.id),
-  );
-});
-
-test("liste : un article décoché reste un instant en bas de « Déjà pris »", () => {
   const items = [
-    item("lait", "2026-11-24T10:01:00Z"),
-    item("oeufs", "2026-11-24T10:00:00Z", "2026-11-24T18:05:00Z"),
+    item("c", sameTime),
+    item("a", sameTime),
+    item("b", sameTime, "2026-11-24T18:00:00Z"),
   ];
-  const held = splitShoppingList(items, new Map([["lait", "taken"]]));
   assert.deepEqual(
-    held.taken.map((entry) => entry.id),
-    ["oeufs", "lait"],
+    [...items].sort(byAddedOrder).map((entry) => entry.id),
+    ["a", "b", "c"],
   );
-  assert.equal(held.toBuy.length, 0);
+  // Un article coché garde sa place : l'ordre ne dépend que de l'ajout.
+  assert.deepEqual(
+    [
+      item("lait", "2026-11-24T10:02:00Z", "2026-11-24T18:00:00Z"),
+      item("pain", "2026-11-24T10:01:00Z"),
+    ]
+      .sort(byAddedOrder)
+      .map((entry) => entry.id),
+    ["pain", "lait"],
+  );
 });
 
 test("liste vide : rien à trier", () => {
@@ -176,7 +143,7 @@ test("ajouter une recette aux courses : sans doublon, ce qui est pris revient", 
   });
   const plan = planShoppingAdditions(
     [
-      { label: "Plat de côte", quantity: "350 g" },
+      { label: "Plat de côte", quantity: "350 g", foodId: 42 },
       { label: "Carottes", quantity: "2" },
       { label: "carottes", quantity: "1" },
       { label: "Bouquet garni", quantity: "1" },
@@ -186,9 +153,10 @@ test("ajouter une recette aux courses : sans doublon, ce qui est pris revient", 
     [item("a", "Bouquet garni"), item("b", "Poireaux", "2026-11-25T18:00:00Z")],
   );
   assert.deepEqual(plan, {
+    // L'aliment Ciqual suit l'article : son rayon en dépend.
     toInsert: [
-      { label: "Plat de côte", quantity: "350 g" },
-      { label: "Carottes", quantity: "2" },
+      { label: "Plat de côte", quantity: "350 g", foodId: 42 },
+      { label: "Carottes", quantity: "2", foodId: null },
     ],
     toUncheck: ["b"],
     alreadyToBuy: ["Bouquet garni"],
@@ -371,25 +339,113 @@ test("ordre des rayons : complété, « autres » toujours en dernier", () => {
   assert.deepEqual(moveAisle(order, "autres", -1), order);
 });
 
-test("sections : indispensables en tête, puis les rayons dans l'ordre, sans section vide", () => {
+test("sections : indispensables en tête, puis les rayons dans l'ordre, les pris restent dans leur rayon", () => {
   const items = [
     { id: "lait", aisle: "cremerie" as const, isImportant: false },
     { id: "pain", aisle: "boulangerie" as const, isImportant: false },
     { id: "couches", aisle: "bebe" as const, isImportant: true },
     { id: "beurre", aisle: "cremerie" as const, isImportant: false },
   ];
-  const byAisle = groupShoppingItems(items, orderedAisles(null), "aisle");
   assert.deepEqual(
-    byAisle.map((group) => [group.key, group.items.map((item) => item.id)]),
+    groupShoppingItems(items, orderedAisles(null)).map((group) => [
+      group.key,
+      group.items.map((item) => item.id),
+    ]),
     [
       ["important", ["couches"]],
       ["boulangerie", ["pain"]],
       ["cremerie", ["lait", "beurre"]],
     ],
   );
-  const byAdded = groupShoppingItems(items, orderedAisles(null), "added");
-  assert.deepEqual(
-    byAdded.map((group) => group.key),
-    ["important", "all"],
-  );
+});
+
+// Les sous-groupes Ciqual 2025 sans « alimentation particulière » (foods.group_name), relevés en
+// base : chacun doit avoir un rayon.
+const CIQUAL_SUBGROUPS = [
+  "aides culinaires",
+  "algues",
+  "autres matières grasses",
+  "autres produits à base de viande",
+  "barres céréalières",
+  "beurres",
+  "biscuits apéritifs",
+  "biscuits sucrés",
+  "boisson alcoolisées",
+  "boissons sans alcool",
+  "céréales de petit-déjeuner",
+  "céréales et biscuits infantiles",
+  "charcuteries et alternatives végétales",
+  "chocolats et produits à base de chocolat",
+  "condiments",
+  "confiseries non chocolatées",
+  "confitures et assimilés",
+  "crèmes et spécialités à base de crème",
+  "desserts glacés",
+  "desserts infantiles",
+  "eaux",
+  "épices",
+  "farines",
+  "feuilletées et autres entrées",
+  "fromages et alternatives végétales",
+  "fruits",
+  "fruits à coque et graines oléagineuses",
+  "gâteaux et pâtisseries",
+  "glaces",
+  "herbes",
+  "huiles de poissons",
+  "huiles et graisses végétales",
+  "ingrédients pour végétariens",
+  "laits",
+  "laits et boissons infantiles",
+  "légumes",
+  "légumineuses",
+  "margarines",
+  "mollusques et crustacés crus",
+  "mollusques et crustacés cuits",
+  "oeufs",
+  "pains et assimilés",
+  "pâtes à tarte",
+  "pâtes, riz et céréales",
+  "petits pots salés et plats infantiles",
+  "pizzas, tartes et crêpes salées",
+  "plats composés",
+  "poissons crus",
+  "poissons cuits",
+  "pommes de terre et autres tubercules",
+  "produits à base de poissons et produits de la mer",
+  "produits laitiers frais et alternatives végétales",
+  "salades composées et crudités",
+  "sandwichs",
+  "sauces",
+  "sels",
+  "sorbets",
+  "soupes",
+  "sucres, miels et assimilés",
+  "tartinables végétariens",
+  "viandes crues",
+  "viandes cuites",
+  "viennoiseries",
+];
+
+test("Ciqual : chaque sous-groupe d'aliments a un rayon", () => {
+  const missing = CIQUAL_SUBGROUPS.filter((group) => aisleFromCiqualGroup(group) === null);
+  assert.deepEqual(missing, []);
+  assert.equal(aisleFromCiqualGroup("viandes cuites"), "charcuterie_traiteur");
+  assert.equal(aisleFromCiqualGroup(null), null);
+  assert.equal(aisleFromCiqualGroup("inconnu"), null);
+});
+
+test("Ciqual : l'aliment trouvé doit commencer comme le nom tapé", () => {
+  assert.ok(ciqualMatchesLabel("Goûter", "Goûter sec fourré, au chocolat"));
+  assert.ok(ciqualMatchesLabel("Échines de porc", "Échine de porc, crue"));
+  assert.ok(!ciqualMatchesLabel("Ballons", "Pain de mie, complet"));
+  assert.ok(!ciqualMatchesLabel("Ok", "Okra, cru"));
+});
+
+test("rayon d'un nouvel article : choix du foyer, dictionnaire, Ciqual, puis Autres", () => {
+  const chosen = new Map([["goute", "boulangerie" as const]]);
+  assert.equal(resolveAisle("Goûté", chosen, "biscuits sucrés"), "boulangerie");
+  assert.equal(resolveAisle("Lait", new Map(), "boissons sans alcool"), "cremerie");
+  assert.equal(resolveAisle("Goûter", new Map(), "biscuits sucrés"), "epicerie_sucree");
+  assert.equal(resolveAisle("Ballons", new Map(), null), "autres");
 });

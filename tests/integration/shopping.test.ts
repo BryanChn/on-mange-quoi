@@ -250,6 +250,22 @@ describe("les rayons", () => {
     assert.equal(again.aisle, "maison_hygiene");
   });
 
+  test("un nom inconnu du dictionnaire est rangé grâce à Ciqual", async () => {
+    await emptyList();
+    await signInAs(alice);
+    const cases: [string, string][] = [
+      ["Goûter", "epicerie_sucree"],
+      ["Kombucha", "boissons"],
+      ["Topinambour", "fruits_legumes"],
+      ["Tofu", "charcuterie_traiteur"],
+      ["Ballons", "autres"],
+    ];
+    for (const [label, aisle] of cases) {
+      const added = await addShoppingItem(foyerId, { label, quantity: "" });
+      assert.equal(added.aisle, aisle, label);
+    }
+  });
+
   test("Dan, hors du foyer, ne range rien et ne lit pas les choix", async () => {
     await emptyList();
     await signInAs(alice);
