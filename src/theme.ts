@@ -88,12 +88,19 @@ const darkColors: typeof lightColors = {
 
 const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 
-// md : champ, ligne. lg : liste groupée. xl : carte.
-const radius = { md: 16, lg: 22, xl: 28, pill: 999 } as const;
+// md : champ, ligne. lg : liste groupée. xl : carte. Refonte du 2026-11-27 (maquette v4) :
+// moins arrondi (16 / 22 / 28 faisaient « bulle »).
+const radius = { md: 12, lg: 16, xl: 20, pill: 999 } as const;
+
+// Hauteur des contrôles (boutons, champs, lignes d'ajout) : lg = l'action qui termine
+// l'écran et les champs ; md = un bouton dans une carte ; sm = une petite action dans une liste.
+// Repères : Android 40 dp, iOS 44 pt de zone tactile au minimum.
+const control = { lg: 48, md: 40, sm: 36 } as const;
 
 // En clair, une carte blanche sur la crème ne se détache que par son ombre (1,11:1).
 // En sombre, pas d'ombre : la profondeur vient des surfaces plus claires.
-const cardShadow = "0 1px 2px rgba(42, 23, 18, 0.06), 0 6px 18px rgba(42, 23, 18, 0.06)";
+// Refonte du 2026-11-27 : une seule ombre courte, la hiérarchie vient de la typo et des groupes.
+const cardShadow = "0 1px 2px rgba(42, 23, 18, 0.06)";
 
 // Fonds des avatars, toujours avec le texte espresso dessus (contraste ≥ 9:1).
 const avatarColors = [brand.spaghetti, "#CDE8D6", "#FFD3C9"] as const;
@@ -105,14 +112,18 @@ const fonts = {
   displayBold: "BricolageGrotesque_700Bold",
 } as const;
 
+// Refonte du 2026-11-27 : titres un cran plus petits, boutons en police système demi-grasse.
 const fontSize = {
   caption: 13,
   small: 14,
   body: 17,
-  button: 18,
-  heading: 26,
-  screenTitle: 32,
-  title: 38,
+  // Le texte d'un bouton ou d'un lien d'action, et rien d'autre.
+  button: 16,
+  // Titre de carte ou de dialogue, nombre mis en avant (Bricolage) : 18 comme avant la refonte.
+  cardTitle: 18,
+  heading: 22,
+  screenTitle: 28,
+  title: 32,
 } as const;
 
 const lightTheme = {
@@ -123,6 +134,7 @@ const lightTheme = {
   onAvatar,
   spacing,
   radius,
+  control,
   fonts,
   fontSize,
 };
@@ -134,6 +146,7 @@ const darkTheme = {
   onAvatar,
   spacing,
   radius,
+  control,
   fonts,
   fontSize,
 };
