@@ -1,6 +1,6 @@
 # Journal de bord
 
-État du projet au **2026-11-26**, pour reprendre dans une nouvelle session sans rien perdre.
+État du projet au **2026-11-27**, pour reprendre dans une nouvelle session sans rien perdre.
 À lire avec `CLAUDE.md` (règles du projet), `docs/schema.md` (base de données) et `docs/backlog.md` (idées hors MVP).
 
 ## Reprendre ici
@@ -9,9 +9,9 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne (#122 à #140) : migrations jusqu'à `base_recipes_lot1`, mise à jour EAS (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande. Au travail : 5G (le Wi-Fi bloque le serveur).
+Tout est mergé et en ligne (#122 à #144) : migrations jusqu'à `base_recipe_photos_lot1`, mise à jour EAS du 27/11 (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande. Au travail : 5G (le Wi-Fi bloque le serveur).
 
-**0. En premier : des photos pour les recettes de base** (demandé le 26/11, une PR propre) : la contrainte `recipes_photo_path_check` et le stockage n'acceptent une photo que dans le dossier d'un foyer. À faire : un dossier `base/` lisible par les comptes (pas les invités anonymes), la contrainte assouplie, une copie qui garde la photo sans pouvoir effacer l'originale ; tests d'intégration. Photos **CC0 ou domaine public seulement** (montrées à tous les foyers et sur les stores), vérifiées une par une.
+**0. En premier : regarder les photos dans l'app** (livrées le 27/11) : Carnet → « Des idées pour commencer » : vignettes, photo en tête de chaque recette, et une copie ajoutée au carnet garde la photo. Saumon (sans riz ni brocoli) et pois chiches (sans épinards) : à retirer si elles gênent. Planche : https://claude.ai/artifact/AoxZFMkboAbLEmuUnHDax7
 
 **1. Tout de suite : mes retours**
 
@@ -25,7 +25,7 @@ Tout est mergé et en ligne (#122 à #140) : migrations jusqu'à `base_recipes_l
 
 | # | Tâche | Qui |
 | --- | --- | --- |
-| 1 | Recettes de base, lots 2 à 5 (~40 de plus, tous régimes ; lot 1 : https://claude.ai/artifact/EXMqD4m1bLf2voLjzVynh1) | Claude rédige, je relis dans l'app |
+| 1 | Recettes de base, lots 2 à 5 (~40 de plus, tous régimes ; lot 1 : https://claude.ai/artifact/EXMqD4m1bLf2voLjzVynh1), avec leurs photos (même méthode que le 27/11 : planche à valider, puis `storage cp` et migration) | Claude rédige, je relis dans l'app |
 | 2 | Refonte de l'accueil et du carnet, composant de bouton partagé (maquette d'abord) | Claude, je valide |
 | 3 | Test réel avec des invités sans l'app, test des 5 secondes sur l'accueil | Moi, avec des proches |
 | 4 | Audit de sécurité (RLS, fonctions serveur, `npm audit`) | Claude |
@@ -45,6 +45,25 @@ Plus tard : filtres (régime, temps, budget, peu calorique, protéines) en **V2*
 **3. Avant les stores** (backlog) : inchangé, voir la session du 25/11.
 
 **4. Indicateur** : requête `private.feu_vert` le lundi 30/11.
+
+#### 🗓️ Session du 2026-11-27 : les photos des recettes de base
+
+| PR | Contenu |
+| --- | --- |
+| #143 | Dossier `base/` du bucket `recipe-photos` : lisible par les comptes (pas les invités), aucun envoi ni retrait depuis l'app ; la contrainte accepte `base/<uuid>.jpg` pour une recette de base ou sa copie ; `copy_base_recipe` copie la photo ; l'app n'efface jamais une photo de base (`isBaseRecipePhoto`) ; la liste « Des idées pour commencer » montre les photos |
+| #144 | Photos du lot 1 : 9 sur 10 (CC0 ou domaine public, Wikimedia Commons), source et licence en commentaire de la migration ; la blanquette sans photo ; les copies sans photo reçoivent celle de base |
+
+**Décisions du jour**
+- **Une photo de base est partagée, jamais dupliquée** : la copie pointe vers le même fichier ; le foyer peut la remplacer par la sienne. Pas de « remettre la photo d'origine » en V1.
+- **Choisir une photo** : licence CC0 ou domaine public, « Own work », puis à l'œil : aucun logo, enseigne, emballage ni visage, et un plat qui ressemble à la recette. Sans photo propre, pas de photo (la blanquette : toutes portaient un nom de restaurant).
+- **Format** : celui des photos de l'app (4:3, 1200 × 900, JPEG 75), pas un carré.
+
+**Pièges trouvés le 2026-11-27**
+- **`create or replace function` : partir de la dernière version** (`grep -l nom supabase/migrations/*`). `copy_base_recipe` avait été réécrite par `recipe_tags` ; repartir de la première version aurait perdu les étiquettes sans erreur.
+- **Envoyer un fichier dans le stockage en ligne** : `npx supabase storage cp --experimental --linked --content-type image/jpeg <fichier> ss:///recipe-photos/base/<id>.jpg` (la clé admin reste dans la CLI) ; `storage ls … ss:///recipe-photos/base/` pour vérifier. Les fichiers d'abord, la migration qui les référence ensuite.
+- **API de Wikimedia Commons** : erreur 429 si les requêtes s'enchaînent ; attendre `Retry-After` et espacer de quelques secondes.
+- **Recadrer une image sans Pillow ni ImageMagick** : `jimp-compact` est déjà dans `node_modules` (dépendance d'Expo).
+- **`gh pr checks --json` n'existe pas dans cette version** : lire l'id du job dans la sortie texte, puis `gh run view <run> --job <id> --log` pour vérifier qu'un nouveau test a bien tourné.
 
 #### 🗓️ Session du 2026-11-26 : les recettes de bout en bout, Ciqual, le réseau
 
