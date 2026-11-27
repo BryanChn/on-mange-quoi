@@ -786,18 +786,24 @@ export default function WriteRecipeScreen() {
 
 function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
-    container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xxl },
+    container: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.xl },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
     },
     muted: { color: colors.textMuted, fontSize: fontSize.small, lineHeight: 20 },
     hint: { marginLeft: spacing.xs, color: colors.textMuted, fontSize: fontSize.caption },
-    section: { gap: spacing.md },
-    sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 22 },
-    count: { color: colors.textMuted, fontSize: 15 },
+    section: { gap: spacing.sm },
+    // Titre de section v4 : discret, comme un en-tête de liste groupée.
+    sectionTitle: {
+      paddingHorizontal: spacing.xs,
+      color: colors.textMuted,
+      fontSize: fontSize.small,
+      fontWeight: "700",
+    },
+    count: { fontWeight: "400" },
 
     // Le même composant d'ajout que la liste de courses : nom | quantité, puis +.
     composer: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
@@ -806,7 +812,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       flexDirection: "row",
       alignItems: "center",
       height: control.lg,
-      borderWidth: 2,
+      borderWidth: 1.5,
       borderColor: colors.inputBorder,
       borderRadius: radius.md,
       backgroundColor: colors.surface,
@@ -828,7 +834,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       fontSize: fontSize.body,
     },
     addButton: {
-      width: 54,
+      width: control.lg,
       height: control.lg,
       borderRadius: radius.pill,
       alignItems: "center",
@@ -847,7 +853,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.lg,
     },
-    divider: { borderTopWidth: 1, borderTopColor: colors.border },
+    divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
     rowName: { flex: 1, color: colors.text, fontSize: fontSize.body },
     rowQuantity: { color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
     editRow: { gap: spacing.sm, padding: spacing.md },
@@ -868,14 +874,14 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     stepRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
     stepNumber: {
-      width: 30,
-      height: 30,
+      width: 26,
+      height: 26,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.primary,
+      backgroundColor: colors.chipBg,
     },
-    stepNumberText: { color: colors.onPrimary, fontSize: 15, fontWeight: "800" },
+    stepNumberText: { color: colors.chipText, fontSize: fontSize.caption, fontWeight: "800" },
     stepText: {
       flex: 1,
       paddingTop: 3,
@@ -884,10 +890,10 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       lineHeight: 24,
     },
     input: {
-      minHeight: 54,
+      minHeight: control.lg,
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
-      borderWidth: 2,
+      borderWidth: 1.5,
       borderColor: colors.inputBorder,
       borderRadius: radius.md,
       backgroundColor: colors.surface,
