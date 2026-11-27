@@ -125,6 +125,7 @@ Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette
 3. Une recette : titre, parts, ingrédients, étapes, photo facultative (galerie, ou le plat pris en photo à la fin du mode cuisine). Un ingrédient = une ligne (« 500 g bœuf ») avec autocomplétion sur la table **Ciqual** (Anses) ; sans aliment choisi, la ligne reste en texte libre.
 4. **Calories et macros par part**, estimées depuis Ciqual, toujours affichées « ≈ … estimation », jamais un conseil de santé.
 5. La boucle : proposer une recette au vote, « Voir la recette » au résultat, « Ajouter aux courses » (parts = nombre de membres du foyer, on décoche ce qu'on a, pas de doublon), mode cuisine (une étape par écran, écran allumé).
+6. **L'astuce du chef** (2026-11-27) : un encadré signé par le chat cuisinier (l'avatar « chat » coiffé d'une toque), avant les étapes ; une phrase de chef par recette de base, gardée par la copie, modifiable par le foyer. Les étapes au tutoiement, avec des repères concrets. Jamais une phrase prêtée à un vrai chef ; un chef n'est nommé que pour un fait vérifiable. 20 recettes de base (deux lots), pas davantage.
 
 Plus tard, volontairement : partage communautaire des recettes (V2, avec modération) ; recettes qui connaissent le stock (V3) ; filtres végétarien, sans porc, difficulté, budget (V2).
 
