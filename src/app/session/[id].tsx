@@ -18,6 +18,7 @@ import { Avatar } from "@/components/avatar";
 import { Chip } from "@/components/chip";
 import { PrimaryButton } from "@/components/primary-button";
 import { Roulette } from "@/components/roulette";
+import { HelpButton, HelpCard } from "@/components/help-card";
 import { Section } from "@/components/section";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
@@ -62,6 +63,7 @@ import {
 import { hapticAdded, hapticConfirm, hapticReject, hapticToggle } from "@/lib/haptics";
 import { capitalize, topicWords, type TopicWords } from "@/lib/vote-topic";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
+import { useHelp } from "@/lib/use-help";
 import { useTheme, type Theme } from "@/theme";
 
 // Même limite que la colonne proposals.name.
@@ -170,6 +172,8 @@ export default function SessionScreen() {
 
   // Numéro du dernier rechargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
+  // Les règles du vote, qui surprennent la première fois (plusieurs coches, la roulette).
+  const help = useHelp("vote");
   // État ouvert / clôturé déjà affiché : la roulette ne se joue qu'au passage de l'un à
   // l'autre, vu en direct. Une session ouverte plus tard affiche directement le résultat.
   const wasOpenRef = useRef<boolean | null>(null);
@@ -412,14 +416,27 @@ export default function SessionScreen() {
         keyboardVerticalOffset={headerHeight}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {help.isVisible ? (
+            <HelpCard
+              onClose={help.dismiss}
+              lines={[
+                { icon: "check-square", text: "Coche tout ce qui te tente, sans limite" },
+                { icon: "shuffle", text: "Égalité : la roulette tranche pour tous" },
+                { icon: "flag", text: "Qui a lancé le vote le termine" },
+              ]}
+            />
+          ) : null}
           <View style={styles.voteBlock}>
             <View style={styles.cardHeader}>
               <Chip label="Vote en direct" hasDot />
-              <Text style={styles.caption}>
-                {session.organizerName
-                  ? `lancé par ${session.organizerName} · ${startedAt}`
-                  : `lancé à ${startedAt}`}
-              </Text>
+              <View style={styles.headerEnd}>
+                <Text style={styles.caption}>
+                  {session.organizerName
+                    ? `lancé par ${session.organizerName} · ${startedAt}`
+                    : `lancé à ${startedAt}`}
+                </Text>
+                {help.isVisible ? null : <HelpButton onPress={help.show} />}
+              </View>
             </View>
             <Text style={styles.muted}>
               {proposals.length === 0
@@ -798,6 +815,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       justifyContent: "space-between",
       gap: spacing.sm,
     },
+    headerEnd: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     muted: { color: colors.textMuted, fontSize: fontSize.small },
     caption: { color: colors.textMuted, fontSize: fontSize.caption },
     status: { color: colors.textMuted, fontSize: fontSize.small, textAlign: "center" },

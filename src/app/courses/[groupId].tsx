@@ -1,8 +1,7 @@
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -20,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AisleSection } from "@/components/aisle-section";
 import { Avatar } from "@/components/avatar";
 import { HeaderButton } from "@/components/header-button";
+import { HelpButton, HelpCard } from "@/components/help-card";
 import { ProgressRing } from "@/components/progress-ring";
 import { ShoppingTripCard } from "@/components/shopping-trip-card";
 import { SignatureCat } from "@/components/signature-cat";
@@ -39,6 +39,7 @@ import type { Member } from "@/lib/members";
 import { checkEntering, colorTransition } from "@/lib/motion";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useSession } from "@/lib/session";
+import { useHelp } from "@/lib/use-help";
 import {
   addShoppingItem,
   clearCheckedItems,
@@ -82,9 +83,6 @@ type ListState = {
 
 type PendingMap<T> = Map<string, { value: T; confirmedFor: number | null }>;
 
-// Le mode d'emploi n'apparaît qu'une fois par téléphone.
-const TIP_KEY = "omq.courses.tip-seen";
-
 // La liste de courses d'un foyer, rangée par rayon (maquette du 27/11 :
 // https://claude.ai/artifact/7mpAE8Dc6HmkNigkPi4GV3). Chaque rayon est un accordéon avec son
 // avancement (« 2/5 ») ; terminé, il se replie avec une coche. Un toucher coche (le geste du
@@ -123,8 +121,7 @@ export default function ShoppingListScreen() {
   const [pendingStars, setPendingStars] = useState<PendingMap<boolean>>(new Map());
   // Les rayons repliés ou ouverts à la main ; sans choix, un rayon terminé est replié.
   const [openOverrides, setOpenOverrides] = useState<Map<string, boolean>>(new Map());
-  // null : on ne sait pas encore (lecture du téléphone en cours) ; rien ne s'affiche.
-  const [isTipVisible, setIsTipVisible] = useState(false);
+  const help = useHelp("courses");
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
@@ -169,20 +166,6 @@ export default function ShoppingListScreen() {
       return subscribeToShoppingList(groupId, loadList);
     }, [groupId, loadList]),
   );
-
-  // Le stockage du téléphone est un système extérieur : on y lit une fois si le mode d'emploi a
-  // déjà été vu. En cas d'échec, on ne l'affiche pas (mieux vaut rien qu'un rappel à chaque fois).
-  useEffect(() => {
-    AsyncStorage.getItem(TIP_KEY).then(
-      (seen) => setIsTipVisible(seen === null),
-      () => setIsTipVisible(false),
-    );
-  }, []);
-
-  function dismissTip() {
-    setIsTipVisible(false);
-    AsyncStorage.setItem(TIP_KEY, "1").catch(() => undefined);
-  }
 
   if (hasFailed && !list) {
     return (
@@ -539,17 +522,7 @@ export default function ShoppingListScreen() {
                   Courses
                 </Text>
                 {/* L'aide, à revoir quand on veut. */}
-                {total > 0 && !isTipVisible ? (
-                  <Pressable
-                    onPress={() => setIsTipVisible(true)}
-                    hitSlop={10}
-                    accessibilityRole="button"
-                    accessibilityLabel="Revoir l’aide"
-                    style={({ pressed }) => pressed && styles.pressed}
-                  >
-                    <Feather name="help-circle" size={20} color={theme.colors.textMuted} />
-                  </Pressable>
-                ) : null}
+                {total > 0 && !help.isVisible ? <HelpButton onPress={help.show} /> : null}
               </View>
               <Text style={styles.subtitle}>
                 {list.groupName} · {summary}
@@ -574,33 +547,18 @@ export default function ShoppingListScreen() {
 
           {/* L'aide : affichée d'elle-même la première fois, puis par le « ? » du titre. Trois
               gestes, un par ligne, plutôt qu'un paragraphe. */}
-          {isTipVisible && total > 0 ? (
-            <View style={styles.tip} accessibilityLiveRegion="polite">
-              <View style={styles.tipLines}>
-                {[
-                  { icon: "check-circle" as const, text: "Touche un article pour le cocher" },
-                  {
-                    icon: "more-horizontal" as const,
-                    text: "Ce bouton ou un appui long : modifier, changer de rayon",
-                  },
-                  { icon: "chevron-down" as const, text: "Touche un rayon pour le replier" },
-                ].map((line) => (
-                  <View key={line.icon} style={styles.tipLine}>
-                    <Feather name={line.icon} size={15} color={theme.colors.textMuted} />
-                    <Text style={styles.tipText}>{line.text}</Text>
-                  </View>
-                ))}
-              </View>
-              <Pressable
-                onPress={dismissTip}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel="Fermer l’aide"
-                style={({ pressed }) => [styles.tipClose, pressed && styles.pressed]}
-              >
-                <Feather name="x" size={18} color={theme.colors.textMuted} />
-              </Pressable>
-            </View>
+          {help.isVisible && total > 0 ? (
+            <HelpCard
+              onClose={help.dismiss}
+              lines={[
+                { icon: "check-circle", text: "Touche un article pour le cocher" },
+                {
+                  icon: "more-horizontal",
+                  text: "Ce bouton ou un appui long : modifier, changer de rayon",
+                },
+                { icon: "chevron-down", text: "Touche un rayon pour le replier" },
+              ]}
+            />
           ) : null}
 
           {notice ? (
@@ -804,21 +762,6 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize }: The
     subtitle: { color: colors.textMuted, fontSize: fontSize.small },
 
     titleLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-    // L'aide : une carte discrète, trois lignes courtes, une croix pour la fermer.
-    tip: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      paddingVertical: spacing.md,
-      paddingLeft: spacing.lg,
-      paddingRight: spacing.sm,
-      borderRadius: radius.lg,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
-    },
-    tipLines: { flex: 1, gap: spacing.sm },
-    tipLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-    tipText: { flex: 1, color: colors.textMuted, fontSize: fontSize.caption },
-    tipClose: { padding: spacing.xs },
 
     sections: { gap: spacing.md },
     // Filet entre deux lignes, aligné sur le texte (marge 16 + case 26 + espace 12).
