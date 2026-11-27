@@ -114,13 +114,13 @@ function RootNavigator() {
         {/* Titre : le nom du groupe, posé par l'écran une fois chargé. */}
         <Stack.Screen name="courses/index" options={{ title: "" }} />
         <Stack.Screen name="courses/[groupId]" options={{ title: "" }} />
-        {/* Feuilles natives de la liste : choisir le rayon d'un article, l'ordre des rayons. */}
+        {/* Feuilles natives de la liste : la fiche d'un article, l'ordre des rayons. */}
         <Stack.Screen
-          name="courses/rayon"
+          name="courses/article"
           options={{
             presentation: "formSheet",
             headerShown: false,
-            sheetAllowedDetents: [0.75, 1],
+            sheetAllowedDetents: [0.85, 1],
             sheetGrabberVisible: true,
             sheetCornerRadius: 20,
           }}
