@@ -115,6 +115,7 @@ Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette
 4. Améliorations du 2026-11-24 : modifier un article (appui long), pas de doublon (un article déjà pris revient dans « À acheter »), la liste depuis l'accueil (une seule ligne, même avec plusieurs foyers : une liste à faire s'ouvre directement, plusieurs passent par un écran de choix ; 2026-11-24, pour ne pas envahir l'accueil), et « Souvent acheté » : les articles rangés reviennent en suggestions, un toucher les rajoute avec leur dernière quantité.
 
 5. **« Je pars faire les courses »** (2026-11-25), dans un foyer d'au moins 2 personnes : les autres sont prévenus (« Besoin de quelque chose ? Ajoute-le à la liste. »), puis pendant 1 h, ce qu'ils ajoutent prévient celui qui fait les courses, regroupé sur 30 s (« À prendre aussi : lait, œufs. »). « J'ai fini » arrête. Un départ annoncé au plus toutes les 30 min par personne, pas d'annonce la nuit. Interrupteur « Liste de courses » dans Mon compte.
+6. **Rangée par rayon** (2026-11-27, entré en V1 : https://claude.ai/artifact/3PSCG8xwP2TxWtpr9VSQ9a) : douze rayons (dont Bébé, Animaux, Autres en dernier) ; le rayon est deviné d'après le nom à l'ajout ; « Choisir le rayon » (appui long, ou juste après un ajout rangé dans Autres) et le foyer s'en souvient pour ce nom ; l'ordre des rayons est celui du magasin du foyer, partagé ; une étoile « indispensable » met l'article en tête ; tri « Par rayon » ou « Par ajout ».
 
 ### Recettes (tranché le 2026-11-25)
 
@@ -126,7 +127,7 @@ Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette
 4. **Calories et macros par part**, estimées depuis Ciqual, toujours affichées « ≈ … estimation », jamais un conseil de santé.
 5. La boucle : proposer une recette au vote, « Voir la recette » au résultat, « Ajouter aux courses » (parts = nombre de membres du foyer, on décoche ce qu'on a, pas de doublon), mode cuisine (une étape par écran, écran allumé).
 6. **L'astuce du chef** (2026-11-27) : un encadré signé par le chat cuisinier (l'avatar « chat » coiffé d'une toque), avant les étapes ; une phrase de chef par recette de base, gardée par la copie, modifiable par le foyer. Les étapes au tutoiement, avec des repères concrets. Jamais une phrase prêtée à un vrai chef ; un chef n'est nommé que pour un fait vérifiable. 20 recettes de base (deux lots), pas davantage.
-7. **Type de plat et filtres** (2026-11-27, entrés en V1 : https://claude.ai/artifact/Pg5e2H8YsqvDJYxgzz4dSS) : chaque recette a un type facultatif (Viande, Poisson, Végé, Dessert), badge en line icon sur sa vignette ; le carnet se filtre par type (un à la fois), « ≤ 30 min » et « Petit budget » ; « Écrire une recette » choisit le type et les régimes.
+7. **Type de plat et filtres** (2026-11-27, entrés en V1 : https://claude.ai/artifact/Pg5e2H8YsqvDJYxgzz4dSS) : chaque recette a un type facultatif (Viande, Poisson, Végé, Dessert), badge en line icon sur sa vignette ; le carnet se filtre par type (un à la fois), « ≤ 30 min » et « Petit budget » ; « Écrire une recette » choisit le type, les régimes, le temps total et le budget (€ à €€€), facultatifs.
 
 Plus tard, volontairement : partage communautaire des recettes (V2, avec modération) ; recettes qui connaissent le stock (V3) ; filtres par régime et difficulté (V2).
 

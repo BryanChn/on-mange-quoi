@@ -9,12 +9,17 @@ import { after, before, describe, test } from "node:test";
 import {
   addShoppingItem,
   clearCheckedItems,
+  fetchAisleSettings,
   fetchShoppingHistory,
   fetchShoppingList,
   removeShoppingItem,
+  saveAisleOrder,
+  setShoppingItemAisle,
   setShoppingItemChecked,
+  setShoppingItemImportant,
   updateShoppingItem,
 } from "../../src/lib/shopping.ts";
+import { orderedAisles, SHOPPING_AISLES } from "../../src/lib/shopping-rules.ts";
 import { cleanUp, createGroup, createUser, signInAs, type TestUser } from "./fixtures.ts";
 import { supabase } from "./supabase-test-client.ts";
 
@@ -220,5 +225,74 @@ describe("liste de courses", () => {
   test("un article vide est refusé par la base", async () => {
     await signInAs(alice);
     await assert.rejects(addShoppingItem(foyerId, { label: "   ", quantity: "" }));
+  });
+});
+
+describe("les rayons", () => {
+  test("le rayon est deviné à l'ajout ; changé par Bea, le foyer s'en souvient pour ce nom", async () => {
+    await emptyList();
+    await signInAs(alice);
+    const lait = await addShoppingItem(foyerId, { label: "Lait", quantity: "" });
+    assert.equal(lait.aisle, "cremerie");
+    const bougies = await addShoppingItem(foyerId, { label: "Ballons", quantity: "" });
+    assert.equal(bougies.aisle, "autres");
+
+    await signInAs(bea);
+    await setShoppingItemAisle(bougies, "maison_hygiene");
+    const list = await fetchShoppingList(foyerId);
+    assert.equal(list.find((item) => item.id === bougies.id)?.aisle, "maison_hygiene");
+
+    // Le prochain « ballons » (casse et espaces différents) va directement au bon rayon.
+    await signInAs(alice);
+    const { chosen } = await fetchAisleSettings(foyerId);
+    await removeShoppingItem(bougies.id);
+    const again = await addShoppingItem(foyerId, { label: "  BALLONS ", quantity: "" }, chosen);
+    assert.equal(again.aisle, "maison_hygiene");
+  });
+
+  test("Dan, hors du foyer, ne range rien et ne lit pas les choix", async () => {
+    await emptyList();
+    await signInAs(alice);
+    const pain = await addShoppingItem(foyerId, { label: "Pain", quantity: "" });
+
+    await signInAs(dan);
+    await assert.rejects(setShoppingItemAisle(pain, "autres"));
+    await assert.rejects(saveAisleOrder(foyerId, SHOPPING_AISLES));
+    const { data } = await supabase
+      .from("shopping_aisle_choices")
+      .select("label_key")
+      .eq("group_id", foyerId);
+    assert.deepEqual(data, []);
+    // Le rayon ne change que par set_shopping_item_aisle (le choix est retenu au passage).
+    await signInAs(alice);
+    const direct = await supabase
+      .from("shopping_items")
+      .update({ aisle: "autres" })
+      .eq("id", pain.id);
+    assert.ok(direct.error, "update direct du rayon refusé");
+  });
+
+  test("l'ordre des rayons du foyer : enregistré pour tous, un ordre incomplet refusé", async () => {
+    await signInAs(alice);
+    const order = orderedAisles(["boissons", "cremerie"]);
+    await saveAisleOrder(foyerId, order);
+
+    await signInAs(bea);
+    assert.deepEqual((await fetchAisleSettings(foyerId)).order, order);
+    // Un rayon en double, ou « autres » ailleurs qu'à la fin : refusé.
+    await assert.rejects(saveAisleOrder(foyerId, ["boissons", "boissons", ...order.slice(2)]));
+    await assert.rejects(saveAisleOrder(foyerId, ["autres", ...order.slice(0, -1)]));
+  });
+
+  test("l'étoile « indispensable », posée par Alice, vue par Bea", async () => {
+    await emptyList();
+    await signInAs(alice);
+    const couches = await addShoppingItem(foyerId, { label: "Couches", quantity: "" });
+    assert.equal(couches.isImportant, false);
+    await setShoppingItemImportant(couches.id, true);
+
+    await signInAs(bea);
+    const list = await fetchShoppingList(foyerId);
+    assert.equal(list.find((item) => item.id === couches.id)?.isImportant, true);
   });
 });

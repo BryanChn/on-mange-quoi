@@ -261,6 +261,8 @@ Une ligne de la commande d'une soirée (migration `soirees`). Texte libre : le c
 
 RLS : les membres lisent toutes les lignes de leur soirée ; chacun ajoute et modifie les siennes ; l'auteur **ou le responsable** supprime. Droits par colonne : `insert (group_id, profile_id, label, quantity, note)`, `update (label, quantity, note)`. Le trigger `order_items_lock_soiree` (`lock_soiree_ordering`, verrou partagé) refuse toute écriture hors de l'étape `commande` avec le hint `ordering_closed` : erreur claire, jamais un filtrage silencieux. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
 
+Rayons (migration `shopping_aisles`, 2026-11-27) : enum `shopping_aisle` (12 rayons, `autres` en dernier) ; droits `insert (aisle, is_important)`, `update (is_important)`. `shopping_aisle_choices (group_id, label_key, aisle, updated_at)`, clé `(group_id, label_key)` : le rayon retenu par le foyer pour un nom normalisé, lu par les membres, écrit seulement par `set_shopping_item_aisle(article, rayon, label_key)` (security definer, membre du foyer de l'article). `groups.aisle_order` (`shopping_aisle[]`, null = ordre par défaut de l'app) : écrit par `set_aisle_order(foyer, ordre)` (tous les rayons, chacun une fois, `autres` en dernier).
+
 ### shopping_items
 
 Un article de la liste de courses d'un foyer (migration `shopping_items`, 2026-11-24). Une liste par groupe, partagée et suivie en direct.
@@ -276,6 +278,8 @@ Un article de la liste de courses d'un foyer (migration `shopping_items`, 2026-1
 | `checked_by` | `uuid` | nullable · FK → `profiles` `on delete set null` · check : `checked_by` non nul seulement si `checked_at` l'est |
 | `cleared_at` | `timestamptz` | nullable · rangé par « Retirer les achetés » (migration `shopping_history`) · check : seulement si `checked_at` est rempli · index partiel `where cleared_at is null` |
 | `created_at` | `timestamptz` | not null · default `now()` |
+| `aisle` | `shopping_aisle` | not null · default `autres` · le rayon (migration `shopping_aisles`, 2026-11-27) : deviné par l'app à l'ajout, changé seulement par `set_shopping_item_aisle` |
+| `is_important` | `boolean` | not null · default `false` · l'étoile « indispensable » |
 
 RLS : tout membre **d'un foyer** lit, ajoute, coche, modifie et retire (`is_foyer_member` : membre, groupe de `kind = 'foyer'`, compte non anonyme). Une soirée n'a pas de liste. Droits par colonne : `insert (group_id, label, quantity)`, `update (label, quantity, checked_at)` : l'auteur et celui qui coche ne viennent jamais de l'app. Le trigger `shopping_items_stamp_check` pose l'heure du serveur et `auth.uid()` quand on coche, les efface quand on décoche, et garde la première coche si on recoche. « Retirer les achetés » **range** les lignes cochées (`update cleared_at`, heure posée par le trigger) : elles quittent la liste et nourrissent les suggestions « Souvent acheté » ; la croix d'un article, elle, le supprime. Droit par colonne ajouté : `update (cleared_at)`. Temps réel activé (les DELETE n'y portent que la clé primaire : l'app recharge).
 

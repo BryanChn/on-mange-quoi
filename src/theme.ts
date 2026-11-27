@@ -49,6 +49,9 @@ const lightColors = {
   // Pills et chips de régime (Vegan, Sans gluten…) : basilic clair, texte basilic foncé (7:1).
   dietBg: "#DDEFE3",
   dietText: "#1F6B41",
+  // L'étoile « indispensable » : un or plus foncé que le spaghetti (3,2:1 sur blanc, seuil
+  // d'une icône : 3:1).
+  star: "#B57F00",
   // La tomate sur crème ne passe pas pour du petit texte : l'erreur prend la sauce.
   danger: brand.sauce,
   // Carte signature (« Ce soir », dernier vote, résultat) : l'icône « inverse » du chat,
@@ -89,6 +92,7 @@ const darkColors: typeof lightColors = {
   categoryDessert: "#E3A866",
   dietBg: "#1E3327",
   dietText: "#6CC08B",
+  star: "#E9C46A",
   danger: "#F2A39A",
   // Carte signature : l'icône « nuit » du chat (corail, visage couleur du fond) sur la surface
   // teintée des étiquettes. Pas de grand aplat vif : il éblouit sur fond sombre. Le visage du
