@@ -30,6 +30,7 @@ test("sans prénom, un nom neutre ; un prénom trop long est coupé à la limite
 test("les erreurs de join_soiree sont reconnues par leur hint, les autres non", () => {
   assert.equal(toJoinFailure({ code: "55000", hint: "soiree_full" }), "soiree_full");
   assert.equal(toJoinFailure({ code: "P0002", hint: "invalid_link" }), "invalid_link");
+  assert.equal(toJoinFailure({ code: "P0001", hint: "too_many_attempts" }), "too_many_attempts");
   assert.equal(toJoinFailure({ code: "55000", hint: "session_closed" }), null);
   assert.equal(toJoinFailure(new Error("réseau")), null);
   assert.equal(toJoinFailure(null), null);
