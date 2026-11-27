@@ -1,51 +1,66 @@
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
-// Retours haptiques (étude du 2026-11-20, ajout réussi le 2026-11-25) : 5 moments seulement, toujours avec un retour
-// visuel (jamais seuls). Sur Android, performAndroidHapticsAsync passe par le moteur
-// haptique du système : il respecte le réglage « vibrations au toucher » du téléphone et
-// ne demande pas la permission VIBRATE. Rien sur le web.
-//
-// Jamais bloquant : un téléphone sans moteur haptique (ou une constante trop récente pour
-// son Android) ne doit faire échouer aucune action.
+import { playFirstSupported } from "./haptics-rules";
 
-function run(android: Haptics.AndroidHaptics, ios: () => Promise<void>): void {
+// Retours haptiques (étude du 2026-11-20, ajout réussi le 2026-11-25, repli Android le
+// 2026-11-27) : peu de moments, toujours avec un retour visuel (jamais seuls), comme le
+// recommandent Android et Apple. Sur Android, performAndroidHapticsAsync passe par le moteur
+// haptique du système : il respecte le réglage « vibrations au toucher » du téléphone et ne
+// demande pas la permission VIBRATE. Rien sur le web.
+//
+// Chaque effet Android a un repli : Toggle et Segment n'existent qu'à partir d'Android 14,
+// Confirm et Reject d'Android 11. Avant ce repli, un téléphone plus ancien ne vibrait pas du
+// tout sur ces gestes, sans aucune erreur visible (la roulette restait muette).
+type AndroidEffect = Haptics.AndroidHaptics;
+const A = Haptics.AndroidHaptics;
+
+function run(android: readonly AndroidEffect[], ios: () => Promise<void>): void {
   if (Platform.OS === "web") return;
-  const effect = Platform.OS === "android" ? Haptics.performAndroidHapticsAsync(android) : ios();
-  effect.catch(() => {});
+  if (Platform.OS === "android") {
+    void playFirstSupported(android, (effect) => Haptics.performAndroidHapticsAsync(effect));
+    return;
+  }
+  ios().catch(() => {});
 }
 
-// 1. Cocher / décocher un plat ou un resto.
+// 1. Cocher / décocher un plat, un resto, un article, un réglage.
 export function hapticToggle(isOn: boolean): void {
-  run(isOn ? Haptics.AndroidHaptics.Toggle_On : Haptics.AndroidHaptics.Toggle_Off, () =>
+  run(isOn ? [A.Toggle_On, A.Virtual_Key] : [A.Toggle_Off, A.Clock_Tick], () =>
     Haptics.selectionAsync(),
   );
 }
 
-// 2. La roulette : un petit clic à chaque plat qui passe (très doux, répété vite).
+// 2. Un cran : chaque plat qui passe dans la roulette, une part de plus ou de moins, une
+// étape du mode cuisine. Le tic d'horloge des sélecteurs d'heure, présent sur tout Android
+// (Segment_Frequent_Tick, plus discret, ne se sentait presque pas et manquait avant Android 14).
 export function hapticTick(): void {
-  run(Haptics.AndroidHaptics.Segment_Frequent_Tick, () => Haptics.selectionAsync());
+  run([A.Clock_Tick], () => Haptics.selectionAsync());
 }
 
 // 3. Le résultat : la roulette s'arrête, ou « C'est décidé » / « Commande passée ».
 export function hapticConfirm(): void {
-  run(Haptics.AndroidHaptics.Confirm, () =>
+  run([A.Confirm, A.Context_Click], () =>
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
   );
 }
 
 // 4. Un ajout réussi (un apport, une ligne de commande, un article de courses), après la
-// réponse du serveur. Retour d'usage du 2026-11-25 : le petit clic de la roulette, fait pour
-// être répété vite, ne se sentait pas sur un geste isolé. Même effet que cocher un plat.
+// réponse du serveur. Même effet que cocher un plat : le petit clic, fait pour être répété
+// vite, ne se sentait pas sur un geste isolé (retour d'usage du 2026-11-25).
 export function hapticAdded(): void {
-  run(Haptics.AndroidHaptics.Toggle_On, () =>
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
-  );
+  run([A.Toggle_On, A.Virtual_Key], () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
 }
 
 // 5. Une action refusée (vote déjà clos, plat en double, commande figée).
 export function hapticReject(): void {
-  run(Haptics.AndroidHaptics.Reject, () =>
+  run([A.Reject, A.Long_Press], () =>
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
   );
+}
+
+// 6. Un appui long qui ouvre quelque chose (modifier un article de courses) : Android le fait
+// pour ses vues natives, pas pour le Pressable de React Native.
+export function hapticLongPress(): void {
+  run([A.Long_Press], () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
 }

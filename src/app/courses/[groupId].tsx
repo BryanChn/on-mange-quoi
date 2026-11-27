@@ -20,7 +20,14 @@ import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextField } from "@/components/text-field";
 import { fetchGroup } from "@/lib/groups";
-import { hapticAdded, hapticConfirm, hapticReject, hapticTick, hapticToggle } from "@/lib/haptics";
+import {
+  hapticAdded,
+  hapticConfirm,
+  hapticLongPress,
+  hapticReject,
+  hapticTick,
+  hapticToggle,
+} from "@/lib/haptics";
 import type { Member } from "@/lib/members";
 import {
   checkEntering,
@@ -439,7 +446,10 @@ export default function ShoppingListScreen() {
           <Pressable
             onPress={() => handleToggle(item)}
             // Toucher coche (le geste du magasin) ; appui long ouvre l'article, plus rare.
-            onLongPress={() => startEdit(item)}
+            onLongPress={() => {
+              hapticLongPress();
+              startEdit(item);
+            }}
             accessibilityRole="checkbox"
             accessibilityLabel={description}
             accessibilityState={{ checked: isTaken }}
