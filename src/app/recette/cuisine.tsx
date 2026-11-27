@@ -12,7 +12,7 @@ import { TextButton } from "@/components/text-button";
 import { hapticAdded, hapticReject, hapticTick, hapticToggle } from "@/lib/haptics";
 import { pickRecipePhoto } from "@/lib/photo-picker";
 import { uploadRecipePhoto } from "@/lib/photo-storage";
-import { formatAmount, scaleAmount, servingsLabel } from "@/lib/recipe-rules";
+import { formatAmount, gatheringMessage, scaleAmount, servingsLabel } from "@/lib/recipe-rules";
 import { fetchRecipe, type Recipe } from "@/lib/recipes";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
@@ -137,39 +137,45 @@ export default function CookingScreen() {
             <Text style={styles.title} accessibilityRole="header">
               On sort les ingrédients
             </Text>
-            <View style={styles.card}>
-              {recipe.ingredients.map((ingredient, index) => {
-                const amount = scaleAmount(
-                  ingredient.quantity,
-                  ingredient.unit,
-                  recipe.servings,
-                  servings,
-                );
-                const isGathered = gathered.has(index);
-                return (
-                  <Pressable
-                    key={index}
-                    onPress={() => toggleGathered(index)}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: isGathered }}
-                    accessibilityLabel={`${amount ? `${formatAmount(amount)} ` : ""}${ingredient.label}`}
-                    style={[styles.ingredient, index > 0 && styles.divider]}
-                  >
-                    <View style={[styles.box, isGathered && styles.boxChecked]}>
-                      {isGathered ? (
-                        <Feather name="check" size={18} color={theme.colors.onPrimary} />
-                      ) : null}
-                    </View>
-                    <Text style={[styles.amount, isGathered && styles.done]}>
-                      {amount ? formatAmount(amount) : ""}
-                    </Text>
-                    <Text style={[styles.ingredientLabel, isGathered && styles.done]}>
-                      {ingredient.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {/* La consigne, puis le compte : cocher n'est jamais obligatoire pour commencer. */}
+            <Text style={styles.muted} accessibilityLiveRegion="polite">
+              {gatheringMessage(gathered.size, recipe.ingredients.length)}
+            </Text>
+            {recipe.ingredients.length > 0 ? (
+              <View style={styles.card}>
+                {recipe.ingredients.map((ingredient, index) => {
+                  const amount = scaleAmount(
+                    ingredient.quantity,
+                    ingredient.unit,
+                    recipe.servings,
+                    servings,
+                  );
+                  const isGathered = gathered.has(index);
+                  return (
+                    <Pressable
+                      key={index}
+                      onPress={() => toggleGathered(index)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isGathered }}
+                      accessibilityLabel={`${amount ? `${formatAmount(amount)} ` : ""}${ingredient.label}`}
+                      style={[styles.ingredient, index > 0 && styles.divider]}
+                    >
+                      <View style={[styles.box, isGathered && styles.boxChecked]}>
+                        {isGathered ? (
+                          <Feather name="check" size={18} color={theme.colors.onPrimary} />
+                        ) : null}
+                      </View>
+                      <Text style={[styles.amount, isGathered && styles.done]}>
+                        {amount ? formatAmount(amount) : ""}
+                      </Text>
+                      <Text style={[styles.ingredientLabel, isGathered && styles.done]}>
+                        {ingredient.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
           </>
         ) : isEnd ? (
           <View style={styles.end}>
@@ -290,7 +296,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     boxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
     amount: { width: 96, color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
     ingredientLabel: { flex: 1, color: colors.text, fontSize: fontSize.button },
-    done: { color: colors.textMuted, textDecorationLine: "line-through" },
+    // Sorti : atténué, jamais barré (barré se lit « retiré, je n'en veux pas »).
+    done: { color: colors.textMuted },
     // Lisible à un bras de distance, téléphone posé sur le plan de travail.
     step: { flex: 1, justifyContent: "center", gap: spacing.lg },
     stepText: { color: colors.text, fontSize: 28, lineHeight: 40, fontWeight: "500" },

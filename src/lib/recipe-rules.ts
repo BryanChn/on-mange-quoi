@@ -327,6 +327,15 @@ export function servingsLabel(servings: number): string {
   return servings === 1 ? "1 part" : `${servings} parts`;
 }
 
+// Mode cuisine, la mise en place : la consigne sous « On sort les ingrédients », puis où on en
+// est. Cocher est un aide-mémoire, jamais obligatoire pour commencer.
+export function gatheringMessage(gathered: number, total: number): string {
+  if (total === 0) return "Aucun ingrédient noté : on passe directement aux étapes.";
+  if (gathered === 0) return "Touche chaque ingrédient quand il est sur le plan de travail.";
+  if (gathered >= total) return "Tout est là, on peut y aller.";
+  return `${gathered} sur ${total} sur le plan de travail.`;
+}
+
 // « 4 parts · 8 ingrédients » sous le nom d'une recette.
 export function recipeSubtitle(servings: number, ingredientCount: number): string {
   if (ingredientCount === 0) return servingsLabel(servings);
