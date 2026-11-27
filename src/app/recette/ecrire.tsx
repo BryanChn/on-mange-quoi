@@ -784,7 +784,7 @@ export default function WriteRecipeScreen() {
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
+function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xxl },
     title: {
@@ -805,7 +805,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
       flex: 1,
       flexDirection: "row",
       alignItems: "center",
-      height: 54,
+      height: control.lg,
       borderWidth: 2,
       borderColor: colors.inputBorder,
       borderRadius: radius.md,
@@ -829,7 +829,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     },
     addButton: {
       width: 54,
-      height: 54,
+      height: control.lg,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",
@@ -898,6 +898,10 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     grow: { flex: 1 },
 
     error: { color: colors.danger, fontSize: fontSize.small },
-    confirmTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    confirmTitle: {
+      color: colors.text,
+      fontFamily: fonts.displayBold,
+      fontSize: fontSize.cardTitle,
+    },
   });
 }

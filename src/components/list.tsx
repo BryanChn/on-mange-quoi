@@ -166,10 +166,10 @@ export function InitialTile({ initial }: { initial: string }) {
 function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     card: { borderRadius: radius.lg, backgroundColor: colors.surface, boxShadow: cardShadow },
-    // Aligné sur le texte des lignes : marge (16) + tuile (40) + espace (12).
-    separator: { height: 1, marginLeft: 68, backgroundColor: colors.border },
+    // Aligné sur le texte des lignes : marge (16) + tuile (34) + espace (12).
+    separator: { height: 1, marginLeft: 62, backgroundColor: colors.border },
     row: {
-      minHeight: 64,
+      minHeight: 56,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.md,
@@ -178,16 +178,16 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     },
     dimmed: { opacity: 0.6 },
     tile: {
-      width: 40,
-      height: 40,
+      width: 34,
+      height: 34,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: 14,
+      borderRadius: 10,
       backgroundColor: colors.surface2,
     },
     tileDanger: { backgroundColor: colors.chipBg },
     tileInitial: { backgroundColor: colors.chipBg },
-    initial: { color: colors.chipText, fontFamily: fonts.display, fontSize: fontSize.button },
+    initial: { color: colors.chipText, fontFamily: fonts.display, fontSize: fontSize.cardTitle },
     text: { flex: 1, gap: 2 },
     label: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
     labelDanger: { color: colors.danger },

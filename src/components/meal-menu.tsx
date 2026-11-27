@@ -122,7 +122,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       backgroundColor: colors.surface,
     },
     rowText: { flex: 1, minWidth: 0, gap: 2 },
-    topic: { color: colors.text, fontFamily: fonts.display, fontSize: fontSize.button },
+    topic: { color: colors.text, fontFamily: fonts.display, fontSize: fontSize.cardTitle },
     status: { color: colors.textMuted, fontSize: fontSize.caption },
     action: {
       minHeight: 44,
@@ -141,7 +141,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       textAlign: "right",
       color: colors.text,
       fontFamily: fonts.display,
-      fontSize: fontSize.button,
+      fontSize: fontSize.cardTitle,
     },
     enjoy: { color: colors.onSignatureMuted, fontSize: fontSize.small, textAlign: "center" },
   });

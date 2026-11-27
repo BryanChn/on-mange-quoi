@@ -280,7 +280,7 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     },
     signatureMuted: { color: colors.onSignatureMuted, fontSize: fontSize.small },
     avatars: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-    cardTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    cardTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     muted: { color: colors.textMuted, fontSize: fontSize.small },
     label: { color: colors.text, fontSize: fontSize.small, fontWeight: "700" },
     pickerBlock: { gap: spacing.sm },

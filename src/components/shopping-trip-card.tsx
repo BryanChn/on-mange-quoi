@@ -77,7 +77,7 @@ export function ShoppingTripCard({
 
 function createStyles({ colors, fonts, fontSize }: Theme) {
   return StyleSheet.create({
-    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     text: { color: colors.text, fontSize: fontSize.small, lineHeight: 22 },
   });
 }

@@ -400,7 +400,11 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
       lineHeight: 36,
       textAlign: "center",
     },
-    confirmTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    confirmTitle: {
+      color: colors.text,
+      fontFamily: fonts.displayBold,
+      fontSize: fontSize.cardTitle,
+    },
     text: { color: colors.text, fontSize: fontSize.small, lineHeight: 22 },
     list: { gap: spacing.sm },
     warning: { color: colors.danger, fontSize: fontSize.small, fontWeight: "600" },

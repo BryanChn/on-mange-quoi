@@ -317,7 +317,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     },
     divider: { borderTopWidth: 1, borderTopColor: colors.border },
     amount: { width: 104, color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
-    ingredientLabel: { flex: 1, color: colors.text, fontSize: fontSize.button },
+    ingredientLabel: { flex: 1, color: colors.text, fontSize: fontSize.cardTitle },
     // Lisible à un bras de distance, téléphone posé sur le plan de travail.
     step: { flex: 1, justifyContent: "center", gap: spacing.lg },
     stepText: { color: colors.text, fontSize: 28, lineHeight: 40, fontWeight: "500" },
@@ -337,14 +337,15 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     footer: { paddingHorizontal: spacing.xl, gap: spacing.sm },
     nav: { flexDirection: "row", gap: spacing.md },
     navButton: {
-      height: 72,
+      // Mains occupées : plus grand que control.lg, sans en faire trop (72 avant la refonte).
+      height: 56,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",
       flexDirection: "row",
       gap: spacing.sm,
     },
-    navBack: { width: 72, backgroundColor: colors.chipBg },
+    navBack: { width: 56, backgroundColor: colors.chipBg },
     navNext: { flex: 1, backgroundColor: colors.primary },
     navNextText: { color: colors.onPrimary, fontSize: fontSize.button, fontWeight: "700" },
     sheetLayer: { flex: 1, justifyContent: "flex-end" },

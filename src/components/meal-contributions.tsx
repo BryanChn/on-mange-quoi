@@ -155,7 +155,7 @@ export function MealContributions({ soiree, userId, isOwner, onChanged }: MealCo
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
+function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
     pressed: { opacity: 0.6 },
     section: { gap: spacing.md },
@@ -166,7 +166,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     field: {
       flex: 1,
       minWidth: 0,
-      height: 52,
+      height: control.lg,
       justifyContent: "center",
       paddingHorizontal: 18,
       borderRadius: radius.pill,
@@ -178,7 +178,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     input: { color: colors.text, fontSize: fontSize.body },
     addButton: {
       width: 52,
-      height: 52,
+      height: control.lg,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",

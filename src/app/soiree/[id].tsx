@@ -743,7 +743,11 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     memberName: { color: colors.text, fontSize: fontSize.body },
     error: { color: colors.danger, fontSize: fontSize.small },
     notice: { color: colors.success, fontSize: fontSize.small },
-    confirmTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.button },
+    confirmTitle: {
+      color: colors.text,
+      fontFamily: fonts.displayBold,
+      fontSize: fontSize.cardTitle,
+    },
     dangerLinks: {
       marginTop: "auto",
       flexDirection: "row",
