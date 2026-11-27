@@ -688,6 +688,20 @@ describe("le carnet dans le vote", () => {
 });
 
 describe("les recettes de base, lot 2", () => {
+  test("7 photos dans base/<id>.jpg ; velouté, wok et cabillaud sans photo", async () => {
+    await signInAs(alice);
+    const withoutPhoto = new Set([15, 18, 19]);
+    const lot2 = (await fetchBaseRecipes()).filter((recipe) =>
+      /^00000000-0000-4000-8000-0000000000(1[1-9]|20)$/.test(recipe.id),
+    );
+    assert.equal(lot2.length, 10);
+    for (const recipe of lot2) {
+      const n = Number(recipe.id.slice(-2));
+      const expected = withoutPhoto.has(n) ? null : `base/${recipe.id}.jpg`;
+      assert.equal(recipe.photoPath, expected, recipe.title);
+    }
+  });
+
   test("10 recettes avec leur astuce, chaque ligne reliée à Ciqual ; un poulet compte sa part mangée", async () => {
     await signInAs(alice);
     const lot2 = (await fetchBaseRecipes()).filter((recipe) =>
