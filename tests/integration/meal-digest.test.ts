@@ -4,8 +4,10 @@
 // nouveautés). L'écriture du message (notify-meal) est testée à part (digest.test.ts) ; ici,
 // sans Vault, call_edge_function ne part pas.
 //
-// Heure de référence fixe, le 15 janvier 2025 (Paris = UTC+1) : les repas des autres
-// fichiers, marqués « maintenant », sont plus récents et ne sont jamais dus.
+// Heure de référence fixe, le 15 janvier 2099 (Paris = UTC+1), dans le futur exprès : la vraie
+// tâche pg_cron de la base locale (toutes les 30 s, à l'heure réelle) voyait des marques de 2025
+// en retard, envoyait le résumé et effaçait la marque entre deux lignes d'un test (échec rare,
+// selon l'instant où elle tombait). Des marques dans le futur ne sont jamais dues pour elle.
 // Rôles : Alice crée les repas (organisatrice), Bea et Chloé les rejoignent.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -17,6 +19,7 @@ import {
   createUser,
   mealDigestState,
   sendMealDigests,
+  setJoinedAt,
   setMealDigest,
   signInAs,
   type TestUser,
@@ -35,9 +38,9 @@ before(async () => {
 after(cleanUp);
 
 const instant = (value: string | null) => (value === null ? null : new Date(value).getTime());
-// 15 janvier 2025 à l'heure de Paris donnée (hiver : UTC+1).
+// 15 janvier 2099 à l'heure de Paris donnée (hiver : UTC+1).
 const parisTime = (hours: number, minutes = 0, seconds = 0) =>
-  new Date(Date.UTC(2025, 0, 15, hours - 1, minutes, seconds));
+  new Date(Date.UTC(2099, 0, 15, hours - 1, minutes, seconds));
 
 async function newMeal(): Promise<{ id: string; joinToken: string }> {
   await signInAs(alice);
@@ -145,6 +148,9 @@ describe("le résumé des autres", () => {
       pendingSince: parisTime(18, 5),
       ownerPendingSince: null,
     });
+    // Les deux arrivées sont des nouveautés depuis le résumé de 18 h.
+    await setJoinedAt(meal.id, bea.id, parisTime(18, 5));
+    await setJoinedAt(meal.id, chloe.id, parisTime(18, 5));
 
     await sendMealDigests(parisTime(18, 29));
     assert.notEqual((await mealDigestState(meal.id)).pendingSince, null);
