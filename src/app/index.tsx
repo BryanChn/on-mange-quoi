@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
 import { GroupPills } from "@/components/group-pills";
+import { HelpButton, HelpCard } from "@/components/help-card";
 import { ListCard, ListRow } from "@/components/list";
 import { MealCard } from "@/components/meal-card";
 import { PeekCarousel, type PeekCarouselHandle } from "@/components/peek-carousel";
@@ -25,6 +26,7 @@ import {
   type ErrorKind,
 } from "@/lib/network-errors";
 import { useProfile } from "@/lib/profile";
+import { useHelp } from "@/lib/use-help";
 import { recipesSubtitle } from "@/lib/recipe-rules";
 import {
   defaultMoment,
@@ -69,6 +71,7 @@ export default function Index() {
   // Midi ou soir touché par l'utilisateur ; null : la présélection selon l'heure du chargement.
   const [chosenMoment, setChosenMoment] = useState<MealMoment | null>(null);
   const carouselRef = useRef<PeekCarouselHandle>(null);
+  const help = useHelp("accueil");
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran
   // (le temps réel peut en lancer plusieurs coup sur coup).
@@ -229,14 +232,29 @@ export default function Index() {
             </Pressable>
           </View>
           {hasGroups ? (
-            <Text style={styles.title} accessibilityRole="header">
-              on mange quoi {momentLabel(defaultMoment(loadedAt))}
-              {"\u202F"}?
-            </Text>
+            <View style={styles.questionLine}>
+              <Text style={[styles.title, styles.question]} accessibilityRole="header">
+                on mange quoi {momentLabel(defaultMoment(loadedAt))}
+                {"\u202F"}?
+              </Text>
+              {/* L'aide ne sert qu'à plusieurs groupes : pastilles et cartes à faire glisser. */}
+              {groups.length > 1 && !help.isVisible ? <HelpButton onPress={help.show} /> : null}
+            </View>
           ) : null}
         </View>
 
         <UpdateBanner />
+
+        {groups.length > 1 && help.isVisible ? (
+          <HelpCard
+            onClose={help.dismiss}
+            lines={[
+              { icon: "chevrons-right", text: "Glisse la carte pour changer de groupe" },
+              { icon: "circle", text: "Touche une pastille pour aller au groupe" },
+              { icon: "info", text: "Point tomate : vote en cours ; vert : décidé" },
+            ]}
+          />
+        ) : null}
 
         {hasGroups && selectedGroup ? (
           <>
@@ -393,6 +411,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     },
     titleName: { color: colors.brand },
     titleText: { color: colors.text },
+    questionLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    question: { flexShrink: 1 },
     tonight: { gap: spacing.md },
     links: { alignItems: "center", gap: spacing.xs },
     empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },

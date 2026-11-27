@@ -4,6 +4,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChefTip } from "@/components/chef-tip";
+import { HelpButton, HelpCard } from "@/components/help-card";
 import { IconButton } from "@/components/icon-button";
 import { IngredientList } from "@/components/ingredient-list";
 import { PrimaryButton } from "@/components/primary-button";
@@ -18,6 +19,7 @@ import { uploadRecipePhoto } from "@/lib/photo-storage";
 import { macrosPerServing, recipeMeta } from "@/lib/recipe-rules";
 import { copyBaseRecipe, fetchRecipe, subscribeToCarnet, type Recipe } from "@/lib/recipes";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
+import { useHelp } from "@/lib/use-help";
 import { useTheme, type Theme } from "@/theme";
 
 // Une recette : les parts changent les quantités à l'écran (rien n'est enregistré), les
@@ -41,6 +43,8 @@ export default function RecipeScreen() {
   const [photoError, setPhotoError] = useState<string | null>(null);
 
   const latestRequestRef = useRef(0);
+  // Les parts qui recalculent les quantités, le mode cuisine : ce qui ne se devine pas.
+  const help = useHelp("recette");
 
   const load = useCallback(() => {
     latestRequestRef.current += 1;
@@ -192,15 +196,28 @@ export default function RecipeScreen() {
           ) : null}
 
           <View style={styles.header}>
-            <Text style={styles.title} accessibilityRole="header">
-              {recipe.title}
-            </Text>
+            <View style={styles.titleLine}>
+              <Text style={[styles.title, styles.titleText]} accessibilityRole="header">
+                {recipe.title}
+              </Text>
+              {help.isVisible ? null : <HelpButton onPress={help.show} />}
+            </View>
             {meta || isBase ? (
               <Text style={styles.meta}>
                 {[meta, isBase ? "Recette de base" : null].filter(Boolean).join(" · ")}
               </Text>
             ) : null}
           </View>
+
+          {help.isVisible ? (
+            <HelpCard
+              onClose={help.dismiss}
+              lines={[
+                { icon: "users", text: "Change les parts : les quantités suivent" },
+                { icon: "play", text: "Cuisiner : une étape par écran, écran allumé" },
+              ]}
+            />
+          ) : null}
 
           {/* Les parts et l'estimation d'une part sur la même ligne : changer les parts
               change les quantités juste en dessous. */}
@@ -321,6 +338,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     container: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.xl },
     photoButton: { position: "absolute", right: spacing.lg, bottom: spacing.md },
     header: { gap: spacing.xs },
+    titleLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    titleText: { flexShrink: 1 },
     title: {
       color: colors.text,
       fontFamily: fonts.display,

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
+import { HelpButton, HelpCard } from "@/components/help-card";
 import { ListCard, ListRow } from "@/components/list";
 import { MealContributions } from "@/components/meal-contributions";
 import { MealMenu } from "@/components/meal-menu";
@@ -52,6 +53,7 @@ import {
 } from "@/lib/votes";
 import { topicWords } from "@/lib/vote-topic";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
+import { useHelp } from "@/lib/use-help";
 import { useTheme, type Theme } from "@/theme";
 
 type Styles = ReturnType<typeof createStyles>;
@@ -120,6 +122,8 @@ export default function SoireeScreen() {
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
+  // Inviter sans l'app, le code, qui apporte quoi : ce qui ne se devine pas (membres seulement).
+  const help = useHelp("repas");
   const scrollRef = useRef<ScrollViewInstance>(null);
 
   const loadSoiree = useCallback(() => {
@@ -300,11 +304,32 @@ export default function SoireeScreen() {
         {/* Un invité n'a rien derrière cet écran : pas d'en-tête, donc pas de bande vide. */}
         <Stack.Screen options={{ headerShown: !isGuest }} />
         <View style={styles.header}>
-          <Text style={styles.title} accessibilityRole="header">
-            {soiree.name}
-          </Text>
+          <View style={styles.titleLine}>
+            <Text style={[styles.title, styles.titleText]} accessibilityRole="header">
+              {soiree.name}
+            </Text>
+            {!isGuest && !help.isVisible ? <HelpButton onPress={help.show} /> : null}
+          </View>
           <Steps current={soiree.step} steps={stepsFor(soiree.mode)} styles={styles} />
         </View>
+
+        {!isGuest && help.isVisible ? (
+          <HelpCard
+            onClose={help.dismiss}
+            lines={[
+              { icon: "link", text: "Le lien : on rejoint sans l’app, avec un pseudo" },
+              {
+                icon: "hash",
+                text: `Le code ${soiree.inviteCode} : pour qui a déjà l’app`,
+              },
+              soiree.mode === "maison"
+                ? { icon: "gift", text: "Qui apporte quoi : chacun écrit, tous voient" }
+                : soiree.mode === "commande"
+                  ? { icon: "list", text: "Chacun écrit sa commande, le récap suit" }
+                  : { icon: "check-square", text: "Votez le resto, ou le responsable le choisit" },
+            ]}
+          />
+        ) : null}
 
         {/* Seul dans sa soirée : inviter est la prochaine chose à faire. Resto décidé : le résultat
             passe avant, « Inviter quelqu'un » reste dans « Qui vient ». */}
@@ -658,6 +683,8 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     container: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.xl },
     pressed: { opacity: 0.6 },
     header: { gap: spacing.md },
+    titleLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    titleText: { flexShrink: 1 },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
