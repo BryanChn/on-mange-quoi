@@ -39,11 +39,11 @@ export function ServingsStepper({ value, onChange }: ServingsStepperProps) {
         change(event.nativeEvent.actionName === "increment" ? value + 1 : value - 1)
       }
     >
-      <Text style={styles.label}>Parts</Text>
       <View style={styles.controls}>
         <Pressable
           onPress={() => change(value - 1)}
           disabled={value <= MIN_SERVINGS}
+          hitSlop={4}
           style={({ pressed }) => [
             styles.button,
             (pressed || value <= MIN_SERVINGS) && styles.dimmed,
@@ -51,10 +51,11 @@ export function ServingsStepper({ value, onChange }: ServingsStepperProps) {
         >
           <Feather name="minus" size={20} color={theme.colors.chipText} />
         </Pressable>
-        <Text style={styles.value}>{value}</Text>
+        <Text style={styles.value}>{servingsLabel(value)}</Text>
         <Pressable
           onPress={() => change(value + 1)}
           disabled={value >= MAX_SERVINGS}
+          hitSlop={4}
           style={({ pressed }) => [
             styles.button,
             (pressed || value >= MAX_SERVINGS) && styles.dimmed,
@@ -67,36 +68,32 @@ export function ServingsStepper({ value, onChange }: ServingsStepperProps) {
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
+// Refonte v4 : une pastille compacte « − 4 parts + », à la largeur de son contenu.
+function createStyles({ colors, spacing, radius, fontSize, control }: Theme) {
   return StyleSheet.create({
     card: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: spacing.sm,
-      paddingLeft: spacing.lg,
-      paddingRight: spacing.sm,
-      borderRadius: radius.lg,
+      alignSelf: "flex-start",
+      height: control.md,
+      justifyContent: "center",
+      paddingHorizontal: 2,
+      borderRadius: radius.pill,
       backgroundColor: colors.surface,
-      boxShadow: cardShadow,
     },
-    label: { color: colors.text, fontSize: fontSize.body, fontWeight: "600" },
-    controls: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    controls: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
     button: {
-      width: 44,
-      height: 44,
+      width: control.sm,
+      height: control.sm,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.chipBg,
     },
-    dimmed: { opacity: 0.5 },
+    dimmed: { opacity: 0.4 },
     value: {
-      minWidth: 28,
+      minWidth: 64,
       textAlign: "center",
       color: colors.text,
-      fontFamily: fonts.display,
-      fontSize: 22,
+      fontSize: fontSize.body - 1,
+      fontWeight: "700",
     },
   });
 }

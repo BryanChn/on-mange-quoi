@@ -7,13 +7,20 @@ import { recipeTileIndex } from "@/lib/recipe-rules";
 import { usePhotoUrl } from "@/lib/use-photo-url";
 import { useTheme } from "@/theme";
 
-type RecipeTileProps = { recipeId: string; photoPath?: string | null; size?: number };
+type RecipeTileProps = {
+  recipeId: string;
+  photoPath?: string | null;
+  // Largeur ; la hauteur suit aspectRatio (carré par défaut).
+  size?: number;
+  // 4/3 : une vraie photo de plat (« Souvent cuisiné »), plutôt qu'une pastille.
+  aspectRatio?: number;
+};
 
 // Vignette d'une recette : sa photo, ou une couleur des avatars (les mêmes en clair et en
 // sombre, avec l'icône espresso dessus), toujours la même pour une recette. Décorative : le
 // nom est écrit à côté.
-export function RecipeTile({ recipeId, photoPath, size = 40 }: RecipeTileProps) {
-  const { avatarColors, onAvatar } = useTheme();
+export function RecipeTile({ recipeId, photoPath, size = 40, aspectRatio = 1 }: RecipeTileProps) {
+  const { avatarColors, onAvatar, radius } = useTheme();
   const photoUrl = usePhotoUrl(photoPath, RECIPE_BUCKET);
   const backgroundColor = avatarColors[recipeTileIndex(recipeId, avatarColors.length)];
 
@@ -21,7 +28,13 @@ export function RecipeTile({ recipeId, photoPath, size = 40 }: RecipeTileProps) 
     <View
       style={[
         styles.tile,
-        { width: size, height: size, borderRadius: size * 0.35, backgroundColor },
+        {
+          width: size,
+          height: size / aspectRatio,
+          // Pastille arrondie en petit ; en grand, le coin d'une carte.
+          borderRadius: aspectRatio === 1 ? Math.min(size * 0.3, radius.md) : radius.md,
+          backgroundColor,
+        },
       ]}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
@@ -35,7 +48,7 @@ export function RecipeTile({ recipeId, photoPath, size = 40 }: RecipeTileProps) 
           transition={150}
         />
       ) : (
-        <Feather name="book-open" size={size * 0.5} color={onAvatar} />
+        <Feather name="book-open" size={Math.min(size * 0.5, 40)} color={onAvatar} />
       )}
     </View>
   );
@@ -46,11 +59,13 @@ type RecipeBannerProps = {
   photoPath?: string | null;
   // Une photo choisie, pas encore envoyée (aperçu en écrivant la recette).
   uri?: string;
+  // hero : en tête de la recette, d'un bord à l'autre de l'écran, sans coins (refonte v4).
+  isHero?: boolean;
 };
 
 // L'encart en tête d'une recette, pour illustrer le plat : sa photo, ou par défaut le livre sur
 // la couleur de la recette (la même que sa vignette dans le carnet). Décoratif.
-export function RecipeBanner({ recipeId, photoPath, uri }: RecipeBannerProps) {
+export function RecipeBanner({ recipeId, photoPath, uri, isHero = false }: RecipeBannerProps) {
   const { avatarColors, onAvatar, radius } = useTheme();
   const photoUrl = usePhotoUrl(uri ? null : photoPath, RECIPE_BUCKET);
   const source = uri
@@ -62,7 +77,11 @@ export function RecipeBanner({ recipeId, photoPath, uri }: RecipeBannerProps) {
 
   return (
     <View
-      style={[styles.banner, { borderRadius: radius.lg, backgroundColor }]}
+      style={[
+        styles.banner,
+        isHero ? styles.hero : { borderRadius: radius.lg },
+        { backgroundColor },
+      ]}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
@@ -85,4 +104,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
+  hero: { aspectRatio: 16 / 10 },
 });

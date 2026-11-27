@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Card } from "@/components/card";
 import { PrimaryButton } from "@/components/primary-button";
+import { Section } from "@/components/section";
 import { ServingsStepper } from "@/components/servings-stepper";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
@@ -137,18 +137,25 @@ export default function RecipeToShoppingScreen() {
       <View
         style={[styles.container, styles.done, { paddingBottom: insets.bottom + theme.spacing.xl }]}
       >
-        <Card>
-          <Feather name="check-circle" size={32} color={theme.colors.success} />
-          <Text style={styles.doneTitle} accessibilityRole="header">
+        <View style={styles.doneBody}>
+          <Feather
+            name="check-circle"
+            size={40}
+            color={theme.colors.success}
+            style={styles.centered}
+          />
+          <Text style={[styles.doneTitle, styles.centeredText]} accessibilityRole="header">
             {addedCount === 1 ? "1 article ajouté" : `${addedCount} articles ajoutés`}
           </Text>
-          <Text style={styles.muted}>Dans la liste de courses de {groupName}.</Text>
+          <Text style={[styles.muted, styles.centeredText]}>
+            Dans la liste de courses de {groupName}.
+          </Text>
           <PrimaryButton
             label="Voir la liste"
             onPress={() => router.replace({ pathname: "/courses/[groupId]", params: { groupId } })}
           />
           <TextButton label="Retour à la recette" onPress={() => router.back()} />
-        </Card>
+        </View>
       </View>
     );
   }
@@ -178,10 +185,16 @@ export default function RecipeToShoppingScreen() {
         </Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Décoche ce que tu as
-        </Text>
+      <Section
+        title="Décoche ce que tu as"
+        footnote={
+          onListCount === 0
+            ? undefined
+            : onListCount === 1
+              ? "Un ingrédient est déjà sur la liste : il n’est pas ajouté deux fois."
+              : `${onListCount} ingrédients sont déjà sur la liste : ils ne sont pas ajoutés deux fois.`
+        }
+      >
         <View style={styles.card}>
           {rows.map((row, position) => (
             <Pressable
@@ -209,14 +222,7 @@ export default function RecipeToShoppingScreen() {
             </Pressable>
           ))}
         </View>
-        {onListCount > 0 ? (
-          <Text style={styles.hint}>
-            {onListCount === 1
-              ? "Un ingrédient est déjà sur la liste : il n’est pas ajouté deux fois."
-              : `${onListCount} ingrédients sont déjà sur la liste : ils ne sont pas ajoutés deux fois.`}
-          </Text>
-        ) : null}
-      </View>
+      </Section>
 
       {error ? (
         <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
@@ -241,19 +247,21 @@ export default function RecipeToShoppingScreen() {
 
 function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
-    container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
+    container: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.xl },
     done: { justifyContent: "center" },
+    doneBody: { gap: spacing.md },
+    centered: { alignSelf: "center" },
+    centeredText: { textAlign: "center" },
     header: { gap: spacing.xs },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
     },
     muted: { color: colors.textMuted, fontSize: fontSize.small, lineHeight: 20 },
     hint: { marginLeft: spacing.xs, color: colors.textMuted, fontSize: fontSize.caption },
     section: { gap: spacing.md },
-    sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 20 },
     card: { borderRadius: radius.lg, backgroundColor: colors.surface, boxShadow: cardShadow },
     row: {
       minHeight: 56,
@@ -263,7 +271,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.lg,
     },
-    divider: { borderTopWidth: 1, borderTopColor: colors.border },
+    divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
     pressed: { opacity: 0.6 },
     box: {
       width: 26,

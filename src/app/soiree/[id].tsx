@@ -318,7 +318,7 @@ export default function SoireeScreen() {
               Envoie le lien sur WhatsApp : pas besoin de l’app {INVITE_PURPOSE[soiree.mode]}. Ceux
               qui l’ont peuvent aussi taper le code {soiree.inviteCode}.
             </Text>
-            <PrimaryButton label="Envoyer le lien" onPress={() => handleShare(soiree)} />
+            <PrimaryButton label="Envoyer le lien" size="md" onPress={() => handleShare(soiree)} />
           </Card>
         ) : null}
 
@@ -374,7 +374,7 @@ export default function SoireeScreen() {
               <Chip label="Vote en cours" hasDot />
               <Text style={styles.cardTitle}>Où on mange ?</Text>
               <Text style={styles.muted}>Propose un resto, coche ceux qui te tentent.</Text>
-              <PrimaryButton label="Voter" onPress={() => openSession(openVoteId)} />
+              <PrimaryButton label="Voter" size="md" onPress={() => openSession(openVoteId)} />
             </Card>
           ) : isGuest ? (
             <View style={styles.waiting}>
@@ -418,6 +418,7 @@ export default function SoireeScreen() {
                   <PrimaryButton
                     label="Choisir ce resto"
                     variant="signature"
+                    size="md"
                     onPress={handleChooseRestaurant}
                     isLoading={isSavingRestaurant}
                   />
@@ -428,6 +429,7 @@ export default function SoireeScreen() {
                   <PrimaryButton
                     label="Lancer le vote"
                     variant="signature"
+                    size="md"
                     onPress={handleStartVote}
                     isLoading={isStarting}
                   />
@@ -653,14 +655,14 @@ function MemberRow({
 
 function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
   return StyleSheet.create({
-    container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
+    container: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.xl },
     pressed: { opacity: 0.6 },
     header: { gap: spacing.md },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
     },
     steps: { flexDirection: "row", alignItems: "center" },
     stepItem: { flexDirection: "row", alignItems: "center", flexShrink: 1 },
@@ -729,7 +731,12 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
       textAlign: "center",
     },
     section: { gap: spacing.md },
-    sectionTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
+    sectionTitle: {
+      paddingHorizontal: spacing.xs,
+      color: colors.textMuted,
+      fontSize: fontSize.small,
+      fontWeight: "700",
+    },
     memberRow: {
       minHeight: 64,
       flexDirection: "row",

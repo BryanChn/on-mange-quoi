@@ -40,8 +40,6 @@ function createStyles({ colors, spacing, radius, fontSize }: Theme) {
       padding: spacing.lg,
       borderRadius: radius.lg,
       backgroundColor: colors.surface2,
-      borderWidth: 1,
-      borderColor: colors.border,
     },
     cat: { width: 44, height: 44 },
     body: { flex: 1, gap: spacing.xs },

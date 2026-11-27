@@ -177,7 +177,7 @@ export default function NewSoiree() {
                     ) : (
                       <MaterialCommunityIcons
                         name={plan.icon}
-                        size={28}
+                        size={22}
                         color={theme.colors.primary}
                       />
                     )}
@@ -372,7 +372,7 @@ export default function NewSoiree() {
 
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
-    container: { padding: spacing.xl, paddingTop: spacing.md, gap: spacing.xl },
+    container: { padding: spacing.lg, paddingTop: spacing.md, gap: spacing.xl },
     pressed: { opacity: 0.6 },
     progress: { flexDirection: "row", gap: 6, alignSelf: "flex-end" },
     progressDot: {
@@ -387,31 +387,31 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
     },
     subtitle: { color: colors.textMuted, fontSize: fontSize.body },
 
-    // Les trois plans : de grosses cartes, un toucher.
+    // Les trois plans : une ligne par plan, un toucher (refonte v4 : plus compactes).
     plans: { gap: spacing.md },
     plan: {
-      minHeight: 96,
+      minHeight: 76,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.lg,
-      padding: 18,
-      borderRadius: radius.xl,
+      padding: spacing.lg,
+      borderRadius: radius.lg,
       backgroundColor: colors.surface,
     },
     planIcon: {
-      width: 56,
-      height: 56,
-      borderRadius: 18,
+      width: 44,
+      height: 44,
+      borderRadius: radius.md,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: colors.surface2,
     },
     planText: { flex: 1, gap: spacing.xs },
-    planTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 19 },
+    planTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     planSubtitle: { color: colors.textMuted, fontSize: fontSize.small },
 
     backLink: {
@@ -431,18 +431,18 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     topic: {
       flexBasis: "47%",
       flexGrow: 1,
-      height: 72,
+      height: 56,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: spacing.lg,
-      borderRadius: 20,
-      borderWidth: 2,
-      borderColor: colors.border,
+      borderRadius: radius.lg,
+      borderWidth: 1.5,
+      borderColor: colors.surface,
       backgroundColor: colors.surface,
     },
     topicOn: { borderColor: colors.primary, backgroundColor: colors.chipBg },
-    topicLabel: { color: colors.text, fontFamily: fonts.display, fontSize: 19 },
+    topicLabel: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     topicBox: {
       width: 26,
       height: 26,

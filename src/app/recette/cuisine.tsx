@@ -2,18 +2,20 @@ import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChefTip } from "@/components/chef-tip";
+import { IngredientList } from "@/components/ingredient-list";
 import { PrimaryButton } from "@/components/primary-button";
+import { Section } from "@/components/section";
 import { RecipeBanner } from "@/components/recipe-tile";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { hapticAdded, hapticReject, hapticTick } from "@/lib/haptics";
 import { pickRecipePhoto } from "@/lib/photo-picker";
 import { uploadRecipePhoto } from "@/lib/photo-storage";
-import { durationLabel, formatAmount, scaleAmount, servingsLabel } from "@/lib/recipe-rules";
+import { durationLabel, servingsLabel } from "@/lib/recipe-rules";
 import { fetchRecipe, type Recipe } from "@/lib/recipes";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useTheme, type Theme } from "@/theme";
@@ -39,8 +41,6 @@ export default function CookingScreen() {
   const [loadError, setLoadError] = useState<unknown>(null);
   // 0 : avant de commencer ; 1 à n : les étapes ; n + 1 : la fin.
   const [page, setPage] = useState(0);
-  // Le panneau des ingrédients, ouvert depuis une étape.
-  const [isIngredientsOpen, setIsIngredientsOpen] = useState(false);
   const [photoState, setPhotoState] = useState<PhotoState>("idle");
   // La photo prise à la fin, affichée tout de suite dans l'encart.
   const [newPhotoPath, setNewPhotoPath] = useState<string | null>(null);
@@ -116,23 +116,20 @@ export default function CookingScreen() {
   }
 
   const ingredientList = (
-    <View style={styles.card}>
-      {recipe.ingredients.map((ingredient, index) => {
-        const amount = scaleAmount(ingredient.quantity, ingredient.unit, recipe.servings, servings);
-        return (
-          <View
-            key={index}
-            style={[styles.ingredient, index > 0 && styles.divider]}
-            accessible
-            accessibilityLabel={`${amount ? `${formatAmount(amount)} ` : ""}${ingredient.label}`}
-          >
-            <Text style={styles.amount}>{amount ? formatAmount(amount) : ""}</Text>
-            <Text style={styles.ingredientLabel}>{ingredient.label}</Text>
-          </View>
-        );
-      })}
-    </View>
+    <IngredientList
+      ingredients={recipe.ingredients}
+      recipeServings={recipe.servings}
+      servings={servings}
+      isLarge
+    />
   );
+
+  function openIngredients() {
+    router.push({
+      pathname: "/recette/ingredients",
+      params: { id: id, servings: String(servings) },
+    });
+  }
 
   return (
     <View
@@ -158,12 +155,7 @@ export default function CookingScreen() {
             </Text>
             {recipe.chefTip ? <ChefTip text={recipe.chefTip} /> : null}
             {hasIngredients ? (
-              <>
-                <Text style={styles.sectionTitle} accessibilityRole="header">
-                  Il te faut
-                </Text>
-                {ingredientList}
-              </>
+              <Section title="Il te faut">{ingredientList}</Section>
             ) : (
               <Text style={styles.muted}>Aucun ingrédient noté pour cette recette.</Text>
             )}
@@ -197,7 +189,7 @@ export default function CookingScreen() {
             <Text style={styles.stepText}>{recipe.steps.at(page - 1)}</Text>
             {hasIngredients ? (
               <Pressable
-                onPress={() => setIsIngredientsOpen(true)}
+                onPress={openIngredients}
                 accessibilityRole="button"
                 accessibilityLabel={`Voir les ${recipe.ingredients.length} ingrédients`}
                 style={({ pressed }) => [styles.ingredientsButton, pressed && styles.pressed]}
@@ -254,70 +246,30 @@ export default function CookingScreen() {
           </View>
         )}
       </View>
-
-      {/* Les ingrédients depuis une étape : un panneau par-dessus, l'étape reste derrière. */}
-      <Modal
-        visible={isIngredientsOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsIngredientsOpen(false)}
-      >
-        <View style={styles.sheetLayer}>
-          <Pressable
-            style={styles.sheetBackdrop}
-            onPress={() => setIsIngredientsOpen(false)}
-            accessibilityRole="button"
-            accessibilityLabel="Fermer les ingrédients"
-          />
-          <View
-            style={[styles.sheet, { paddingBottom: insets.bottom + theme.spacing.lg }]}
-            accessibilityViewIsModal
-          >
-            <Text style={styles.sheetTitle} accessibilityRole="header">
-              Ingrédients · {servingsLabel(servings)}
-            </Text>
-            <ScrollView style={styles.sheetList}>{ingredientList}</ScrollView>
-            <PrimaryButton label="Retour à l’étape" onPress={() => setIsIngredientsOpen(false)} />
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
-function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
+function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     progressRow: {
       flexDirection: "row",
       gap: spacing.xs,
-      paddingHorizontal: spacing.xl,
+      paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,
     },
     progress: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
     progressDone: { backgroundColor: colors.primary },
-    content: { flexGrow: 1, padding: spacing.xl, gap: spacing.lg },
+    content: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.xl, gap: spacing.lg },
     kicker: { color: colors.textMuted, fontSize: fontSize.body, fontWeight: "600" },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
     },
-    sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 22 },
     muted: { color: colors.textMuted, fontSize: fontSize.body, lineHeight: 24 },
-    card: { borderRadius: radius.lg, backgroundColor: colors.surface, boxShadow: cardShadow },
-    ingredient: {
-      minHeight: 56,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
-    },
-    divider: { borderTopWidth: 1, borderTopColor: colors.border },
-    amount: { width: 104, color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
-    ingredientLabel: { flex: 1, color: colors.text, fontSize: fontSize.cardTitle },
     // Lisible à un bras de distance, téléphone posé sur le plan de travail.
     step: { flex: 1, justifyContent: "center", gap: spacing.lg },
     stepText: { color: colors.text, fontSize: 28, lineHeight: 40, fontWeight: "500" },
@@ -334,7 +286,7 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     ingredientsButtonText: { color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
     end: { flex: 1, justifyContent: "center", gap: spacing.lg },
     error: { color: colors.danger, fontSize: fontSize.small },
-    footer: { paddingHorizontal: spacing.xl, gap: spacing.sm },
+    footer: { paddingHorizontal: spacing.lg, gap: spacing.sm },
     nav: { flexDirection: "row", gap: spacing.md },
     navButton: {
       // Mains occupées : plus grand que control.lg, sans en faire trop (72 avant la refonte).
@@ -348,19 +300,6 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
     navBack: { width: 56, backgroundColor: colors.chipBg },
     navNext: { flex: 1, backgroundColor: colors.primary },
     navNextText: { color: colors.onPrimary, fontSize: fontSize.button, fontWeight: "700" },
-    sheetLayer: { flex: 1, justifyContent: "flex-end" },
-    sheetBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0, 0, 0, 0.5)" },
-    sheet: {
-      maxHeight: "85%",
-      gap: spacing.lg,
-      paddingTop: spacing.xl,
-      paddingHorizontal: spacing.xl,
-      borderTopLeftRadius: radius.xl,
-      borderTopRightRadius: radius.xl,
-      backgroundColor: colors.background,
-    },
-    sheetTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 24 },
-    sheetList: { flexGrow: 0 },
     pressed: { opacity: 0.7 },
   });
 }

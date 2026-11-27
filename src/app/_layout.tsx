@@ -122,6 +122,17 @@ function RootNavigator() {
         <Stack.Screen name="recette/courses" options={{ title: "" }} />
         {/* Plein écran : les étapes en grand, le quitter est dans l'écran lui-même. */}
         <Stack.Screen name="recette/cuisine" options={{ headerShown: false }} />
+        {/* Feuille native par-dessus une étape : on la ferme en la faisant glisser. */}
+        <Stack.Screen
+          name="recette/ingredients"
+          options={{
+            presentation: "formSheet",
+            headerShown: false,
+            sheetAllowedDetents: [0.6, 1],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 20,
+          }}
+        />
         {/* L'écran porte son grand titre (« C'est quoi le plan ? ») : l'en-tête garde le retour. */}
         <Stack.Screen name="soiree/new" options={{ title: "" }} />
         <Stack.Screen name="account" options={{ title: "Profil" }} />

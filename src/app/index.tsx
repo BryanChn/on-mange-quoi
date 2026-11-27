@@ -9,6 +9,7 @@ import { ListCard, ListRow } from "@/components/list";
 import { MealCard } from "@/components/meal-card";
 import { PeekCarousel, type PeekCarouselHandle } from "@/components/peek-carousel";
 import { PrimaryButton } from "@/components/primary-button";
+import { Section } from "@/components/section";
 import { StatusBarBackdrop } from "@/components/status-bar-backdrop";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
@@ -170,10 +171,7 @@ export default function Index() {
 
   const mealsSection =
     meals.length > 0 ? (
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel} accessibilityRole="header">
-          Bientôt
-        </Text>
+      <Section title="Bientôt">
         <PeekCarousel
           accessibilityLabel="Repas à venir"
           edgeInset={edge}
@@ -190,7 +188,7 @@ export default function Index() {
             ),
           }))}
         />
-      </View>
+      </Section>
     ) : null;
 
   return (
@@ -284,7 +282,7 @@ export default function Index() {
 
             {mealsSection}
 
-            <GroupTools group={selectedGroup} home={home} styles={styles} />
+            <GroupTools group={selectedGroup} home={home} />
 
             <ListCard>
               <ListRow
@@ -317,20 +315,9 @@ export default function Index() {
 }
 
 // Les outils du groupe affiché : ils suivent la pastille et la carte choisies.
-function GroupTools({
-  group,
-  home,
-  styles,
-}: {
-  group: HomeGroup;
-  home: LoadedHome;
-  styles: Styles;
-}) {
+function GroupTools({ group, home }: { group: HomeGroup; home: LoadedHome }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionLabel} accessibilityRole="header">
-        {group.name}
-      </Text>
+    <Section title={group.name}>
       <ListCard>
         <ListRow
           icon="shopping-cart"
@@ -358,7 +345,7 @@ function GroupTools({
           onPress={() => router.push({ pathname: "/group/[id]", params: { id: group.id } })}
         />
       </ListCard>
-    </View>
+    </Section>
   );
 }
 
@@ -407,14 +394,6 @@ function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
     titleName: { color: colors.brand },
     titleText: { color: colors.text },
     tonight: { gap: spacing.md },
-    section: { gap: spacing.sm },
-    // Titre de section discret, comme un en-tête de liste groupée.
-    sectionLabel: {
-      color: colors.textMuted,
-      fontSize: fontSize.small,
-      fontWeight: "700",
-      paddingHorizontal: spacing.xs,
-    },
     links: { alignItems: "center", gap: spacing.xs },
     empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg },
     plate: {

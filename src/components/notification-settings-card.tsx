@@ -101,8 +101,14 @@ export function NotificationSettingsCard() {
 function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     block: { gap: spacing.sm },
-    title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
+    // Titre de section v4, comme les autres réglages de Mon compte.
+    title: {
+      paddingHorizontal: spacing.xs,
+      color: colors.textMuted,
+      fontSize: fontSize.small,
+      fontWeight: "700",
+    },
     error: { color: colors.danger, fontSize: fontSize.small },
-    hint: { color: colors.textMuted, fontSize: fontSize.caption },
+    hint: { paddingHorizontal: spacing.xs, color: colors.textMuted, fontSize: fontSize.caption },
   });
 }

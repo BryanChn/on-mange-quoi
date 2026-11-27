@@ -16,6 +16,7 @@ import { Avatar } from "@/components/avatar";
 import { AvatarPicker } from "@/components/avatar-picker";
 import { Card } from "@/components/card";
 import { ListCard, ListRow } from "@/components/list";
+import { Section } from "@/components/section";
 import { NotificationSettingsCard } from "@/components/notification-settings-card";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
@@ -233,7 +234,12 @@ export default function AccountScreen() {
               editable={!isSavingName}
               onSubmitEditing={handleSaveName}
             />
-            <PrimaryButton label="Enregistrer" onPress={handleSaveName} isLoading={isSavingName} />
+            <PrimaryButton
+              label="Enregistrer"
+              size="md"
+              onPress={handleSaveName}
+              isLoading={isSavingName}
+            />
             <TextButton
               label="Annuler"
               onPress={() => setIsRenaming(false)}
@@ -244,88 +250,97 @@ export default function AccountScreen() {
 
         {!isRenaming && !isConfirming ? (
           <>
-            <ListCard>
-              {/* Pas d'appareil photo sur la version web. */}
-              {Platform.OS !== "web" ? (
+            <Section title="Photo">
+              <ListCard>
+                {/* Pas d'appareil photo sur la version web. */}
+                {Platform.OS !== "web" ? (
+                  <ListRow
+                    icon="camera"
+                    label="Prendre une photo"
+                    onPress={() => handlePickPhoto("camera")}
+                    isDisabled={isSavingAvatar}
+                  />
+                ) : null}
                 <ListRow
-                  icon="camera"
-                  label="Prendre une photo"
-                  onPress={() => handlePickPhoto("camera")}
+                  icon="image"
+                  label="Choisir dans la galerie"
+                  onPress={() => handlePickPhoto("library")}
                   isDisabled={isSavingAvatar}
                 />
-              ) : null}
-              <ListRow
-                icon="image"
-                label="Choisir dans la galerie"
-                onPress={() => handlePickPhoto("library")}
-                isDisabled={isSavingAvatar}
-              />
-              {profile?.photo_path ? (
-                <ListRow
-                  icon="x-circle"
-                  label="Retirer la photo"
-                  onPress={handleRemovePhoto}
-                  isDisabled={isSavingAvatar}
-                />
-              ) : null}
-            </ListCard>
+                {profile?.photo_path ? (
+                  <ListRow
+                    icon="x-circle"
+                    label="Retirer la photo"
+                    onPress={handleRemovePhoto}
+                    isDisabled={isSavingAvatar}
+                  />
+                ) : null}
+              </ListCard>
+            </Section>
             {isCameraDenied ? (
-              <Card>
+              <View style={styles.banner}>
                 <Text style={styles.text}>
                   L’appareil photo est bloqué pour l’app. Autorise-le dans les réglages du
                   téléphone, ou choisis une photo dans la galerie.
                 </Text>
                 <TextButton label="Ouvrir les réglages" onPress={() => Linking.openSettings()} />
-              </Card>
+              </View>
             ) : null}
-            <Card>
-              <Text style={styles.confirmTitle}>Ou un avatar</Text>
-              <AvatarPicker
-                name={displayName}
-                selected={profile?.avatar ?? null}
-                onSelect={handleSelectAvatar}
-                isDisabled={isSavingAvatar}
-              />
-              {avatarError ? (
-                <Text
-                  style={styles.error}
-                  accessibilityRole="alert"
-                  accessibilityLiveRegion="assertive"
-                >
-                  {avatarError}
-                </Text>
-              ) : (
-                <Text style={styles.hint}>
-                  {profile?.photo_path
-                    ? "Ta photo s’affiche partout. Choisir un avatar la remplace."
-                    : "Le même partout, en clair comme en sombre."}
-                </Text>
-              )}
-            </Card>
+            <Section title="Ou un avatar">
+              <View style={styles.pickerBlock}>
+                <AvatarPicker
+                  name={displayName}
+                  selected={profile?.avatar ?? null}
+                  onSelect={handleSelectAvatar}
+                  isDisabled={isSavingAvatar}
+                />
+                {avatarError ? (
+                  <Text
+                    style={styles.error}
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="assertive"
+                  >
+                    {avatarError}
+                  </Text>
+                ) : (
+                  <Text style={styles.hint}>
+                    {profile?.photo_path
+                      ? "Ta photo s’affiche partout. Choisir un avatar la remplace."
+                      : "Le même partout, en clair comme en sombre."}
+                  </Text>
+                )}
+              </View>
+            </Section>
             {/* Pas de notifications sur la version web. */}
             {Platform.OS !== "web" ? <NotificationSettingsCard /> : null}
-            <ListCard>
-              <ListRow icon="edit-2" label="Changer mon nom" onPress={handleStartRename} />
-              <ListRow icon="log-out" label="Se déconnecter" onPress={signOut} />
-            </ListCard>
-            <ListCard>
-              <ListRow
-                icon="smartphone"
-                label={UPDATE_CHECK_LABELS[updateCheck]}
-                subtitle={versionLabel(currentlyRunning)}
-                onPress={handleCheckUpdate}
-                isDisabled={
-                  !canCheckForUpdates || updateCheck === "checking" || updateCheck === "restarting"
-                }
-              />
-              <ListRow
-                icon="shield"
-                label="Confidentialité"
-                subtitle="Tes données et tes droits"
-                onPress={openPrivacyPolicy}
-                accessibilityLabel="Politique de confidentialité, s’ouvre dans le navigateur"
-              />
-            </ListCard>
+            <Section title="Compte">
+              <ListCard>
+                <ListRow icon="edit-2" label="Changer mon nom" onPress={handleStartRename} />
+                <ListRow icon="log-out" label="Se déconnecter" onPress={signOut} />
+              </ListCard>
+            </Section>
+            <Section title="L’app">
+              <ListCard>
+                <ListRow
+                  icon="smartphone"
+                  label={UPDATE_CHECK_LABELS[updateCheck]}
+                  subtitle={versionLabel(currentlyRunning)}
+                  onPress={handleCheckUpdate}
+                  isDisabled={
+                    !canCheckForUpdates ||
+                    updateCheck === "checking" ||
+                    updateCheck === "restarting"
+                  }
+                />
+                <ListRow
+                  icon="shield"
+                  label="Confidentialité"
+                  subtitle="Tes données et tes droits"
+                  onPress={openPrivacyPolicy}
+                  accessibilityLabel="Politique de confidentialité, s’ouvre dans le navigateur"
+                />
+              </ListCard>
+            </Section>
             <ListCard>
               <ListRow
                 icon="trash-2"
@@ -388,16 +403,16 @@ export default function AccountScreen() {
   );
 }
 
-function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
+function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
     screen: { flex: 1 },
-    content: { padding: spacing.xl, gap: spacing.xl },
+    content: { padding: spacing.lg, gap: spacing.xl },
     identity: { alignItems: "center", gap: spacing.md },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
       textAlign: "center",
     },
     confirmTitle: {
@@ -410,5 +425,18 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     warning: { color: colors.danger, fontSize: fontSize.small, fontWeight: "600" },
     error: { color: colors.danger, fontSize: fontSize.small },
     hint: { color: colors.textMuted, fontSize: fontSize.caption },
+    // L'avatar se choisit sur une surface, comme une liste groupée.
+    pickerBlock: {
+      gap: spacing.md,
+      padding: spacing.lg,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface,
+    },
+    banner: {
+      gap: spacing.xs,
+      padding: spacing.lg,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface2,
+    },
   });
 }
