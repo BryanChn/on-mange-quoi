@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
-import { Chip } from "@/components/chip";
 import { ListCard, ListRow } from "@/components/list";
 import { MomentPicker } from "@/components/moment-picker";
 import { PrimaryButton } from "@/components/primary-button";
@@ -257,16 +256,24 @@ export default function GroupScreen() {
         </View>
       </View>
 
-      {/* Vote en cours : carte neutre, comme sur l'accueil. Sinon, la carte signature. */}
+      {/* Toujours la carte de couleur, comme sur l'accueil (refonte v4). */}
       {latestSession?.isOpen ? (
-        <Card>
-          <Chip label="Vote en cours" hasDot />
-          <Text style={styles.cardTitle}>
-            On mange quoi {momentLabel(latestSession.moment ?? "soir")} ?
+        <SignatureCard>
+          <Text style={styles.signatureKicker}>Vote en cours</Text>
+          <Text style={styles.signatureTitle}>
+            On mange quoi {momentLabel(latestSession.moment ?? "soir")}
+            {"\u202F"}?
           </Text>
-          <Text style={styles.muted}>Un vote est ouvert : coche tout ce qui te tente.</Text>
-          <PrimaryButton label="Voter" onPress={() => openSession(latestSession.id)} />
-        </Card>
+          <Text style={styles.signatureMuted}>
+            Un vote est ouvert : coche tout ce qui te tente.
+          </Text>
+          <PrimaryButton
+            label="Voter"
+            variant="signature"
+            size="md"
+            onPress={() => openSession(latestSession.id)}
+          />
+        </SignatureCard>
       ) : (
         <SignatureCard>
           {latestSession ? (
@@ -301,6 +308,7 @@ export default function GroupScreen() {
           <PrimaryButton
             label="Lancer un vote"
             variant="signature"
+            size="md"
             onPress={handleStartVote}
             isLoading={isStarting}
           />
@@ -413,30 +421,31 @@ export default function GroupScreen() {
 
 function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
   return StyleSheet.create({
-    container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
+    container: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.xl },
     pressed: { opacity: 0.6 },
     header: { gap: spacing.md },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
     },
     members: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     avatars: { flexDirection: "row", gap: spacing.xs },
     memberNames: { flex: 1, color: colors.textMuted, fontSize: fontSize.small },
-    cardTitle: {
-      color: colors.text,
-      fontFamily: fonts.display,
-      fontSize: fontSize.heading,
-      lineHeight: 30,
-    },
     muted: { color: colors.textMuted, fontSize: fontSize.small },
+    signatureKicker: {
+      color: colors.onSignatureMuted,
+      fontSize: fontSize.caption,
+      fontWeight: "700",
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+    },
     signatureTitle: {
       color: colors.onSignature,
       fontFamily: fonts.display,
       fontSize: fontSize.heading,
-      lineHeight: 30,
+      lineHeight: 28,
     },
     signatureMuted: { color: colors.onSignatureMuted, fontSize: fontSize.small },
     // Poussés en bas de l'écran (container en flexGrow), côte à côte.
