@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AisleIcon } from "@/components/aisle-icon";
 import { PrimaryButton } from "@/components/primary-button";
@@ -24,6 +23,7 @@ import {
   SHOPPING_QUANTITY_MAX_LENGTH,
   type ShoppingAisle,
 } from "@/lib/shopping-rules";
+import { useSheetBottomInset } from "@/lib/use-sheet-bottom-inset";
 import { useTheme, type Theme } from "@/theme";
 
 // La fiche d'un article (form sheet, maquette du 27/11 : bouton ⋯ ou appui long) : son nom, sa
@@ -40,7 +40,7 @@ export default function ShoppingItemSheet() {
   }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const insets = useSafeAreaInsets();
+  const bottomInset = useSheetBottomInset();
   const initialImportant = params.important === "1";
   const [label, setLabel] = useState(params.label);
   const [quantity, setQuantity] = useState(params.quantity ?? "");
@@ -106,116 +106,127 @@ export default function ShoppingItemSheet() {
   }
 
   return (
-    <ScrollView
-      // Dans une form sheet, la marge du bas peut valoir 0 sur Android : un minimum, pour que
-      // « Retirer » ne passe pas sous la barre de navigation.
-      contentContainerStyle={[
-        styles.content,
-        { paddingBottom: Math.max(insets.bottom, 32) + theme.spacing.xl },
-      ]}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.title} accessibilityRole="header">
-        Article
-      </Text>
-
-      <View style={styles.fields}>
-        <View style={styles.labelField}>
-          <TextField
-            label="Nom"
-            value={label}
-            onChangeText={setLabel}
-            error={labelError}
-            autoCapitalize="sentences"
-            maxLength={SHOPPING_LABEL_MAX_LENGTH}
-            editable={busy === null}
-          />
-        </View>
-        <View style={styles.quantityField}>
-          <TextField
-            label="Quantité"
-            value={quantity}
-            onChangeText={setQuantity}
-            maxLength={SHOPPING_QUANTITY_MAX_LENGTH}
-            editable={busy === null}
-          />
-        </View>
-      </View>
-
-      <View style={styles.block}>
-        <Text style={styles.blockTitle}>Rayon</Text>
-        <View style={styles.grid} accessibilityRole="radiogroup">
-          {SHOPPING_AISLES.map((option) => {
-            const isSelected = option === aisle;
-            return (
-              <Pressable
-                key={option}
-                onPress={() => {
-                  hapticTick();
-                  setAisle(option);
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: isSelected }}
-                accessibilityLabel={AISLE_LABELS[option]}
-                style={({ pressed }) => [
-                  styles.cell,
-                  isSelected && styles.cellSelected,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <AisleIcon aisle={option} size={22} />
-                <Text style={[styles.cellLabel, isSelected && styles.cellLabelSelected]}>
-                  {AISLE_LABELS[option]}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <Text style={styles.hint}>Le foyer s’en souviendra pour ce nom.</Text>
-      </View>
-
-      <Pressable
-        onPress={() => setIsImportant((value) => !value)}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: isImportant }}
-        accessibilityLabel="Indispensable"
-        style={styles.switchRow}
+    <View style={styles.sheet}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
       >
-        <AisleIcon aisle="important" size={20} />
-        <Text style={styles.switchLabel}>Indispensable</Text>
-        <Switch
-          value={isImportant}
-          onValueChange={setIsImportant}
-          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        />
-      </Pressable>
-
-      {error ? (
-        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-          {error}
+        <Text style={styles.title} accessibilityRole="header">
+          Article
         </Text>
-      ) : null}
-      <PrimaryButton
-        label="Enregistrer"
-        onPress={handleSave}
-        isLoading={busy === "saving"}
-        isDisabled={busy === "removing"}
-      />
-      <TextButton
-        label="Retirer de la liste"
-        variant="danger"
-        onPress={handleRemove}
-        isDisabled={busy !== null}
-      />
-    </ScrollView>
+
+        <View style={styles.fields}>
+          <View style={styles.labelField}>
+            <TextField
+              label="Nom"
+              value={label}
+              onChangeText={setLabel}
+              error={labelError}
+              autoCapitalize="sentences"
+              maxLength={SHOPPING_LABEL_MAX_LENGTH}
+              editable={busy === null}
+            />
+          </View>
+          <View style={styles.quantityField}>
+            <TextField
+              label="Quantité"
+              value={quantity}
+              onChangeText={setQuantity}
+              maxLength={SHOPPING_QUANTITY_MAX_LENGTH}
+              editable={busy === null}
+            />
+          </View>
+        </View>
+
+        <View style={styles.block}>
+          <Text style={styles.blockTitle}>Rayon</Text>
+          <View style={styles.grid} accessibilityRole="radiogroup">
+            {SHOPPING_AISLES.map((option) => {
+              const isSelected = option === aisle;
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => {
+                    hapticTick();
+                    setAisle(option);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: isSelected }}
+                  accessibilityLabel={AISLE_LABELS[option]}
+                  style={({ pressed }) => [
+                    styles.cell,
+                    isSelected && styles.cellSelected,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <AisleIcon aisle={option} size={22} />
+                  <Text style={[styles.cellLabel, isSelected && styles.cellLabelSelected]}>
+                    {AISLE_LABELS[option]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.hint}>Le foyer s’en souviendra pour ce nom.</Text>
+        </View>
+
+        <Pressable
+          onPress={() => setIsImportant((value) => !value)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: isImportant }}
+          accessibilityLabel="Indispensable"
+          style={styles.switchRow}
+        >
+          <AisleIcon aisle="important" size={20} />
+          <Text style={styles.switchLabel}>Indispensable</Text>
+          <Switch
+            value={isImportant}
+            onValueChange={setIsImportant}
+            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
+        </Pressable>
+
+        {error ? (
+          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            {error}
+          </Text>
+        ) : null}
+      </ScrollView>
+      {/* Sticky footer : les actions restent visibles, au-dessus de la barre de navigation. */}
+      <View style={[styles.footer, { paddingBottom: bottomInset + theme.spacing.sm }]}>
+        <PrimaryButton
+          label="Enregistrer"
+          onPress={handleSave}
+          isLoading={busy === "saving"}
+          isDisabled={busy === "removing"}
+        />
+        <TextButton
+          label="Retirer de la liste"
+          variant="danger"
+          onPress={handleRemove}
+          isDisabled={busy !== null}
+        />
+      </View>
+    </View>
   );
 }
 
 function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
+    sheet: { flex: 1 },
+    scroll: { flex: 1 },
     content: { padding: spacing.lg, paddingTop: spacing.xl, gap: spacing.lg },
+    footer: {
+      gap: spacing.xs,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+      backgroundColor: colors.background,
+    },
     title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.heading },
     fields: { flexDirection: "row", gap: spacing.sm },
     labelField: { flex: 1 },
