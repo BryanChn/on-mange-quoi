@@ -66,7 +66,10 @@ export default function AisleOrderSheet() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + theme.spacing.xl }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: Math.max(insets.bottom, 32) + theme.spacing.xl },
+      ]}
     >
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">

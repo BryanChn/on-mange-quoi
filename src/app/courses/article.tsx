@@ -107,7 +107,12 @@ export default function ShoppingItemSheet() {
 
   return (
     <ScrollView
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + theme.spacing.xl }]}
+      // Dans une form sheet, la marge du bas peut valoir 0 sur Android : un minimum, pour que
+      // « Retirer » ne passe pas sous la barre de navigation.
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: Math.max(insets.bottom, 32) + theme.spacing.xl },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title} accessibilityRole="header">
@@ -158,11 +163,7 @@ export default function ShoppingItemSheet() {
                   pressed && styles.pressed,
                 ]}
               >
-                <AisleIcon
-                  aisle={option}
-                  size={20}
-                  color={isSelected ? theme.colors.primary : theme.colors.textMuted}
-                />
+                <AisleIcon aisle={option} size={22} />
                 <Text style={[styles.cellLabel, isSelected && styles.cellLabelSelected]}>
                   {AISLE_LABELS[option]}
                 </Text>
@@ -180,11 +181,7 @@ export default function ShoppingItemSheet() {
         accessibilityLabel="Indispensable"
         style={styles.switchRow}
       >
-        <AisleIcon
-          aisle="important"
-          size={20}
-          color={isImportant ? theme.colors.star : theme.colors.textMuted}
-        />
+        <AisleIcon aisle="important" size={20} />
         <Text style={styles.switchLabel}>Indispensable</Text>
         <Switch
           value={isImportant}

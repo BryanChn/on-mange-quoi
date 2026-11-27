@@ -33,7 +33,6 @@ export function AisleSection({
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const isDone = total > 0 && takenCount === total;
-  const tint = isDone ? theme.colors.success : theme.colors.chipText;
 
   return (
     <Animated.View layout={dishLayout} style={styles.section}>
@@ -48,7 +47,7 @@ export function AisleSection({
           {isDone ? (
             <Feather name="check" size={18} color={theme.colors.success} />
           ) : (
-            <AisleIcon aisle={aisle} color={tint} />
+            <AisleIcon aisle={aisle} size={18} />
           )}
         </View>
         <Text style={[styles.title, isDone && styles.titleDone]} numberOfLines={1}>
@@ -103,7 +102,8 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
       alignItems: "center",
       justifyContent: "center",
       borderRadius: radius.md - 2,
-      backgroundColor: colors.chipBg,
+      // Fond neutre : l'emoji apporte sa couleur.
+      backgroundColor: colors.surface2,
     },
     iconDone: { backgroundColor: colors.dietBg },
     title: {
