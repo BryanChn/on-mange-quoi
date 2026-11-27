@@ -1,7 +1,6 @@
 import { useMemo } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { Card } from "@/components/card";
 import { PrimaryButton } from "@/components/primary-button";
 import { TextButton } from "@/components/text-button";
 import { clockLabel, tripToShow } from "@/lib/shopping-rules";
@@ -36,7 +35,7 @@ export function ShoppingTripCard({
 
   if (shown?.isMine) {
     return (
-      <Card>
+      <View style={styles.banner}>
         <Text style={styles.title} accessibilityRole="header">
           Tu es aux courses
         </Text>
@@ -45,14 +44,14 @@ export function ShoppingTripCard({
           {clockLabel(new Date(shown.trip.endsAt))}.
         </Text>
         <TextButton label="J’ai fini" onPress={onEnd} isDisabled={isBusy} />
-      </Card>
+      </View>
     );
   }
 
   if (shown) {
     const name = nameOf(shown.trip.shopperId);
     return (
-      <Card>
+      <View style={styles.banner}>
         <Text style={styles.title} accessibilityRole="header">
           {name} est aux courses
         </Text>
@@ -60,7 +59,7 @@ export function ShoppingTripCard({
           Ajoute ce qu’il te faut : ça lui arrive en notification jusqu’à{" "}
           {clockLabel(new Date(shown.trip.endsAt))}.
         </Text>
-      </Card>
+      </View>
     );
   }
 
@@ -69,14 +68,23 @@ export function ShoppingTripCard({
     <PrimaryButton
       label="Je pars faire les courses"
       variant="secondary"
+      size="md"
       onPress={onStart}
       isLoading={isBusy}
     />
   );
 }
 
-function createStyles({ colors, fonts, fontSize }: Theme) {
+function createStyles({ colors, spacing, radius, fonts, fontSize }: Theme) {
   return StyleSheet.create({
+    // Un bandeau teinté, pas une carte : une info du moment, pas une action à lire.
+    banner: {
+      gap: spacing.xs,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface2,
+    },
     title: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     text: { color: colors.text, fontSize: fontSize.small, lineHeight: 22 },
   });

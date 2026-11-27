@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/avatar";
 import { ShoppingTripCard } from "@/components/shopping-trip-card";
+import { Section } from "@/components/section";
 import { SignatureCard } from "@/components/signature-card";
 import { SignatureCat } from "@/components/signature-cat";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
@@ -636,13 +637,7 @@ export default function ShoppingListScreen() {
 
       {/* Pas d'animation d'entrée au premier affichage : seulement quand la liste bouge. */}
       <LayoutAnimationConfig skipEntering>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle} accessibilityRole="header">
-              À acheter
-            </Text>
-            <Text style={styles.sectionCount}>{toBuy.length}</Text>
-          </View>
+        <Section title={`À acheter · ${toBuy.length}`}>
           <View style={styles.listCard}>
             {toBuy.length === 0 ? (
               <Text style={styles.empty}>
@@ -654,31 +649,20 @@ export default function ShoppingListScreen() {
               toBuy.map(renderItem)
             )}
           </View>
-        </View>
+        </Section>
 
         {taken.length > 0 ? (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text
-                style={[styles.sectionTitle, styles.sectionTitleMuted]}
-                accessibilityRole="header"
-              >
-                Déjà pris
-              </Text>
-              <Text style={styles.sectionCount}>{taken.length}</Text>
-            </View>
+          <Section
+            title={`Déjà pris · ${taken.length}`}
+            action={{
+              label: taken.length > 1 ? `Retirer les ${taken.length} achetés` : "Retirer l’acheté",
+              onPress: () => {
+                if (!isClearing) handleClear();
+              },
+            }}
+          >
             <View style={styles.listCard}>{taken.map(renderItem)}</View>
-            <Pressable
-              onPress={handleClear}
-              disabled={isClearing}
-              accessibilityRole="button"
-              style={({ pressed }) => [styles.clearLink, (pressed || isClearing) && styles.pressed]}
-            >
-              <Text style={styles.clearText}>
-                {taken.length > 1 ? `Retirer les ${taken.length} achetés` : "Retirer l’acheté"}
-              </Text>
-            </Pressable>
-          </View>
+          </Section>
         ) : null}
       </LayoutAnimationConfig>
     </ScrollView>
@@ -687,7 +671,7 @@ export default function ShoppingListScreen() {
 
 function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
-    container: { padding: spacing.xl, paddingTop: spacing.md, gap: spacing.xl },
+    container: { padding: spacing.lg, paddingTop: spacing.md, gap: spacing.xl },
 
     // Carte signature : groupe, titre, où on en est, le chat, la progression.
     signatureTop: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
@@ -734,7 +718,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     composerDivider: { width: 1, height: 24, backgroundColor: colors.border },
     composerQuantity: { width: 52, color: colors.text, fontSize: fontSize.body },
     addButton: {
-      width: 52,
+      width: control.lg,
       height: control.lg,
       borderRadius: radius.pill,
       alignItems: "center",
@@ -757,16 +741,6 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     suggestionText: { color: colors.text, fontSize: fontSize.small, fontWeight: "700" },
 
-    // Sections : titre en Bricolage, compteur à droite.
-    section: { gap: spacing.md },
-    sectionHeader: {
-      flexDirection: "row",
-      alignItems: "baseline",
-      justifyContent: "space-between",
-    },
-    sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 19 },
-    sectionTitleMuted: { color: colors.textMuted },
-    sectionCount: { color: colors.textMuted, fontSize: fontSize.small },
     listCard: {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.xs,
@@ -774,7 +748,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       backgroundColor: colors.surface,
       boxShadow: cardShadow,
     },
-    separated: { borderTopWidth: 1, borderTopColor: colors.border },
+    separated: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
     empty: { color: colors.textMuted, fontSize: fontSize.small, paddingVertical: spacing.lg },
 
     // Une ligne : toute la ligne coche, une grande cible d'une main dans le magasin.
@@ -836,15 +810,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       justifyContent: "center",
       backgroundColor: colors.primary,
     },
-    okText: { color: colors.onPrimary, fontFamily: fonts.display, fontSize: fontSize.body },
-
-    clearLink: {
-      alignSelf: "center",
-      minHeight: 48,
-      justifyContent: "center",
-      paddingHorizontal: spacing.lg,
-    },
-    clearText: { color: colors.primary, fontSize: fontSize.body, fontWeight: "700" },
+    okText: { color: colors.onPrimary, fontSize: fontSize.button, fontWeight: "600" },
 
     pressed: { opacity: 0.6 },
     error: { color: colors.danger, fontSize: fontSize.small },
