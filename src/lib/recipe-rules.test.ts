@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   buildRecipeDraft,
+  gatheringMessage,
   durationLabel,
   recipeMeta,
   carnetSuggestions,
@@ -461,4 +462,14 @@ test("étiquettes : durée, budget et régimes sous le titre", () => {
   assert.equal(recipeMeta(120, 3, ["sans_porc"]), "2 h · €€€ · Sans porc");
   assert.equal(recipeMeta(20, 1, []), "20 min · €");
   assert.equal(recipeMeta(null, null, []), null);
+});
+
+test("mode cuisine : la consigne, puis où en est la mise en place", () => {
+  assert.equal(
+    gatheringMessage(0, 12),
+    "Touche chaque ingrédient quand il est sur le plan de travail.",
+  );
+  assert.equal(gatheringMessage(3, 12), "3 sur 12 sur le plan de travail.");
+  assert.equal(gatheringMessage(12, 12), "Tout est là, on peut y aller.");
+  assert.equal(gatheringMessage(0, 0), "Aucun ingrédient noté : on passe directement aux étapes.");
 });
