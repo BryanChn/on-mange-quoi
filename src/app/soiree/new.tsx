@@ -177,7 +177,7 @@ export default function NewSoiree() {
                     ) : (
                       <MaterialCommunityIcons
                         name={plan.icon}
-                        size={28}
+                        size={22}
                         color={theme.colors.primary}
                       />
                     )}
