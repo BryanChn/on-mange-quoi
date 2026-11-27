@@ -18,8 +18,9 @@ type PeekCarouselProps = {
   // Marge de l'écran : la rangée déborde jusqu'aux bords, la première carte reste alignée sur
   // le contenu et la suivante dépasse à droite, pour qu'on devine qu'on peut faire glisser.
   edgeInset: number;
-  // Carte affichée à l'ouverture.
-  initialIndex?: number;
+  // La carte du groupe affiché : la rangée s'y place à l'ouverture, et s'y recale quand des
+  // cartes apparaissent ou disparaissent (un groupe supprimé, quitté ou rejoint).
+  index?: number;
   // Appelé quand une carte s'arrête en place après un glissement.
   onIndexChange?: (index: number) => void;
   accessibilityLabel: string;
@@ -34,14 +35,12 @@ export function PeekCarousel({
   itemWidth,
   gap,
   edgeInset,
-  initialIndex = 0,
+  index = 0,
   onIndexChange,
   accessibilityLabel,
   ref,
 }: PeekCarouselProps) {
   const scrollRef = useRef<ScrollViewInstance>(null);
-  // La carte d'ouverture n'est placée qu'une fois : un rechargement ne ramène pas en arrière.
-  const hasPlacedRef = useRef(false);
   const step = itemWidth + gap;
 
   useImperativeHandle(ref, () => ({
@@ -53,14 +52,12 @@ export function PeekCarousel({
     onIndexChange?.(Math.min(Math.max(index, 0), items.length - 1));
   }
 
-  // contentOffset n'existe que sur iOS : on place la carte d'ouverture dès que la rangée a
-  // sa largeur, sur les deux plateformes.
+  // La largeur du contenu ne change que si le nombre de cartes change (un simple rechargement
+  // garde la même rangée). À ce moment-là, et à l'ouverture, on se recale sur la bonne carte :
+  // sans ça, un groupe supprimé laissait la rangée sur du vide. contentOffset n'existe que sur
+  // iOS, d'où scrollTo, valable sur les deux plateformes.
   function handleContentSizeChange() {
-    if (hasPlacedRef.current) return;
-    hasPlacedRef.current = true;
-    if (initialIndex > 0) {
-      scrollRef.current?.scrollTo({ x: initialIndex * step, animated: false });
-    }
+    scrollRef.current?.scrollTo({ x: index * step, animated: false });
   }
 
   return (

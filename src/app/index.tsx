@@ -259,7 +259,7 @@ export default function Index() {
                 edgeInset={edge}
                 gap={theme.spacing.md}
                 itemWidth={groups.length > 1 ? contentWidth - PEEK : contentWidth}
-                initialIndex={selectedIndex}
+                index={selectedIndex}
                 onIndexChange={(index) => setSelectedGroupId(groups[index].id)}
                 items={groups.map((group) => ({
                   key: group.id,
