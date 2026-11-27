@@ -9,9 +9,9 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne (#122 à #144) : migrations jusqu'à `base_recipe_photos_lot1`, mise à jour EAS du 27/11 (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande. Au travail : 5G (le Wi-Fi bloque le serveur).
+Tout est mergé et en ligne (#122 à #148) : migrations jusqu'à `base_recipe_photos_lot2`, mise à jour EAS du 27/11 après-midi (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Je ne code plus moi-même : Claude écrit tout, je relis les PR. Claude peut lancer `db:push`, les déploiements de fonctions et `npm run update` quand je le lui demande. Au travail : 5G (le Wi-Fi bloque le serveur).
 
-**0. En premier : regarder les photos dans l'app** (livrées le 27/11) : Carnet → « Des idées pour commencer » : vignettes, photo en tête de chaque recette, et une copie ajoutée au carnet garde la photo. Saumon (sans riz ni brocoli) et pois chiches (sans épinards) : à retirer si elles gênent. Planche : https://claude.ai/artifact/AoxZFMkboAbLEmuUnHDax7
+**0. En premier : inspecter le carnet du chef dans l'app** (livré le 27/11) : l'encadré « L'astuce du chef » (chat à la toque) entre les ingrédients et les étapes ; les étapes au tutoiement ; 16 photos sur 20 (sans photo : blanquette, velouté, wok, cabillaud) ; écrire puis effacer une astuce dans une recette du carnet. Planche : https://claude.ai/artifact/Y4zHRLa7FoN176GLY3CXMy. Si le chat paraît petit (44 px), passer à 52.
 
 **1. Tout de suite : mes retours**
 
@@ -25,7 +25,7 @@ Tout est mergé et en ligne (#122 à #144) : migrations jusqu'à `base_recipe_ph
 
 | # | Tâche | Qui |
 | --- | --- | --- |
-| 1 | Recettes de base, lots 2 à 5 (~40 de plus, tous régimes ; lot 1 : https://claude.ai/artifact/EXMqD4m1bLf2voLjzVynh1), avec leurs photos (même méthode que le 27/11 : planche à valider, puis `storage cp` et migration) | Claude rédige, je relis dans l'app |
+| 1 | ~~Recettes de base~~ : **terminé le 27/11, 20 recettes en deux lots, on s'arrête là**. Corriger une recette : modifier `scripts/base-recipes/lotN.json`, régénérer avec `scripts/base-recipes-to-sql.ts` dans une nouvelle migration | — |
 | 2 | Refonte de l'accueil et du carnet, composant de bouton partagé (maquette d'abord) | Claude, je valide |
 | 3 | Test réel avec des invités sans l'app, test des 5 secondes sur l'accueil | Moi, avec des proches |
 | 4 | Audit de sécurité (RLS, fonctions serveur, `npm audit`) | Claude |
@@ -46,23 +46,37 @@ Plus tard : filtres (régime, temps, budget, peu calorique, protéines) en **V2*
 
 **4. Indicateur** : requête `private.feu_vert` le lundi 30/11.
 
-#### 🗓️ Session du 2026-11-27 : les photos des recettes de base
+#### 🗓️ Session du 2026-11-27 : photos et carnet du chef
 
 | PR | Contenu |
 | --- | --- |
 | #143 | Dossier `base/` du bucket `recipe-photos` : lisible par les comptes (pas les invités), aucun envoi ni retrait depuis l'app ; la contrainte accepte `base/<uuid>.jpg` pour une recette de base ou sa copie ; `copy_base_recipe` copie la photo ; l'app n'efface jamais une photo de base (`isBaseRecipePhoto`) ; la liste « Des idées pour commencer » montre les photos |
 | #144 | Photos du lot 1 : 9 sur 10 (CC0 ou domaine public, Wikimedia Commons), source et licence en commentaire de la migration ; la blanquette sans photo ; les copies sans photo reçoivent celle de base |
 
+| #147 | **L'astuce du chef** : `recipes.chef_tip` (300 caractères, jamais vide), copiée avec la recette, `save_recipe(…, recipe_chef_tip)` ; encadré `ChefTip` avec le chat à la toque (`assets/images/chat-toque.svg`) ; champ facultatif dans « Écrire une recette » ; lot 1 revu (tutoiement, astuces) depuis `scripts/base-recipes/lot1.json`, reconstruit de la migration en ligne |
+| #146 | Recettes de base, lot 2 (dernier) : 10 recettes (soupe, salade, dessert, poisson, 4 vegan), astuces comprises ; générateur `scripts/base-recipes-to-sql.ts` commité ; `scripts/` vérifié avec `tsconfig.test.json` |
+| #148 | Photos du lot 2 : 7 sur 10 (velouté, wok, cabillaud sans photo) |
+
 **Décisions du jour**
 - **Une photo de base est partagée, jamais dupliquée** : la copie pointe vers le même fichier ; le foyer peut la remplacer par la sienne. Pas de « remettre la photo d'origine » en V1.
 - **Choisir une photo** : licence CC0 ou domaine public, « Own work », puis à l'œil : aucun logo, enseigne, emballage ni visage, et un plat qui ressemble à la recette. Sans photo propre, pas de photo (la blanquette : toutes portaient un nom de restaurant).
 - **Format** : celui des photos de l'app (4:3, 1200 × 900, JPEG 75), pas un carré.
+- **20 recettes de base, pas 50** : deux lots couvrent les régimes et les envies du quotidien ; la suite viendra des carnets des foyers.
+- **L'astuce du chef** : une par recette de base, signée par le chat cuisinier ; étapes au tutoiement avec des repères concrets. **Jamais une phrase prêtée à un vrai chef** (faux, et risqué sur les stores) ; un chef n'est nommé que pour un fait vérifiable (« la purée de Robuchon »). Recherche avec le skill cuisine, textes originaux.
+- **Une photo qui contredit la recette est refusée** : pas de viande sur un plat vegan, pas de fromage sur un velouté vegan, même en CC0.
 
 **Pièges trouvés le 2026-11-27**
 - **`create or replace function` : partir de la dernière version** (`grep -l nom supabase/migrations/*`). `copy_base_recipe` avait été réécrite par `recipe_tags` ; repartir de la première version aurait perdu les étiquettes sans erreur.
 - **Envoyer un fichier dans le stockage en ligne** : `npx supabase storage cp --experimental --linked --content-type image/jpeg <fichier> ss:///recipe-photos/base/<id>.jpg` (la clé admin reste dans la CLI) ; `storage ls … ss:///recipe-photos/base/` pour vérifier. Les fichiers d'abord, la migration qui les référence ensuite.
 - **API de Wikimedia Commons** : erreur 429 si les requêtes s'enchaînent ; attendre `Retry-After` et espacer de quelques secondes.
 - **Recadrer une image sans Pillow ni ImageMagick** : `jimp-compact` est déjà dans `node_modules` (dépendance d'Expo).
+- **Changer la signature d'une fonction SQL** (`save_recipe` + un paramètre) : `drop function` de l'ancienne signature d'abord, sinon les deux coexistent (surcharge) et l'appel devient ambigu ; reposer `revoke`/`grant` sur la nouvelle.
+- **Prettier sur tous les fichiers du diff** : un `sed` sur `tsconfig.json` a cassé le format et la CI (`npx prettier --check $(git diff --name-only)`, sans les `.svg` et `.sql`).
+- **`tsconfig.json` et l'empreinte** : sortir `scripts/` de la config de l'app ne change pas l'empreinte (vérifié par `check-fingerprint.sh`).
+- **Deux PR liées sans force push** : fusionner la branche du dessous dans celle du dessus (`git merge`), merger celle du dessous, puis `update-branch` sur celle du dessus. Un `cherry-pick` commun aux deux se résout en gardant la version la plus récente.
+- **Quantités en mots** (« au goût », « 1 morceau de 3 cm ») : `fieldsFromIngredient` ne retrouve pas la ligne d'origine ; le nom vient du libellé, la quantité est ce qui le précède dans `raw`. Vérifier toute conversion par un aller-retour ligne à ligne.
+- **`jimp` refuse une photo de 8160 px** (limite mémoire) : demander à Commons une miniature (`iiurlwidth=3000`).
+- **Voir un SVG sans outil d'image** : Playwright de `e2e/` avec le Chromium déjà installé (`executablePath` vers `~/.cache/ms-playwright/chromium_headless_shell-1248`).
 - **`gh pr checks --json` n'existe pas dans cette version** : lire l'id du job dans la sortie texte, puis `gh run view <run> --job <id> --log` pour vérifier qu'un nouveau test a bien tourné.
 
 #### 🗓️ Session du 2026-11-26 : les recettes de bout en bout, Ciqual, le réseau
