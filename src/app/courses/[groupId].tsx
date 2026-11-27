@@ -1,5 +1,5 @@
-import { Feather } from "@expo/vector-icons";
-import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
@@ -20,6 +20,7 @@ import { Avatar } from "@/components/avatar";
 import { CollapsingRow } from "@/components/collapsing-row";
 import { HeaderButton } from "@/components/header-button";
 import { ProgressRing } from "@/components/progress-ring";
+import { SegmentedControl } from "@/components/segmented-control";
 import { SectionHeader } from "@/components/section";
 import { ShoppingTripCard } from "@/components/shopping-trip-card";
 import { SignatureCat } from "@/components/signature-cat";
@@ -45,6 +46,9 @@ import {
   clearCheckedItems,
   endShoppingTrip,
   fetchActiveTrips,
+  fetchAisleSettings,
+  setShoppingItemImportant,
+  type AisleSettings,
   fetchShoppingHistory,
   fetchShoppingList,
   removeShoppingItem,
@@ -55,7 +59,9 @@ import {
   type ShoppingTrip,
 } from "@/lib/shopping";
 import {
+  AISLE_LABELS,
   buildSuggestions,
+  groupShoppingItems,
   findDuplicate,
   SHOPPING_LABEL_MAX_LENGTH,
   SHOPPING_QUANTITY_MAX_LENGTH,
@@ -76,6 +82,8 @@ type ListState = {
   members: Map<string, Member>;
   // Qui est aux courses en ce moment (« Je pars faire les courses »).
   trips: ShoppingTrip[];
+  // Les rayons retenus par le foyer et leur ordre.
+  aisles: AisleSettings;
 };
 
 // La liste de courses d'un foyer (refonte du 27/11, option A :
@@ -101,6 +109,14 @@ export default function ShoppingListScreen() {
   const [error, setError] = useState<string | null>(null);
   // Ce qui s'est passé sans erreur (« Lait était déjà pris : remis dans À acheter »).
   const [notice, setNotice] = useState<string | null>(null);
+  // Un article qui vient d'arriver dans « Autres » : on propose de le ranger tout de suite.
+  const [unsortedItem, setUnsortedItem] = useState<ShoppingItem | null>(null);
+  // Par rayon (le magasin) ou par ajout (l'ordre où on a rempli la liste).
+  const [sortMode, setSortMode] = useState<"aisle" | "added">("aisle");
+  // Étoiles affichées dès le toucher ; même règle que les coches en attente.
+  const [pendingStars, setPendingStars] = useState<
+    Map<string, { important: boolean; confirmedFor: number | null }>
+  >(new Map());
   const [isAdding, setIsAdding] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isTripBusy, setIsTripBusy] = useState(false);
@@ -141,8 +157,9 @@ export default function ShoppingListScreen() {
       fetchShoppingList(groupId),
       fetchShoppingHistory(groupId),
       fetchActiveTrips(groupId),
+      fetchAisleSettings(groupId),
     ]).then(
-      ([group, items, history, trips]) => {
+      ([group, items, history, trips, aisles]) => {
         if (latestRequestRef.current !== requestId) return;
         setList({
           groupName: group.name,
@@ -150,6 +167,16 @@ export default function ShoppingListScreen() {
           history,
           members: new Map(group.members.map((member) => [member.id, member])),
           trips,
+          aisles,
+        });
+        setPendingStars((current) => {
+          const done = [...current].filter(
+            ([, pending]) => pending.confirmedFor !== null && requestId >= pending.confirmedFor,
+          );
+          if (done.length === 0) return current;
+          const next = new Map(current);
+          for (const [id] of done) next.delete(id);
+          return next;
         });
         // Ce rechargement suit la confirmation de ces coches : la liste fait foi.
         setPendingChecks((current) => {
@@ -192,6 +219,8 @@ export default function ShoppingListScreen() {
   // La liste telle qu'affichée : les coches en attente comptent déjà.
   const items = sortShoppingList(
     list.items.map((item) => {
+      const star = pendingStars.get(item.id)?.important;
+      if (star !== undefined && star !== item.isImportant) item = { ...item, isImportant: star };
       const pending = pendingChecks.get(item.id)?.checked;
       if (pending === undefined || pending === (item.checkedAt !== null)) return item;
       return pending
@@ -265,6 +294,7 @@ export default function ShoppingListScreen() {
     setLabelError(null);
     setError(null);
     setNotice(null);
+    setUnsortedItem(null);
 
     // Déjà dans la liste : pas de doublon. Déjà pris : on le remet dans « À acheter ».
     const duplicate = findDuplicate(items, label);
@@ -280,7 +310,9 @@ export default function ShoppingListScreen() {
         await setShoppingItemChecked(duplicate.id, false);
         setNotice(`« ${duplicate.label} » était déjà pris : remis dans « À acheter ».`);
       } else {
-        await addShoppingItem(groupId, { label, quantity });
+        const added = await addShoppingItem(groupId, { label, quantity }, list?.aisles.chosen);
+        // Pas reconnu : on propose de le ranger, et le foyer s'en souviendra.
+        if (added.aisle === "autres") setUnsortedItem(added);
       }
       hapticAdded();
       setLabel("");
@@ -300,10 +332,11 @@ export default function ShoppingListScreen() {
     setNotice(null);
     setAddingSuggestion(suggestion.label);
     try {
-      await addShoppingItem(groupId, {
-        label: suggestion.label,
-        quantity: suggestion.quantity ?? "",
-      });
+      await addShoppingItem(
+        groupId,
+        { label: suggestion.label, quantity: suggestion.quantity ?? "" },
+        list?.aisles.chosen,
+      );
       hapticAdded();
       loadList();
     } catch (error) {
@@ -377,6 +410,43 @@ export default function ShoppingListScreen() {
         return next;
       });
     }
+  }
+
+  // L'étoile « indispensable » : affichée tout de suite, effacée seulement quand une liste
+  // rechargée après la confirmation arrive (sinon elle clignoterait, comme les coches).
+  async function handleToggleStar(item: ShoppingItem) {
+    const important = !item.isImportant;
+    hapticTick();
+    setError(null);
+    setPendingStars((current) => new Map(current).set(item.id, { important, confirmedFor: null }));
+    try {
+      await setShoppingItemImportant(item.id, important);
+      const nextRequest = latestRequestRef.current + 1;
+      setPendingStars((current) => {
+        const pending = current.get(item.id);
+        if (!pending || pending.important !== important) return current;
+        return new Map(current).set(item.id, { important, confirmedFor: nextRequest });
+      });
+      loadList();
+    } catch (cause) {
+      hapticReject();
+      setError(failureMessage("L’étoile n’a pas été posée", cause));
+      setPendingStars((current) => {
+        const next = new Map(current);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
+
+  // « Choisir le rayon » : une feuille native ; la liste se recharge en reprenant la main.
+  function openAisleSheet(item: ShoppingItem) {
+    setEditingId(null);
+    setUnsortedItem(null);
+    router.push({
+      pathname: "/courses/rayon",
+      params: { itemId: item.id, label: item.label, aisle: item.aisle },
+    });
   }
 
   function startEdit(item: ShoppingItem) {
@@ -464,6 +534,16 @@ export default function ShoppingListScreen() {
             />
           </View>
         </View>
+        <Pressable
+          onPress={() => openAisleSheet(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`Rayon : ${AISLE_LABELS[item.aisle]}. Changer de rayon`}
+          style={({ pressed }) => [styles.aisleRow, pressed && styles.pressed]}
+        >
+          <Text style={styles.aisleRowLabel}>Rayon</Text>
+          <Text style={styles.aisleRowValue}>{AISLE_LABELS[item.aisle]}</Text>
+          <Feather name="chevron-right" size={18} color={theme.colors.textMuted} />
+        </Pressable>
         <View style={styles.editActions}>
           <Pressable
             onPress={() => handleRemove(item)}
@@ -555,6 +635,23 @@ export default function ShoppingListScreen() {
             <StrikeLabel label={item.label} isStruck={isTaken} />
             <View style={styles.spacer} />
             {item.quantity ? <Text style={styles.quantity}>{item.quantity}</Text> : null}
+            {section === "toBuy" ? (
+              <Pressable
+                onPress={() => handleToggleStar(item)}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.label} : indispensable`}
+                accessibilityState={{ selected: item.isImportant }}
+                style={({ pressed }) => [styles.star, pressed && styles.pressed]}
+              >
+                <MaterialCommunityIcons
+                  name={item.isImportant ? "star" : "star-outline"}
+                  size={22}
+                  // Vide : la couleur du contour des cases, lisible en clair comme en sombre.
+                  color={item.isImportant ? theme.colors.star : theme.colors.inputBorder}
+                />
+              </Pressable>
+            ) : null}
             {isTaken && section === "taken" ? (
               <Avatar
                 name={checker?.name ?? nameOf(item.checkedBy)}
@@ -632,6 +729,16 @@ export default function ShoppingListScreen() {
               {notice}
             </Text>
           ) : null}
+          {unsortedItem ? (
+            <View style={styles.unsorted} accessibilityLiveRegion="polite">
+              <Text style={styles.unsortedText}>
+                «{"\u00A0"}
+                {unsortedItem.label}
+                {"\u00A0"}» est rangé dans Autres.
+              </Text>
+              <TextButton label="Choisir le rayon" onPress={() => openAisleSheet(unsortedItem)} />
+            </View>
+          ) : null}
           {error ? (
             <Text
               style={styles.error}
@@ -645,11 +752,42 @@ export default function ShoppingListScreen() {
           {/* Pas d'animation d'entrée au premier affichage : seulement quand la liste bouge. */}
           <LayoutAnimationConfig skipEntering>
             {toBuy.length > 0 ? (
-              <View style={styles.block}>
-                <SectionHeader title={`À acheter · ${toBuy.length}`} />
-                <View style={styles.group}>
-                  {toBuy.map((item, index) => renderItem(item, index, "toBuy"))}
-                </View>
+              <View style={styles.sections}>
+                <SegmentedControl
+                  accessibilityLabel="Trier la liste"
+                  value={sortMode}
+                  onChange={setSortMode}
+                  options={[
+                    { value: "aisle", label: "Par rayon" },
+                    { value: "added", label: "Par ajout" },
+                  ]}
+                />
+                {groupShoppingItems(toBuy, list.aisles.order, sortMode).map((group) => (
+                  <View key={group.key} style={styles.block}>
+                    <SectionHeader
+                      title={`${
+                        group.key === "important"
+                          ? "★ Indispensable"
+                          : group.key === "all"
+                            ? "À acheter"
+                            : AISLE_LABELS[group.key]
+                      } · ${group.items.length}`}
+                    />
+                    <View style={styles.group}>
+                      {group.items.map((item, index) => renderItem(item, index, "toBuy"))}
+                    </View>
+                  </View>
+                ))}
+                {sortMode === "aisle" ? (
+                  <View style={styles.orderLink}>
+                    <TextButton
+                      label="Ordre des rayons"
+                      onPress={() =>
+                        router.push({ pathname: "/courses/rayons", params: { groupId } })
+                      }
+                    />
+                  </View>
+                ) : null}
               </View>
             ) : taken.length > 0 ? (
               // Tout est pris : le chat, et on rentre.
@@ -824,6 +962,38 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     subtitle: { color: colors.textMuted, fontSize: fontSize.small },
 
     block: { gap: spacing.sm },
+    sections: { gap: spacing.lg },
+    orderLink: { alignItems: "center", marginTop: -spacing.sm },
+    star: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+    // « Rangé dans Autres » : un bandeau teinté avec son action.
+    unsorted: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingLeft: spacing.lg,
+      paddingRight: spacing.xs,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface2,
+    },
+    unsortedText: { flex: 1, color: colors.text, fontSize: fontSize.small },
+    // Dans l'article ouvert : son rayon, qui ouvre la feuille « Choisir le rayon ».
+    aisleRow: {
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.md,
+      backgroundColor: colors.surface,
+    },
+    aisleRowLabel: { color: colors.textMuted, fontSize: fontSize.small },
+    aisleRowValue: {
+      flex: 1,
+      textAlign: "right",
+      color: colors.text,
+      fontSize: fontSize.small,
+      fontWeight: "600",
+    },
     // Une liste groupée : une seule surface, une seule ombre.
     group: {
       borderRadius: radius.lg,

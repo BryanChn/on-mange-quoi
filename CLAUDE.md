@@ -115,6 +115,7 @@ Retour d'usage : un repas servait à choisir un dessert chez quelqu'un. Maquette
 4. Améliorations du 2026-11-24 : modifier un article (appui long), pas de doublon (un article déjà pris revient dans « À acheter »), la liste depuis l'accueil (une seule ligne, même avec plusieurs foyers : une liste à faire s'ouvre directement, plusieurs passent par un écran de choix ; 2026-11-24, pour ne pas envahir l'accueil), et « Souvent acheté » : les articles rangés reviennent en suggestions, un toucher les rajoute avec leur dernière quantité.
 
 5. **« Je pars faire les courses »** (2026-11-25), dans un foyer d'au moins 2 personnes : les autres sont prévenus (« Besoin de quelque chose ? Ajoute-le à la liste. »), puis pendant 1 h, ce qu'ils ajoutent prévient celui qui fait les courses, regroupé sur 30 s (« À prendre aussi : lait, œufs. »). « J'ai fini » arrête. Un départ annoncé au plus toutes les 30 min par personne, pas d'annonce la nuit. Interrupteur « Liste de courses » dans Mon compte.
+6. **Rangée par rayon** (2026-11-27, entré en V1 : https://claude.ai/artifact/3PSCG8xwP2TxWtpr9VSQ9a) : douze rayons (dont Bébé, Animaux, Autres en dernier) ; le rayon est deviné d'après le nom à l'ajout ; « Choisir le rayon » (appui long, ou juste après un ajout rangé dans Autres) et le foyer s'en souvient pour ce nom ; l'ordre des rayons est celui du magasin du foyer, partagé ; une étoile « indispensable » met l'article en tête ; tri « Par rayon » ou « Par ajout ».
 
 ### Recettes (tranché le 2026-11-25)
 

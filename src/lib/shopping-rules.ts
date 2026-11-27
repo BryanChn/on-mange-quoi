@@ -14,6 +14,9 @@ export type ShoppingItem = {
   checkedAt: string | null;
   checkedBy: string | null;
   createdAt: string;
+  // Le rayon (deviné à l'ajout, changé par le foyer) et l'étoile « indispensable ».
+  aisle: ShoppingAisle;
+  isImportant: boolean;
 };
 
 // Ordre d'ajout ; deux articles ajoutés d'un coup (même instant, depuis une recette) gardent
@@ -182,4 +185,383 @@ export function planShoppingAdditions(
     else plan.alreadyToBuy.push(existing.label);
   }
   return plan;
+}
+
+// ─── rayons (2026-11-27, maquette https://claude.ai/artifact/3PSCG8xwP2TxWtpr9VSQ9a) ──
+
+export type ShoppingAisle =
+  | "fruits_legumes"
+  | "boucherie_poisson"
+  | "cremerie"
+  | "boulangerie"
+  | "epicerie_salee"
+  | "epicerie_sucree"
+  | "surgeles"
+  | "boissons"
+  | "bebe"
+  | "animaux"
+  | "maison_hygiene"
+  | "autres";
+
+// L'ordre par défaut, celui d'un supermarché courant ; « autres » toujours en dernier.
+export const SHOPPING_AISLES: ShoppingAisle[] = [
+  "fruits_legumes",
+  "boulangerie",
+  "boucherie_poisson",
+  "cremerie",
+  "epicerie_salee",
+  "epicerie_sucree",
+  "surgeles",
+  "boissons",
+  "bebe",
+  "animaux",
+  "maison_hygiene",
+  "autres",
+];
+
+export const AISLE_LABELS: Record<ShoppingAisle, string> = {
+  fruits_legumes: "Fruits et légumes",
+  boucherie_poisson: "Boucherie et poisson",
+  cremerie: "Crèmerie",
+  boulangerie: "Boulangerie",
+  epicerie_salee: "Épicerie salée",
+  epicerie_sucree: "Épicerie sucrée",
+  surgeles: "Surgelés",
+  boissons: "Boissons",
+  bebe: "Bébé",
+  animaux: "Animaux",
+  maison_hygiene: "Maison et hygiène",
+  autres: "Autres",
+};
+
+// Des expressions d'abord (« lait de coco » n'est pas de la crèmerie), puis des débuts de mots :
+// « tomate » reconnaît « tomates » et « tomates cerises ». Les noms sont comparés normalisés
+// (minuscules, sans accents, œ → oe).
+const AISLE_PHRASES: [string, ShoppingAisle][] = [
+  ["lait de coco", "epicerie_salee"],
+  ["creme de coco", "epicerie_salee"],
+  ["pomme de terre", "fruits_legumes"],
+  ["pommes de terre", "fruits_legumes"],
+  ["papier toilette", "maison_hygiene"],
+  ["essuie tout", "maison_hygiene"],
+  ["sac poubelle", "maison_hygiene"],
+  ["sacs poubelle", "maison_hygiene"],
+  ["liquide vaisselle", "maison_hygiene"],
+  ["jus de citron", "epicerie_salee"],
+  ["petits pois", "fruits_legumes"],
+  ["pain de mie", "boulangerie"],
+  ["creme glacee", "surgeles"],
+  ["lait infantile", "bebe"],
+  ["lait bebe", "bebe"],
+  ["petit pot", "bebe"],
+  ["petits pots", "bebe"],
+  ["fruits de mer", "boucherie_poisson"],
+  ["huile d'olive", "epicerie_salee"],
+];
+
+const AISLE_WORDS: [string, ShoppingAisle][] = [
+  // Fruits et légumes
+  ...[
+    "tomate",
+    "pomme",
+    "poire",
+    "banane",
+    "citron",
+    "orange",
+    "clementine",
+    "mandarine",
+    "raisin",
+    "fraise",
+    "framboise",
+    "myrtille",
+    "peche",
+    "abricot",
+    "cerise",
+    "kiwi",
+    "ananas",
+    "mangue",
+    "melon",
+    "pasteque",
+    "avocat",
+    "salade",
+    "laitue",
+    "roquette",
+    "mache",
+    "epinard",
+    "carotte",
+    "oignon",
+    "echalote",
+    "poireau",
+    "courgette",
+    "aubergine",
+    "poivron",
+    "concombre",
+    "radis",
+    "chou",
+    "brocoli",
+    "champignon",
+    "haricot",
+    "patate",
+    "potiron",
+    "courge",
+    "butternut",
+    "celeri",
+    "fenouil",
+    "navet",
+    "betterave",
+    "persil",
+    "coriandre",
+    "basilic",
+    "menthe",
+    "ciboulette",
+    "gingembre",
+    "legume",
+    "fruit",
+    "asperge",
+    "artichaut",
+    "endive",
+  ].map((word): [string, ShoppingAisle] => [word, "fruits_legumes"]),
+  // Boucherie et poisson
+  ...[
+    "poulet",
+    "dinde",
+    "canard",
+    "boeuf",
+    "veau",
+    "porc",
+    "agneau",
+    "viande",
+    "steak",
+    "escalope",
+    "jambon",
+    "lardon",
+    "saucisse",
+    "chorizo",
+    "merguez",
+    "bacon",
+    "roti",
+    "cote",
+    "filet",
+    "poisson",
+    "saumon",
+    "cabillaud",
+    "thon frais",
+    "colin",
+    "crevette",
+    "moule",
+    "lieu",
+    "truite",
+  ].map((word): [string, ShoppingAisle] => [word, "boucherie_poisson"]),
+  // Crèmerie
+  ...[
+    "lait",
+    "oeuf",
+    "beurre",
+    "fromage",
+    "yaourt",
+    "yogourt",
+    "creme",
+    "parmesan",
+    "emmental",
+    "gruyere",
+    "comte",
+    "mozzarella",
+    "feta",
+    "chevre",
+    "camembert",
+    "brie",
+    "raclette",
+    "mascarpone",
+    "ricotta",
+    "skyr",
+    "faisselle",
+    "margarine",
+  ].map((word): [string, ShoppingAisle] => [word, "cremerie"]),
+  // Boulangerie
+  ...["pain", "baguette", "brioche", "croissant", "viennoiserie", "tortilla", "wrap"].map(
+    (word): [string, ShoppingAisle] => [word, "boulangerie"],
+  ),
+  // Épicerie salée
+  ...[
+    "pate",
+    "spaghetti",
+    "tagliatelle",
+    "lasagne",
+    "riz",
+    "semoule",
+    "quinoa",
+    "boulgour",
+    "farine",
+    "huile",
+    "vinaigre",
+    "sel",
+    "poivre",
+    "epice",
+    "moutarde",
+    "mayonnaise",
+    "ketchup",
+    "sauce",
+    "bouillon",
+    "conserve",
+    "lentille",
+    "pois chiche",
+    "thon",
+    "sardine",
+    "olive",
+    "cornichon",
+    "chips",
+    "cracker",
+    "soupe",
+    "levure",
+    "chapelure",
+    "curry",
+    "paprika",
+    "cumin",
+  ].map((word): [string, ShoppingAisle] => [word, "epicerie_salee"]),
+  // Épicerie sucrée
+  ...[
+    "sucre",
+    "chocolat",
+    "cafe",
+    "the",
+    "tisane",
+    "biscuit",
+    "gateau",
+    "confiture",
+    "miel",
+    "cereale",
+    "muesli",
+    "compote",
+    "pate a tartiner",
+    "nutella",
+    "bonbon",
+    "caramel",
+    "vanille",
+  ].map((word): [string, ShoppingAisle] => [word, "epicerie_sucree"]),
+  // Surgelés
+  ...["surgele", "glace", "frite", "nugget", "pizza surgelee", "esquimau", "sorbet"].map(
+    (word): [string, ShoppingAisle] => [word, "surgeles"],
+  ),
+  // Boissons
+  ...["eau", "jus", "vin", "biere", "soda", "coca", "limonade", "sirop", "cidre", "champagne"].map(
+    (word): [string, ShoppingAisle] => [word, "boissons"],
+  ),
+  // Bébé
+  ...["couche", "lingette", "biberon", "tetine", "bebe"].map((word): [string, ShoppingAisle] => [
+    word,
+    "bebe",
+  ]),
+  // Animaux
+  ...["croquette", "patee", "litiere", "chat", "chien", "friandise"].map(
+    (word): [string, ShoppingAisle] => [word, "animaux"],
+  ),
+  // Maison et hygiène
+  ...[
+    "eponge",
+    "papier",
+    "lessive",
+    "adoucissant",
+    "savon",
+    "gel douche",
+    "shampo",
+    "dentifrice",
+    "brosse",
+    "deodorant",
+    "mouchoir",
+    "coton",
+    "rasoir",
+    "serviette",
+    "aluminium",
+    "film",
+    "poubelle",
+    "javel",
+    "nettoyant",
+    "pile",
+    "ampoule",
+    "bougie",
+  ].map((word): [string, ShoppingAisle] => [word, "maison_hygiene"]),
+];
+
+// Le rayon d'un article : d'abord celui choisi par le foyer pour ce nom, sinon deviné d'après
+// le nom, sinon « autres » (le foyer le range, et l'app s'en souviendra).
+export function guessAisle(
+  label: string,
+  chosen: ReadonlyMap<string, ShoppingAisle> = new Map(),
+): ShoppingAisle {
+  const key = normalizeLabel(label);
+  const remembered = chosen.get(key);
+  if (remembered) return remembered;
+
+  const phrase = AISLE_PHRASES.find(([text]) => key.includes(text));
+  if (phrase) return phrase[1];
+
+  // Les mots-clés de plusieurs mots d'abord (« pate a tartiner » avant « pate ») ; un mot seul
+  // au début d'un mot du nom (« tomate » dans « tomates ») ; trois lettres ou moins, en entier
+  // (« eau » ne doit pas reconnaître « gateau »).
+  const multi = AISLE_WORDS.find(([keyword]) => keyword.includes(" ") && key.includes(keyword));
+  if (multi) return multi[1];
+  const words = key.split(/[\s'-]+/);
+  const match = AISLE_WORDS.find(
+    ([keyword]) =>
+      !keyword.includes(" ") &&
+      words.some((word) =>
+        keyword.length <= 3 ? word === keyword || word === `${keyword}s` : word.startsWith(keyword),
+      ),
+  );
+  return match ? match[1] : "autres";
+}
+
+// L'ordre des rayons du foyer, complété : un rayon ajouté depuis va avant « autres », qui reste
+// en dernier. Sans ordre enregistré, l'ordre par défaut.
+export function orderedAisles(saved: readonly ShoppingAisle[] | null): ShoppingAisle[] {
+  if (!saved) return SHOPPING_AISLES;
+  const known = saved.filter(
+    (aisle, index) => SHOPPING_AISLES.includes(aisle) && saved.indexOf(aisle) === index,
+  );
+  const missing = SHOPPING_AISLES.filter((aisle) => !known.includes(aisle));
+  const withoutOthers: ShoppingAisle[] = [...known, ...missing].filter(
+    (aisle) => aisle !== "autres",
+  );
+  return [...withoutOthers, "autres"];
+}
+
+// Monter ou descendre un rayon d'un cran ; « autres » ne bouge pas et reste en dernier.
+export function moveAisle(
+  order: readonly ShoppingAisle[],
+  aisle: ShoppingAisle,
+  delta: -1 | 1,
+): ShoppingAisle[] {
+  const from = order.indexOf(aisle);
+  const to = from + delta;
+  const last = order.length - 1;
+  if (aisle === "autres" || from < 0 || to < 0 || to >= last) return [...order];
+  const next = [...order];
+  [next[from], next[to]] = [next[to], next[from]];
+  return next;
+}
+
+// Les sections de « À acheter » : les indispensables en tête, puis un rayon par section dans
+// l'ordre du foyer (sections vides retirées), ou tout ensemble pour le tri par ajout.
+export type ShoppingSectionGroup<T> = {
+  key: "important" | "all" | ShoppingAisle;
+  items: T[];
+};
+
+export function groupShoppingItems<T extends { aisle: ShoppingAisle; isImportant: boolean }>(
+  items: T[],
+  order: readonly ShoppingAisle[],
+  mode: "aisle" | "added",
+): ShoppingSectionGroup<T>[] {
+  const important = items.filter((item) => item.isImportant);
+  const rest = items.filter((item) => !item.isImportant);
+  const groups: ShoppingSectionGroup<T>[] =
+    important.length > 0 ? [{ key: "important", items: important }] : [];
+  if (mode === "added") {
+    return rest.length > 0 ? [...groups, { key: "all", items: rest }] : groups;
+  }
+  for (const aisle of order) {
+    const inAisle = rest.filter((item) => item.aisle === aisle);
+    if (inAisle.length > 0) groups.push({ key: aisle, items: inAisle });
+  }
+  return groups;
 }

@@ -6,6 +6,11 @@ import {
   cleanShoppingInput,
   clockLabel,
   findDuplicate,
+  groupShoppingItems,
+  guessAisle,
+  moveAisle,
+  orderedAisles,
+  SHOPPING_AISLES,
   normalizeLabel,
   planShoppingAdditions,
   sortShoppingList,
@@ -23,6 +28,8 @@ function item(id: string, createdAt: string, checkedAt: string | null = null): S
     checkedAt,
     checkedBy: null,
     createdAt,
+    aisle: "autres",
+    isImportant: false,
   };
 }
 
@@ -163,6 +170,8 @@ test("ajouter une recette aux courses : sans doublon, ce qui est pris revient", 
     addedBy: null,
     checkedAt,
     checkedBy: null,
+    aisle: "autres",
+    isImportant: false,
     createdAt: "2026-11-26T10:00:00Z",
   });
   const plan = planShoppingAdditions(
@@ -184,4 +193,73 @@ test("ajouter une recette aux courses : sans doublon, ce qui est pris revient", 
     toUncheck: ["b"],
     alreadyToBuy: ["Bouquet garni"],
   });
+});
+
+test("rayon deviné d'après le nom, mots et expressions", () => {
+  const cases: [string, string][] = [
+    ["Tomates cerises", "fruits_legumes"],
+    ["Pommes de terre", "fruits_legumes"],
+    ["Laitue", "fruits_legumes"],
+    ["Lait demi-écrémé", "cremerie"],
+    ["Œufs", "cremerie"],
+    ["Lait de coco", "epicerie_salee"],
+    ["Pâtes", "epicerie_salee"],
+    ["Pâte à tartiner", "epicerie_sucree"],
+    ["Gâteau", "epicerie_sucree"],
+    ["Eau gazeuse", "boissons"],
+    ["Baguette", "boulangerie"],
+    ["Couches", "bebe"],
+    ["Croquettes", "animaux"],
+    ["Papier toilette", "maison_hygiene"],
+    ["Escalopes de dinde", "boucherie_poisson"],
+    ["Pizza maison", "autres"],
+    ["Bougies d'anniversaire", "maison_hygiene"],
+    ["Truc introuvable", "autres"],
+  ];
+  for (const [label, aisle] of cases) assert.equal(guessAisle(label), aisle, label);
+});
+
+test("rayon : le choix du foyer passe avant la devinette", () => {
+  const chosen = new Map([["lait de coco", "cremerie" as const]]);
+  assert.equal(guessAisle("  Lait de COCO ", chosen), "cremerie");
+  assert.equal(guessAisle("Lait", chosen), "cremerie");
+});
+
+test("ordre des rayons : complété, « autres » toujours en dernier", () => {
+  assert.deepEqual(orderedAisles(null), SHOPPING_AISLES);
+  const saved = orderedAisles(["boissons", "autres", "cremerie"]);
+  assert.equal(saved[0], "boissons");
+  assert.equal(saved[1], "cremerie");
+  assert.equal(saved.at(-1), "autres");
+  assert.equal(new Set(saved).size, SHOPPING_AISLES.length);
+
+  const order = orderedAisles(null);
+  assert.equal(moveAisle(order, "boulangerie", -1)[0], "boulangerie");
+  assert.deepEqual(moveAisle(order, "fruits_legumes", -1), order);
+  // L'avant-dernier ne passe pas après « autres », et « autres » ne bouge pas.
+  assert.deepEqual(moveAisle(order, "maison_hygiene", 1), order);
+  assert.deepEqual(moveAisle(order, "autres", -1), order);
+});
+
+test("sections : indispensables en tête, puis les rayons dans l'ordre, sans section vide", () => {
+  const items = [
+    { id: "lait", aisle: "cremerie" as const, isImportant: false },
+    { id: "pain", aisle: "boulangerie" as const, isImportant: false },
+    { id: "couches", aisle: "bebe" as const, isImportant: true },
+    { id: "beurre", aisle: "cremerie" as const, isImportant: false },
+  ];
+  const byAisle = groupShoppingItems(items, orderedAisles(null), "aisle");
+  assert.deepEqual(
+    byAisle.map((group) => [group.key, group.items.map((item) => item.id)]),
+    [
+      ["important", ["couches"]],
+      ["boulangerie", ["pain"]],
+      ["cremerie", ["lait", "beurre"]],
+    ],
+  );
+  const byAdded = groupShoppingItems(items, orderedAisles(null), "added");
+  assert.deepEqual(
+    byAdded.map((group) => group.key),
+    ["important", "all"],
+  );
 });
