@@ -192,6 +192,7 @@ export function planShoppingAdditions(
 export type ShoppingAisle =
   | "fruits_legumes"
   | "boucherie_poisson"
+  | "charcuterie_traiteur"
   | "cremerie"
   | "boulangerie"
   | "epicerie_salee"
@@ -208,6 +209,7 @@ export const SHOPPING_AISLES: ShoppingAisle[] = [
   "fruits_legumes",
   "boulangerie",
   "boucherie_poisson",
+  "charcuterie_traiteur",
   "cremerie",
   "epicerie_salee",
   "epicerie_sucree",
@@ -222,6 +224,7 @@ export const SHOPPING_AISLES: ShoppingAisle[] = [
 export const AISLE_LABELS: Record<ShoppingAisle, string> = {
   fruits_legumes: "Fruits et légumes",
   boucherie_poisson: "Boucherie et poisson",
+  charcuterie_traiteur: "Charcuterie et traiteur",
   cremerie: "Crèmerie",
   boulangerie: "Boulangerie",
   epicerie_salee: "Épicerie salée",
@@ -234,34 +237,62 @@ export const AISLE_LABELS: Record<ShoppingAisle, string> = {
   autres: "Autres",
 };
 
-// Des expressions d'abord (« lait de coco » n'est pas de la crèmerie), puis des débuts de mots :
-// « tomate » reconnaît « tomates » et « tomates cerises ». Les noms sont comparés normalisés
-// (minuscules, sans accents, œ → oe).
-const AISLE_PHRASES: [string, ShoppingAisle][] = [
+// Le dictionnaire des rayons, calé sur l'organisation des enseignes françaises (Carrefour,
+// Leclerc : la charcuterie et le traiteur à part de la boucherie, la pâte feuilletée et les
+// pâtes fraîches au frais). Des expressions d'abord (« lait de coco » n'est pas de la
+// crèmerie), puis des débuts de mots : « tomate » reconnaît « tomates » et « tomates cerises ».
+// Les noms sont comparés normalisés (minuscules, sans accents, œ → oe). Exporté pour le script
+// qui range les articles existants (scripts/aisle-backfill-to-sql.ts).
+export const AISLE_PHRASES: [string, ShoppingAisle][] = [
+  // Des modificateurs qui décident où qu'ils soient : « petits pois surgelés », « purée bébé ».
+  ["surgele", "surgeles"],
+  ["bebe", "bebe"],
+  ["sirop d'erable", "epicerie_sucree"],
+  ["jus de citron", "epicerie_salee"],
+  ["the glace", "boissons"],
+  ["creme dessert", "cremerie"],
   ["lait de coco", "epicerie_salee"],
   ["creme de coco", "epicerie_salee"],
+  ["lait infantile", "bebe"],
+  ["lait bebe", "bebe"],
+  ["lait de croissance", "bebe"],
+  ["petit pot", "bebe"],
+  ["petits pots", "bebe"],
   ["pomme de terre", "fruits_legumes"],
   ["pommes de terre", "fruits_legumes"],
+  ["petits pois", "fruits_legumes"],
+  ["herbes fraiches", "fruits_legumes"],
+  ["pate feuilletee", "charcuterie_traiteur"],
+  ["pate brisee", "charcuterie_traiteur"],
+  ["pate sablee", "charcuterie_traiteur"],
+  ["pate a pizza", "charcuterie_traiteur"],
+  ["pates fraiches", "charcuterie_traiteur"],
+  ["pate a tartiner", "epicerie_sucree"],
+  ["pate de fruits", "epicerie_sucree"],
+  ["fruits secs", "epicerie_sucree"],
+  ["fruits de mer", "boucherie_poisson"],
+  ["thon frais", "boucherie_poisson"],
+  ["pain de mie", "boulangerie"],
+  ["pain d'epices", "epicerie_sucree"],
+  ["creme glacee", "surgeles"],
   ["papier toilette", "maison_hygiene"],
   ["essuie tout", "maison_hygiene"],
   ["sac poubelle", "maison_hygiene"],
   ["sacs poubelle", "maison_hygiene"],
   ["liquide vaisselle", "maison_hygiene"],
-  ["jus de citron", "epicerie_salee"],
-  ["petits pois", "fruits_legumes"],
-  ["pain de mie", "boulangerie"],
-  ["creme glacee", "surgeles"],
-  ["lait infantile", "bebe"],
-  ["lait bebe", "bebe"],
-  ["petit pot", "bebe"],
-  ["petits pots", "bebe"],
-  ["fruits de mer", "boucherie_poisson"],
+  ["gel douche", "maison_hygiene"],
   ["huile d'olive", "epicerie_salee"],
+  ["sauce tomate", "epicerie_salee"],
+  ["concentre de tomate", "epicerie_salee"],
 ];
 
-const AISLE_WORDS: [string, ShoppingAisle][] = [
-  // Fruits et légumes
-  ...[
+function inAisle(aisle: ShoppingAisle, words: string[]): [string, ShoppingAisle][] {
+  return words.map((word) => [word, aisle]);
+}
+
+// Dans l'ordre : le premier mot qui correspond l'emporte (« laitue » avant « lait »).
+export const AISLE_WORDS: [string, ShoppingAisle][] = [
+  ...inAisle("fruits_legumes", [
     "tomate",
     "pomme",
     "poire",
@@ -270,18 +301,23 @@ const AISLE_WORDS: [string, ShoppingAisle][] = [
     "orange",
     "clementine",
     "mandarine",
+    "pamplemousse",
     "raisin",
     "fraise",
     "framboise",
     "myrtille",
     "peche",
+    "nectarine",
     "abricot",
     "cerise",
+    "prune",
     "kiwi",
     "ananas",
     "mangue",
     "melon",
     "pasteque",
+    "grenade",
+    "figue",
     "avocat",
     "salade",
     "laitue",
@@ -303,57 +339,91 @@ const AISLE_WORDS: [string, ShoppingAisle][] = [
     "haricot",
     "patate",
     "potiron",
+    "potimarron",
     "courge",
     "butternut",
     "celeri",
     "fenouil",
     "navet",
+    "panais",
     "betterave",
     "persil",
     "coriandre",
     "basilic",
     "menthe",
     "ciboulette",
+    "estragon",
+    "thym",
+    "romarin",
     "gingembre",
     "legume",
     "fruit",
     "asperge",
     "artichaut",
     "endive",
-  ].map((word): [string, ShoppingAisle] => [word, "fruits_legumes"]),
-  // Boucherie et poisson
-  ...[
+    "ail",
+    "lime",
+  ]),
+  ...inAisle("boucherie_poisson", [
     "poulet",
     "dinde",
     "canard",
+    "pintade",
     "boeuf",
     "veau",
     "porc",
     "agneau",
+    "lapin",
     "viande",
     "steak",
+    "hache",
     "escalope",
-    "jambon",
-    "lardon",
-    "saucisse",
-    "chorizo",
-    "merguez",
-    "bacon",
     "roti",
     "cote",
     "filet",
+    "entrecote",
+    "bavette",
+    "merguez",
     "poisson",
     "saumon",
     "cabillaud",
-    "thon frais",
     "colin",
     "crevette",
     "moule",
     "lieu",
     "truite",
-  ].map((word): [string, ShoppingAisle] => [word, "boucherie_poisson"]),
-  // Crèmerie
-  ...[
+    "dorade",
+    "bar",
+    "sole",
+    "maquereau",
+    "calamar",
+    "noix de saint jacques",
+  ]),
+  ...inAisle("charcuterie_traiteur", [
+    "jambon",
+    "lardon",
+    "saucisse",
+    "saucisson",
+    "chorizo",
+    "bacon",
+    "rillette",
+    "pate en croute",
+    "terrine",
+    "knacki",
+    "salami",
+    "coppa",
+    "surimi",
+    "houmous",
+    "taboule",
+    "quiche",
+    "gnocchi",
+    "ravioli",
+    "tortellini",
+    "blini",
+    "tarama",
+    "guacamole",
+  ]),
+  ...inAisle("cremerie", [
     "lait",
     "oeuf",
     "beurre",
@@ -366,32 +436,54 @@ const AISLE_WORDS: [string, ShoppingAisle][] = [
     "gruyere",
     "comte",
     "mozzarella",
+    "burrata",
     "feta",
     "chevre",
     "camembert",
     "brie",
     "raclette",
+    "reblochon",
+    "roquefort",
     "mascarpone",
     "ricotta",
     "skyr",
     "faisselle",
     "margarine",
-  ].map((word): [string, ShoppingAisle] => [word, "cremerie"]),
-  // Boulangerie
-  ...["pain", "baguette", "brioche", "croissant", "viennoiserie", "tortilla", "wrap"].map(
-    (word): [string, ShoppingAisle] => [word, "boulangerie"],
-  ),
-  // Épicerie salée
-  ...[
+    "dessert lacte",
+    "petit suisse",
+    "petits suisses",
+    "fromage blanc",
+    "kefir",
+  ]),
+  ...inAisle("boulangerie", [
+    "pain",
+    "baguette",
+    "brioche",
+    "croissant",
+    "viennoiserie",
+    "tortilla",
+    "wrap",
+    "pita",
+    "biscotte",
+    "galette",
+  ]),
+  ...inAisle("epicerie_salee", [
     "pate",
     "spaghetti",
     "tagliatelle",
+    "penne",
+    "fusilli",
+    "macaroni",
     "lasagne",
+    "nouille",
     "riz",
     "semoule",
     "quinoa",
     "boulgour",
+    "polenta",
     "farine",
+    "fecule",
+    "maizena",
     "huile",
     "vinaigre",
     "sel",
@@ -401,89 +493,134 @@ const AISLE_WORDS: [string, ShoppingAisle][] = [
     "mayonnaise",
     "ketchup",
     "sauce",
+    "pesto",
     "bouillon",
     "conserve",
     "lentille",
     "pois chiche",
+    "flageolet",
     "thon",
     "sardine",
     "olive",
     "cornichon",
+    "capre",
     "chips",
     "cracker",
+    "biscuit apero",
+    "cacahuete",
+    "pistache",
     "soupe",
     "levure",
     "chapelure",
     "curry",
     "paprika",
     "cumin",
-  ].map((word): [string, ShoppingAisle] => [word, "epicerie_salee"]),
-  // Épicerie sucrée
-  ...[
+    "cannelle",
+    "muscade",
+    "origan",
+    "herbes de provence",
+    "soja",
+    "lait d'amande",
+    "tomates pelees",
+    "coulis",
+  ]),
+  ...inAisle("epicerie_sucree", [
     "sucre",
     "chocolat",
+    "cacao",
     "cafe",
     "the",
     "tisane",
+    "infusion",
     "biscuit",
     "gateau",
+    "madeleine",
+    "cookie",
     "confiture",
     "miel",
+    "sirop d'erable",
     "cereale",
     "muesli",
+    "flocons d'avoine",
     "compote",
-    "pate a tartiner",
     "nutella",
     "bonbon",
     "caramel",
     "vanille",
-  ].map((word): [string, ShoppingAisle] => [word, "epicerie_sucree"]),
-  // Surgelés
-  ...["surgele", "glace", "frite", "nugget", "pizza surgelee", "esquimau", "sorbet"].map(
-    (word): [string, ShoppingAisle] => [word, "surgeles"],
-  ),
-  // Boissons
-  ...["eau", "jus", "vin", "biere", "soda", "coca", "limonade", "sirop", "cidre", "champagne"].map(
-    (word): [string, ShoppingAisle] => [word, "boissons"],
-  ),
-  // Bébé
-  ...["couche", "lingette", "biberon", "tetine", "bebe"].map((word): [string, ShoppingAisle] => [
-    word,
-    "bebe",
+    "amande",
+    "noisette",
+    "noix",
+    "raisins secs",
+    "pruneau",
+    "creme dessert",
   ]),
-  // Animaux
-  ...["croquette", "patee", "litiere", "chat", "chien", "friandise"].map(
-    (word): [string, ShoppingAisle] => [word, "animaux"],
-  ),
-  // Maison et hygiène
-  ...[
+  ...inAisle("surgeles", [
+    "surgele",
+    "glace",
+    "frite",
+    "nugget",
+    "poisson pane",
+    "esquimau",
+    "sorbet",
+    "cone",
+    "glacon",
+  ]),
+  ...inAisle("boissons", [
+    "eau",
+    "jus",
+    "vin",
+    "biere",
+    "soda",
+    "coca",
+    "limonade",
+    "sirop",
+    "cidre",
+    "champagne",
+    "ice tea",
+    "smoothie",
+    "rhum",
+    "whisky",
+    "aperitif",
+  ]),
+  ...inAisle("bebe", ["couche", "lingette", "biberon", "tetine"]),
+  ...inAisle("animaux", ["croquette", "patee", "litiere", "friandises pour", "chat", "chien"]),
+  ...inAisle("maison_hygiene", [
     "eponge",
     "papier",
     "lessive",
     "adoucissant",
     "savon",
-    "gel douche",
     "shampo",
+    "apres shampo",
     "dentifrice",
     "brosse",
     "deodorant",
     "mouchoir",
     "coton",
     "rasoir",
-    "serviette",
+    "serviette hygienique",
+    "tampon",
+    "protege slip",
     "aluminium",
     "film",
     "poubelle",
     "javel",
     "nettoyant",
+    "vaisselle",
+    "pastille lave",
+    "sopalin",
     "pile",
     "ampoule",
     "bougie",
-  ].map((word): [string, ShoppingAisle] => [word, "maison_hygiene"]),
+    "allumette",
+    "creme solaire",
+    "gel hydroalcoolique",
+  ]),
 ];
 
 // Le rayon d'un article : d'abord celui choisi par le foyer pour ce nom, sinon deviné d'après
-// le nom, sinon « autres » (le foyer le range, et l'app s'en souviendra).
+// le nom, sinon « autres » (le foyer le range, et l'app s'en souviendra). Même algorithme que
+// la fonction SQL de la migration qui range les articles existants.
 export function guessAisle(
   label: string,
   chosen: ReadonlyMap<string, ShoppingAisle> = new Map(),
@@ -492,23 +629,33 @@ export function guessAisle(
   const remembered = chosen.get(key);
   if (remembered) return remembered;
 
-  const phrase = AISLE_PHRASES.find(([text]) => key.includes(text));
+  // Les tirets comptent comme des espaces : « essuie-tout » = « essuie tout ».
+  const text = key.replace(/-/g, " ");
+  const phrase = AISLE_PHRASES.find(([needle]) => text.includes(needle));
   if (phrase) return phrase[1];
-
-  // Les mots-clés de plusieurs mots d'abord (« pate a tartiner » avant « pate ») ; un mot seul
-  // au début d'un mot du nom (« tomate » dans « tomates ») ; trois lettres ou moins, en entier
-  // (« eau » ne doit pas reconnaître « gateau »).
-  const multi = AISLE_WORDS.find(([keyword]) => keyword.includes(" ") && key.includes(keyword));
+  const multi = AISLE_WORDS.find(([needle]) => needle.includes(" ") && text.includes(needle));
   if (multi) return multi[1];
-  const words = key.split(/[\s'-]+/);
-  const match = AISLE_WORDS.find(
-    ([keyword]) =>
-      !keyword.includes(" ") &&
-      words.some((word) =>
-        keyword.length <= 3 ? word === keyword || word === `${keyword}s` : word.startsWith(keyword),
-      ),
-  );
-  return match ? match[1] : "autres";
+
+  // Puis les mots dans l'ordre du nom : en français, le mot principal vient en premier
+  // (« glace vanille », « jus d'orange »). Pour un mot, le mot-clé le plus long l'emporte
+  // (« pâtée » avant « pâte », « laitue » avant « lait »).
+  for (const word of text.split(/[\s']+/)) {
+    let best: [string, ShoppingAisle] | null = null;
+    for (const entry of AISLE_WORDS) {
+      const [needle] = entry;
+      if (needle.includes(" ")) continue;
+      if (!keywordMatchesWord(needle, word)) continue;
+      if (!best || needle.length > best[0].length) best = entry;
+    }
+    if (best) return best[1];
+  }
+  return "autres";
+}
+
+// Un mot-clé de quatre lettres ou plus : au début du mot (« tomate » dans « tomates ») ; plus
+// court, le mot entier, au pluriel près (« eau » ne doit pas reconnaître « gateau »).
+export function keywordMatchesWord(needle: string, word: string): boolean {
+  return needle.length <= 3 ? word === needle || word === `${needle}s` : word.startsWith(needle);
 }
 
 // L'ordre des rayons du foyer, complété : un rayon ajouté depuis va avant « autres », qui reste

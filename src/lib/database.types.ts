@@ -710,7 +710,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","recipe_category": "viande"|"poisson"|"vege"|"dessert","recipe_diet": "vegetarien"|"vegan"|"sans_porc"|"sans_gluten"|"sans_lactose","session_status": "open"|"closed","shopping_aisle": "fruits_legumes"|"boucherie_poisson"|"cremerie"|"boulangerie"|"epicerie_salee"|"epicerie_sucree"|"surgeles"|"boissons"|"bebe"|"animaux"|"maison_hygiene"|"autres","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
+            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","recipe_category": "viande"|"poisson"|"vege"|"dessert","recipe_diet": "vegetarien"|"vegan"|"sans_porc"|"sans_gluten"|"sans_lactose","session_status": "open"|"closed","shopping_aisle": "fruits_legumes"|"boucherie_poisson"|"charcuterie_traiteur"|"cremerie"|"boulangerie"|"epicerie_salee"|"epicerie_sucree"|"surgeles"|"boissons"|"bebe"|"animaux"|"maison_hygiene"|"autres","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -830,7 +830,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"recipe_category": ["viande", "poisson", "vege", "dessert"],"recipe_diet": ["vegetarien", "vegan", "sans_porc", "sans_gluten", "sans_lactose"],"session_status": ["open", "closed"],"shopping_aisle": ["fruits_legumes", "boucherie_poisson", "cremerie", "boulangerie", "epicerie_salee", "epicerie_sucree", "surgeles", "boissons", "bebe", "animaux", "maison_hygiene", "autres"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
+            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"recipe_category": ["viande", "poisson", "vege", "dessert"],"recipe_diet": ["vegetarien", "vegan", "sans_porc", "sans_gluten", "sans_lactose"],"session_status": ["open", "closed"],"shopping_aisle": ["fruits_legumes", "boucherie_poisson", "charcuterie_traiteur", "cremerie", "boulangerie", "epicerie_salee", "epicerie_sucree", "surgeles", "boissons", "bebe", "animaux", "maison_hygiene", "autres"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
           }
         }
 } as const
