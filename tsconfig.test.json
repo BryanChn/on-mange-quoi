@@ -4,6 +4,11 @@
     "types": ["node"],
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.test.ts", "supabase/functions/**/*.test.ts", "tests/**/*.ts", "scripts/**/*.ts"],
+  "include": [
+    "src/**/*.test.ts",
+    "supabase/functions/**/*.test.ts",
+    "tests/**/*.ts",
+    "scripts/**/*.ts"
+  ],
   "exclude": ["node_modules", "example"]
 }
