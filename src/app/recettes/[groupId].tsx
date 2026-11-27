@@ -3,19 +3,28 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CategoryIcon } from "@/components/category-icon";
+import { FilterChip } from "@/components/filter-chip";
 import { HeaderButton } from "@/components/header-button";
 import { ListCard, ListRow } from "@/components/list";
 import { RecipeTile } from "@/components/recipe-tile";
 import { SearchField } from "@/components/search-field";
+import { TextButton } from "@/components/text-button";
 import { Section } from "@/components/section";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { fetchGroup } from "@/lib/groups";
 import { loadErrorMessage } from "@/lib/network-errors";
 import {
   cookedLabel,
+  CATEGORY_LABELS,
+  hasRecipeFilters,
+  matchesRecipeFilters,
   matchesRecipeSearch,
+  NO_RECIPE_FILTERS,
+  RECIPE_CATEGORIES,
+  recipeListSubtitle,
+  type RecipeFilters,
   oftenCooked,
-  recipeSubtitle,
   type CookedCount,
 } from "@/lib/recipe-rules";
 import {
@@ -57,6 +66,7 @@ export default function CarnetScreen() {
   const [loadError, setLoadError] = useState<unknown>(null);
   const [query, setQuery] = useState("");
   const [showAllIdeas, setShowAllIdeas] = useState(false);
+  const [filters, setFilters] = useState<RecipeFilters>(NO_RECIPE_FILTERS);
 
   // Numéro du dernier chargement lancé : seule sa réponse a le droit de modifier l'écran.
   const latestRequestRef = useRef(0);
@@ -107,7 +117,10 @@ export default function CarnetScreen() {
   }
   if (!carnet) return <LoadingScreen />;
 
-  const shown = carnet.recipes.filter((recipe) => matchesRecipeSearch(recipe.title, query));
+  // La recherche et les filtres s'ajoutent : « végé », « rapide », et « curry » dans le nom.
+  const matches = (recipe: RecipeSummary) =>
+    matchesRecipeSearch(recipe.title, query) && matchesRecipeFilters(recipe, filters);
+  const shown = carnet.recipes.filter(matches);
   // Une recette de base déjà copiée ouvre sa copie : on ne la copie pas deux fois.
   const copies = new Map(
     carnet.recipes.flatMap((recipe) =>
@@ -126,9 +139,46 @@ export default function CarnetScreen() {
     router.push({ pathname: "/recette/[id]", params: { id: recipeId, groupId } });
   }
 
-  const isSearching = query.trim() !== "";
-  const ideas = showAllIdeas ? carnet.baseRecipes : carnet.baseRecipes.slice(0, IDEAS_FOLDED);
-  const hiddenIdeas = carnet.baseRecipes.length - IDEAS_FOLDED;
+  const isFiltering = query.trim() !== "" || hasRecipeFilters(filters);
+  // Filtrées : les idées qui correspondent et pas encore dans le carnet (elles y sont déjà
+  // listées) ; sinon repliées à trois.
+  const matchingIdeas = carnet.baseRecipes.filter(
+    (recipe) => matches(recipe) && !copies.has(recipe.id),
+  );
+  const ideas =
+    isFiltering || showAllIdeas ? matchingIdeas : carnet.baseRecipes.slice(0, IDEAS_FOLDED);
+  const hiddenIdeas = isFiltering ? 0 : carnet.baseRecipes.length - IDEAS_FOLDED;
+  const hasNoMatch = isFiltering && shown.length === 0 && matchingIdeas.length === 0;
+
+  function toggleCategory(category: RecipeFilters["category"]) {
+    setFilters((current) => ({
+      ...current,
+      category: current.category === category ? null : category,
+    }));
+  }
+
+  // La ligne d'une recette : badge du type sur la vignette, durée, budget et régime dessous.
+  function recipeRow(recipe: RecipeSummary, subtitle: string, targetId: string) {
+    const type = recipe.category ? `, ${CATEGORY_LABELS[recipe.category]}` : "";
+    return (
+      <ListRow
+        key={recipe.id}
+        label={recipe.title}
+        subtitle={subtitle}
+        accessibilityLabel={`${recipe.title}${type}, ${subtitle}`}
+        leading={
+          <RecipeTile
+            recipeId={recipe.id}
+            photoPath={recipe.photoPath}
+            category={recipe.category}
+            size={44}
+          />
+        }
+        hasChevron
+        onPress={() => openRecipe(targetId)}
+      />
+    );
+  }
 
   return (
     <>
@@ -162,7 +212,37 @@ export default function CarnetScreen() {
           <SearchField value={query} onChangeText={setQuery} placeholder="Chercher une recette" />
         ) : null}
 
-        {cooked.length > 0 && !isSearching ? (
+        {/* Les filtres : un type de plat à la fois, puis rapide et petit budget qui s'ajoutent. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={[styles.bleed, styles.filtersScroll]}
+          contentContainerStyle={styles.filters}
+          accessibilityLabel="Filtrer les recettes"
+        >
+          {RECIPE_CATEGORIES.map((category) => (
+            <FilterChip
+              key={category}
+              label={CATEGORY_LABELS[category]}
+              isSelected={filters.category === category}
+              onPress={() => toggleCategory(category)}
+              icon={(color) => <CategoryIcon category={category} size={16} color={color} />}
+            />
+          ))}
+          <View style={styles.filtersDivider} />
+          <FilterChip
+            label="≤ 30 min"
+            isSelected={filters.isQuick}
+            onPress={() => setFilters((current) => ({ ...current, isQuick: !current.isQuick }))}
+          />
+          <FilterChip
+            label="Petit budget"
+            isSelected={filters.isCheap}
+            onPress={() => setFilters((current) => ({ ...current, isCheap: !current.isCheap }))}
+          />
+        </ScrollView>
+
+        {cooked.length > 0 && !isFiltering ? (
           <Section title="Souvent cuisiné">
             <ScrollView
               horizontal
@@ -183,6 +263,7 @@ export default function CarnetScreen() {
                     photoPath={recipe.photoPath}
                     size={COOKED_WIDTH}
                     aspectRatio={4 / 3}
+                    category={recipe.category}
                   />
                   <Text style={styles.cookedTitle} numberOfLines={2}>
                     {recipe.title}
@@ -202,30 +283,34 @@ export default function CarnetScreen() {
               la première, ou pars d’une idée ci-dessous.
             </Text>
           </View>
-        ) : (
-          <Section title={`Notre carnet · ${carnet.recipes.length}`}>
-            {shown.length === 0 ? (
-              <Text style={styles.emptyText}>Aucune recette ne s’appelle comme ça.</Text>
-            ) : (
-              <ListCard>
-                {shown.map((recipe) => (
-                  <ListRow
-                    key={recipe.id}
-                    label={recipe.title}
-                    subtitle={recipeSubtitle(recipe.servings, recipe.ingredientCount)}
-                    leading={<RecipeTile recipeId={recipe.id} photoPath={recipe.photoPath} />}
-                    hasChevron
-                    onPress={() => openRecipe(recipe.id)}
-                  />
-                ))}
-              </ListCard>
-            )}
+        ) : hasNoMatch ? (
+          // Rien ne correspond : on le dit, et on propose d'élargir.
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>Aucune recette</Text>
+            <Text style={styles.emptyText}>
+              Rien ne correspond à ces filtres. Retire-en un, ou écris cette recette.
+            </Text>
+            <View style={styles.emptyAction}>
+              <TextButton
+                label="Retirer les filtres"
+                onPress={() => {
+                  setFilters(NO_RECIPE_FILTERS);
+                  setQuery("");
+                }}
+              />
+            </View>
+          </View>
+        ) : shown.length > 0 ? (
+          <Section title={`Notre carnet · ${isFiltering ? shown.length : carnet.recipes.length}`}>
+            <ListCard>
+              {shown.map((recipe) => recipeRow(recipe, recipeListSubtitle(recipe), recipe.id))}
+            </ListCard>
           </Section>
-        )}
+        ) : null}
 
-        {carnet.baseRecipes.length > 0 && !isSearching ? (
+        {ideas.length > 0 ? (
           <Section
-            title="Des idées pour commencer"
+            title={isFiltering ? `Des idées · ${ideas.length}` : "Des idées pour commencer"}
             action={
               hiddenIdeas > 0
                 ? {
@@ -239,19 +324,10 @@ export default function CarnetScreen() {
             <ListCard>
               {ideas.map((recipe) => {
                 const copyId = copies.get(recipe.id);
-                return (
-                  <ListRow
-                    key={recipe.id}
-                    label={recipe.title}
-                    subtitle={
-                      copyId
-                        ? "Déjà dans le carnet"
-                        : recipeSubtitle(recipe.servings, recipe.ingredientCount)
-                    }
-                    leading={<RecipeTile recipeId={recipe.id} photoPath={recipe.photoPath} />}
-                    hasChevron
-                    onPress={() => openRecipe(copyId ?? recipe.id)}
-                  />
+                return recipeRow(
+                  recipe,
+                  copyId ? "Déjà dans le carnet" : recipeListSubtitle(recipe),
+                  copyId ?? recipe.id,
                 );
               })}
             </ListCard>
@@ -293,5 +369,15 @@ function createStyles({ colors, spacing, fonts, fontSize }: Theme) {
     empty: { gap: spacing.xs, paddingHorizontal: spacing.xs },
     emptyTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: fontSize.cardTitle },
     emptyText: { color: colors.textMuted, fontSize: fontSize.body, lineHeight: 24 },
+    emptyAction: { alignItems: "flex-start", marginLeft: -spacing.sm },
+    // Une rangée à sa hauteur : sans flexGrow 0, le ScrollView horizontal s'étirait en hauteur.
+    filtersScroll: { flexGrow: 0 },
+    filters: { alignItems: "center", gap: spacing.xs + 2, paddingHorizontal: spacing.lg },
+    filtersDivider: {
+      width: StyleSheet.hairlineWidth,
+      height: 20,
+      marginHorizontal: 2,
+      backgroundColor: colors.border,
+    },
   });
 }

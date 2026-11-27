@@ -16,12 +16,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "@/components/card";
 import { PrimaryButton } from "@/components/primary-button";
+import { CategoryIcon } from "@/components/category-icon";
 import { ServingsStepper } from "@/components/servings-stepper";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
 import { TextField } from "@/components/text-field";
 import { RecipeBanner } from "@/components/recipe-tile";
-import { hapticAdded, hapticReject } from "@/lib/haptics";
+import { hapticAdded, hapticReject, hapticTick } from "@/lib/haptics";
 import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { removeRecipePhoto, removeRecipePhotoFile, uploadRecipePhoto } from "@/lib/photo-storage";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
@@ -33,6 +34,12 @@ import {
   RECIPE_CHEF_TIP_MAX_LENGTH,
   RECIPE_STEP_MAX_LENGTH,
   RECIPE_TITLE_MAX_LENGTH,
+  CATEGORY_LABELS,
+  DIET_LABELS,
+  RECIPE_CATEGORIES,
+  RECIPE_DIETS,
+  type RecipeCategory,
+  type RecipeDiet,
 } from "@/lib/recipe-rules";
 import {
   deleteRecipe,
@@ -53,6 +60,8 @@ type Form = {
   ingredients: Ingredient[];
   steps: Step[];
   chefTip: string;
+  category: RecipeCategory | null;
+  diets: RecipeDiet[];
 };
 
 type Errors = {
@@ -93,7 +102,17 @@ export default function WriteRecipeScreen() {
   const [isPicking, setIsPicking] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [form, setForm] = useState<Form | null>(
-    isEditing ? null : { title: "", servings: 4, ingredients: [], steps: [], chefTip: "" },
+    isEditing
+      ? null
+      : {
+          title: "",
+          servings: 4,
+          ingredients: [],
+          steps: [],
+          chefTip: "",
+          category: null,
+          diets: [],
+        },
   );
   const [hasFailed, setHasFailed] = useState(false);
   // Pourquoi le chargement a échoué : le message dit la vraie cause.
@@ -139,6 +158,8 @@ export default function WriteRecipeScreen() {
           })),
           steps: recipe.steps.map((text) => ({ key: nextKey(), text })),
           chefTip: recipe.chefTip ?? "",
+          category: recipe.category,
+          diets: recipe.diets,
         });
         setHasFailed(false);
       },
@@ -356,6 +377,8 @@ export default function WriteRecipeScreen() {
       ingredients: [...form.ingredients, ...pendingIngredients],
       steps: [...form.steps.map((step) => step.text), ...pendingSteps],
       chefTip: form.chefTip,
+      category: form.category,
+      diets: form.diets,
     });
     if (!result.ok) {
       hapticReject();
@@ -445,6 +468,76 @@ export default function WriteRecipeScreen() {
       />
 
       <ServingsStepper value={form.servings} onChange={(servings) => update({ servings })} />
+
+      {/* ─── type de plat : un choix unique, facultatif (retoucher le désélectionne) ─── */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          Type de plat <Text style={styles.count}>· facultatif</Text>
+        </Text>
+        <View style={styles.categories} accessibilityRole="radiogroup">
+          {RECIPE_CATEGORIES.map((category) => {
+            const isSelected = form.category === category;
+            return (
+              <Pressable
+                key={category}
+                onPress={() => {
+                  hapticTick();
+                  update({ category: isSelected ? null : category });
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={CATEGORY_LABELS[category]}
+                style={({ pressed }) => [
+                  styles.category,
+                  isSelected && styles.categorySelected,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <CategoryIcon category={category} size={24} />
+                <Text style={styles.categoryLabel}>{CATEGORY_LABELS[category]}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.hint}>Il sert aux filtres du carnet.</Text>
+      </View>
+
+      {/* ─── régimes : des chips à cocher ─── */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          Régimes <Text style={styles.count}>· facultatif</Text>
+        </Text>
+        <View style={styles.diets}>
+          {RECIPE_DIETS.map((diet) => {
+            const isSelected = form.diets.includes(diet);
+            return (
+              <Pressable
+                key={diet}
+                onPress={() => {
+                  hapticTick();
+                  update({
+                    diets: isSelected
+                      ? form.diets.filter((chosen) => chosen !== diet)
+                      : [...form.diets, diet],
+                  });
+                }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={DIET_LABELS[diet]}
+                style={({ pressed }) => [
+                  styles.diet,
+                  isSelected && styles.dietSelected,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.dietLabel, isSelected && styles.dietLabelSelected]}>
+                  {DIET_LABELS[diet]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       {/* ─── ingrédients ─── */}
       <View style={styles.section}>
@@ -902,6 +995,36 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     stepInput: { minHeight: 80, textAlignVertical: "top", lineHeight: 22 },
     grow: { flex: 1 },
+
+    // Type de plat : quatre cases côte à côte, une seule choisie (contour tomate).
+    categories: { flexDirection: "row", gap: spacing.xs + 2 },
+    category: {
+      flex: 1,
+      height: 68,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.xs,
+      borderRadius: radius.lg,
+      borderWidth: 1.5,
+      borderColor: colors.surface,
+      backgroundColor: colors.surface,
+    },
+    categorySelected: { borderColor: colors.primary, backgroundColor: colors.chipBg },
+    categoryLabel: { color: colors.text, fontSize: fontSize.caption, fontWeight: "600" },
+    // Régimes : chips à cocher, basilic une fois cochées (comme les pills du carnet).
+    diets: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
+    diet: {
+      height: control.sm,
+      justifyContent: "center",
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.pill,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    dietSelected: { borderColor: colors.dietBg, backgroundColor: colors.dietBg },
+    dietLabel: { color: colors.text, fontSize: fontSize.small, fontWeight: "600" },
+    dietLabelSelected: { color: colors.dietText },
 
     error: { color: colors.danger, fontSize: fontSize.small },
     confirmTitle: {
