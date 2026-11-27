@@ -4,8 +4,10 @@ import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChefTip } from "@/components/chef-tip";
+import { IconButton } from "@/components/icon-button";
 import { PrimaryButton } from "@/components/primary-button";
 import { RecipeBanner } from "@/components/recipe-tile";
+import { Section } from "@/components/section";
 import { ServingsStepper } from "@/components/servings-stepper";
 import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { TextButton } from "@/components/text-button";
@@ -127,13 +129,22 @@ export default function RecipeScreen() {
     }
   }
 
+  const meta = recipeMeta(recipe.totalMinutes, recipe.budget, recipe.diets);
+  const hasSteps = recipe.steps.length > 0;
+
+  function openCooking() {
+    router.push({
+      pathname: "/recette/cuisine",
+      params: { id: id, servings: String(servings) },
+    });
+  }
+
+  function openShopping() {
+    router.push({ pathname: "/recette/courses", params: { id: id } });
+  }
+
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        { paddingBottom: insets.bottom + theme.spacing.xl },
-      ]}
-    >
+    <View style={styles.screen}>
       {/* Une recette du carnet se modifie ; une recette de base, jamais (on la copie). */}
       <Stack.Screen
         options={{
@@ -152,127 +163,118 @@ export default function RecipeScreen() {
               ),
         }}
       />
-      <View style={styles.bannerBlock}>
-        <RecipeBanner recipeId={recipe.id} photoPath={recipe.photoPath} />
-        {isBase ? null : (
-          <TextButton
-            label={
-              isPhotoBusy
-                ? "Envoi de la photo…"
-                : recipe.photoPath
-                  ? "Changer la photo"
-                  : "Ajouter une photo"
-            }
-            onPress={askPhotoSource}
-            isDisabled={isPhotoBusy}
-          />
-        )}
-        {photoError ? (
-          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            {photoError}
-          </Text>
-        ) : null}
-      </View>
-      <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">
-          {recipe.title}
-        </Text>
-        {recipeMeta(recipe.totalMinutes, recipe.budget, recipe.diets) ? (
-          <Text style={styles.meta}>
-            {recipeMeta(recipe.totalMinutes, recipe.budget, recipe.diets)}
-          </Text>
-        ) : null}
-        {isBase ? (
-          <Text style={styles.muted}>Une idée écrite pour l’app. Ajoute-la pour la modifier.</Text>
-        ) : null}
-      </View>
-
-      <ServingsStepper value={servings} onChange={setChosenServings} />
-
-      {macros ? (
-        <View style={styles.macros} accessible>
-          <Text style={styles.macrosTitle}>≈ {macros.kcal} kcal par part</Text>
-          <Text style={styles.muted}>
-            Protéines {macros.proteinG} g · Glucides {macros.carbsG} g · Lipides {macros.fatG} g
-          </Text>
-          <Text style={styles.caption}>
-            Estimation d’après la table Ciqual 2025 de l’Anses, pas un conseil de santé.
-            {macros.uncounted > 0
-              ? ` ${macros.uncounted} ingrédient${macros.uncounted > 1 ? "s" : ""} non compté${macros.uncounted > 1 ? "s" : ""}.`
-              : ""}
-          </Text>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        {/* La photo d'un bord à l'autre : c'est elle qui donne envie. */}
+        <View>
+          <RecipeBanner recipeId={recipe.id} photoPath={recipe.photoPath} isHero />
+          {isBase ? null : (
+            <IconButton
+              icon="camera"
+              size="md"
+              accessibilityLabel={recipe.photoPath ? "Changer la photo" : "Ajouter une photo"}
+              onPress={askPhotoSource}
+              isDisabled={isPhotoBusy}
+              style={styles.photoButton}
+            />
+          )}
         </View>
-      ) : null}
 
-      {recipe.ingredients.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle} accessibilityRole="header">
-            Ingrédients
-          </Text>
-          <View style={styles.card}>
-            {recipe.ingredients.map((ingredient, index) => {
-              const amount = scaleAmount(
-                ingredient.quantity,
-                ingredient.unit,
-                recipe.servings,
-                servings,
-              );
-              return (
-                <View
-                  key={index}
-                  style={[styles.ingredient, index > 0 && styles.ingredientDivider]}
-                  accessible
-                >
-                  <Text style={styles.amount}>{amount ? formatAmount(amount) : ""}</Text>
-                  <Text style={styles.ingredientLabel}>{ingredient.label}</Text>
-                </View>
-              );
-            })}
+        <View style={styles.container}>
+          {photoError ? (
+            <Text
+              style={styles.error}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+            >
+              {photoError}
+            </Text>
+          ) : null}
+
+          <View style={styles.header}>
+            <Text style={styles.title} accessibilityRole="header">
+              {recipe.title}
+            </Text>
+            {meta || isBase ? (
+              <Text style={styles.meta}>
+                {[meta, isBase ? "Recette de base" : null].filter(Boolean).join(" · ")}
+              </Text>
+            ) : null}
           </View>
-        </View>
-      ) : null}
 
-      {/* Avant les étapes : à lire avant de commencer. */}
-      {recipe.chefTip ? <ChefTip text={recipe.chefTip} /> : null}
+          {/* Les parts et l'estimation d'une part sur la même ligne : changer les parts
+              change les quantités juste en dessous. */}
+          <View style={styles.servingsRow}>
+            <ServingsStepper value={servings} onChange={setChosenServings} />
+            {macros ? <Text style={styles.kcal}>≈ {macros.kcal} kcal la part</Text> : null}
+          </View>
 
-      {recipe.steps.length > 0 ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle} accessibilityRole="header">
-            Étapes
-          </Text>
-          {recipe.steps.map((step, index) => (
-            <View key={index} style={styles.step} accessible>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>{index + 1}</Text>
+          {recipe.ingredients.length > 0 ? (
+            <Section
+              title="Ingrédients"
+              action={isBase ? undefined : { label: "Ajouter aux courses", onPress: openShopping }}
+              footnote={
+                macros
+                  ? `Par part : protéines ${macros.proteinG} g · glucides ${macros.carbsG} g · lipides ${macros.fatG} g. Estimation d’après la table Ciqual 2025 de l’Anses, pas un conseil de santé.${
+                      macros.uncounted > 0
+                        ? ` ${macros.uncounted} ingrédient${macros.uncounted > 1 ? "s" : ""} non compté${macros.uncounted > 1 ? "s" : ""}.`
+                        : ""
+                    }`
+                  : undefined
+              }
+            >
+              <View style={styles.card}>
+                {recipe.ingredients.map((ingredient, index) => {
+                  const amount = scaleAmount(
+                    ingredient.quantity,
+                    ingredient.unit,
+                    recipe.servings,
+                    servings,
+                  );
+                  return (
+                    <View
+                      key={index}
+                      style={[styles.ingredient, index > 0 && styles.ingredientDivider]}
+                      accessible
+                    >
+                      <Text style={styles.amount}>{amount ? formatAmount(amount) : ""}</Text>
+                      <Text style={styles.ingredientLabel}>{ingredient.label}</Text>
+                    </View>
+                  );
+                })}
               </View>
-              <Text style={styles.stepText}>{step}</Text>
-            </View>
-          ))}
+            </Section>
+          ) : null}
+
+          {/* Avant les étapes : à lire avant de commencer. */}
+          {recipe.chefTip ? <ChefTip text={recipe.chefTip} /> : null}
+
+          {hasSteps ? (
+            <Section title="Étapes">
+              <View style={styles.steps}>
+                {recipe.steps.map((step, index) => (
+                  <View key={index} style={styles.step} accessible>
+                    <View style={styles.stepNumber}>
+                      <Text style={styles.stepNumberText}>{index + 1}</Text>
+                    </View>
+                    <Text style={styles.stepText}>{step}</Text>
+                  </View>
+                ))}
+              </View>
+            </Section>
+          ) : null}
+
+          {isBase ? (
+            <Text style={styles.caption}>
+              Une idée écrite pour l’app. Ajoute-la à ton carnet pour la modifier.
+            </Text>
+          ) : null}
         </View>
-      ) : null}
+      </ScrollView>
 
-      {recipe.steps.length > 0 ? (
-        <PrimaryButton
-          label="Cuisiner, étape par étape"
-          variant="secondary"
-          onPress={() =>
-            router.push({
-              pathname: "/recette/cuisine",
-              params: { id: recipe.id, servings: String(servings) },
-            })
-          }
-        />
-      ) : null}
-
-      {isBase ? null : (
-        <PrimaryButton
-          label="Ajouter aux courses"
-          onPress={() => router.push({ pathname: "/recette/courses", params: { id: recipe.id } })}
-        />
-      )}
-
-      {isBase && groupId ? (
-        <View style={styles.section}>
+      {/* En bas, sous le pouce : l'action principale, et le panier à côté. Une recette de
+          base hors d'un carnet, sans étapes, n'a rien à proposer. */}
+      {isBase && !groupId && !hasSteps ? null : (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + theme.spacing.md }]}>
           {copyError ? (
             <Text
               style={styles.error}
@@ -282,36 +284,72 @@ export default function RecipeScreen() {
               {copyError}
             </Text>
           ) : null}
-          <PrimaryButton label="Ajouter à mon carnet" onPress={handleCopy} isLoading={isCopying} />
+          <View style={styles.bottomRow}>
+            {isBase && groupId ? (
+              <>
+                <PrimaryButton
+                  label="Ajouter à mon carnet"
+                  onPress={handleCopy}
+                  isLoading={isCopying}
+                  style={styles.grow}
+                />
+                {hasSteps ? (
+                  <IconButton
+                    icon="play"
+                    accessibilityLabel="Cuisiner, étape par étape"
+                    onPress={openCooking}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <>
+                {hasSteps ? (
+                  <PrimaryButton label="Cuisiner" onPress={openCooking} style={styles.grow} />
+                ) : (
+                  <PrimaryButton
+                    label="Ajouter aux courses"
+                    onPress={openShopping}
+                    style={styles.grow}
+                  />
+                )}
+                {hasSteps && !isBase ? (
+                  <IconButton
+                    icon="shopping-cart"
+                    accessibilityLabel="Ajouter aux courses"
+                    onPress={openShopping}
+                  />
+                ) : null}
+              </>
+            )}
+          </View>
         </View>
-      ) : null}
-    </ScrollView>
+      )}
+    </View>
   );
 }
 
 function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
-    container: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
+    screen: { flex: 1, backgroundColor: colors.background },
+    scroll: { flexGrow: 1, paddingBottom: spacing.xl },
+    container: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.xl },
+    photoButton: { position: "absolute", right: spacing.lg, bottom: spacing.md },
     header: { gap: spacing.xs },
-    bannerBlock: { gap: spacing.xs, alignItems: "center" },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
       fontSize: fontSize.screenTitle,
-      lineHeight: 36,
+      lineHeight: 34,
     },
-    muted: { color: colors.textMuted, fontSize: fontSize.small, lineHeight: 20 },
-    meta: { color: colors.chipText, fontSize: fontSize.small, fontWeight: "700" },
+    meta: { color: colors.textMuted, fontSize: fontSize.small },
     caption: { color: colors.textMuted, fontSize: fontSize.caption, lineHeight: 18 },
-    macros: {
-      gap: spacing.xs,
-      padding: spacing.lg,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surface2,
+    servingsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.md,
     },
-    macrosTitle: { color: colors.text, fontSize: fontSize.body, fontWeight: "700" },
-    section: { gap: spacing.md },
-    sectionTitle: { color: colors.text, fontFamily: fonts.displayBold, fontSize: 22 },
+    kcal: { color: colors.textMuted, fontSize: fontSize.small },
     card: { borderRadius: radius.lg, backgroundColor: colors.surface, boxShadow: cardShadow },
     ingredient: {
       flexDirection: "row",
@@ -320,26 +358,32 @@ function createStyles({ colors, spacing, radius, fonts, fontSize, cardShadow }: 
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.lg,
     },
-    ingredientDivider: { borderTopWidth: 1, borderTopColor: colors.border },
-    amount: { width: 104, color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
+    ingredientDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+    amount: { width: 80, color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
     ingredientLabel: { flex: 1, color: colors.text, fontSize: fontSize.body },
+    steps: { gap: spacing.lg },
     step: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
     stepNumber: {
-      width: 32,
-      height: 32,
+      width: 26,
+      height: 26,
+      marginTop: 1,
       borderRadius: radius.pill,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.primary,
+      backgroundColor: colors.chipBg,
     },
-    stepNumberText: { color: colors.onPrimary, fontSize: 15, fontWeight: "800" },
-    stepText: {
-      flex: 1,
-      paddingTop: 4,
-      color: colors.text,
-      fontSize: fontSize.body,
-      lineHeight: 24,
+    stepNumberText: { color: colors.chipText, fontSize: fontSize.caption, fontWeight: "800" },
+    stepText: { flex: 1, color: colors.text, fontSize: fontSize.body, lineHeight: 26 },
+    bottomBar: {
+      gap: spacing.sm,
+      paddingTop: spacing.md,
+      paddingHorizontal: spacing.lg,
+      backgroundColor: colors.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
     },
+    bottomRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    grow: { flex: 1 },
     error: { color: colors.danger, fontSize: fontSize.small },
   });
 }
