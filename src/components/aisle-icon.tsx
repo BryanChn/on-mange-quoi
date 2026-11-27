@@ -1,44 +1,47 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { ComponentProps } from "react";
+import { StyleSheet, Text } from "react-native";
 
 import type { ShoppingAisle } from "@/lib/shopping-rules";
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
-
-// Une line icon par rayon (MaterialCommunityIcons, déjà dans l'APK), « indispensable » compris.
-const ICONS: Record<ShoppingAisle | "important", IconName> = {
-  important: "star",
-  fruits_legumes: "carrot",
-  boulangerie: "baguette",
-  boucherie_poisson: "food-steak",
-  charcuterie_traiteur: "sausage",
-  cremerie: "cheese",
-  epicerie_salee: "pasta",
-  epicerie_sucree: "cookie-outline",
-  surgeles: "snowflake",
-  boissons: "bottle-soda-classic-outline",
-  bebe: "baby-bottle-outline",
-  animaux: "paw",
-  maison_hygiene: "spray-bottle",
-  autres: "dots-horizontal",
+// Un emoji par rayon, « indispensable » compris (validé le 27/11 : plus parlant que des
+// icônes d'une seule teinte, on repère le rayon à sa couleur). Contenu d'étiquette, pas une
+// icône de navigation. Le dessin varie un peu selon le téléphone (Android, iPhone).
+const EMOJIS: Record<ShoppingAisle | "important", string> = {
+  important: "⭐",
+  fruits_legumes: "🥕",
+  boulangerie: "🥖",
+  boucherie_poisson: "🥩",
+  charcuterie_traiteur: "🥓",
+  cremerie: "🧀",
+  epicerie_salee: "🍝",
+  epicerie_sucree: "🍫",
+  surgeles: "❄️",
+  boissons: "🧃",
+  bebe: "🍼",
+  animaux: "🐾",
+  maison_hygiene: "🧴",
+  autres: "🛒",
 };
 
+// Décoratif : le nom du rayon est toujours écrit à côté.
 export function AisleIcon({
   aisle,
   size = 18,
-  color,
 }: {
   aisle: ShoppingAisle | "important";
   size?: number;
-  color: string;
 }) {
   return (
-    <MaterialCommunityIcons
-      name={ICONS[aisle]}
-      size={size}
-      color={color}
-      accessibilityElementsHidden
+    <Text
+      style={[styles.emoji, { fontSize: size, lineHeight: Math.round(size * 1.25) }]}
+      accessible={false}
       importantForAccessibility="no"
-    />
+    >
+      {EMOJIS[aisle]}
+    </Text>
   );
 }
+
+const styles = StyleSheet.create({
+  // Sans couleur imposée : l'emoji garde la sienne.
+  emoji: { textAlign: "center" },
+});
