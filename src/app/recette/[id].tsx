@@ -130,7 +130,7 @@ export default function RecipeScreen() {
     }
   }
 
-  const meta = recipeMeta(recipe.totalMinutes, recipe.budget, recipe.diets);
+  const meta = recipeMeta(recipe.totalMinutes, recipe.budget, recipe.diets, recipe.category);
   const hasSteps = recipe.steps.length > 0;
 
   function openCooking() {

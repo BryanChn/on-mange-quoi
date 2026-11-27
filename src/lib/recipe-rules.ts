@@ -383,6 +383,9 @@ export type RecipeFormInput = {
   steps: string[];
   // L'astuce du chef, facultative : vide = pas d'astuce.
   chefTip: string;
+  // Le type de plat (filtres du carnet), facultatif.
+  category: RecipeCategory | null;
+  diets: RecipeDiet[];
 };
 
 export type RecipeIngredientDraft = ParsedIngredient & { raw: string; foodId: number | null };
@@ -396,6 +399,8 @@ export type RecipeFormResult =
         ingredients: RecipeIngredientDraft[];
         steps: string[];
         chefTip: string | null;
+        category: RecipeCategory | null;
+        diets: RecipeDiet[];
       };
     }
   | {
@@ -445,6 +450,8 @@ export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
       })),
       steps,
       chefTip: chefTip === "" ? null : chefTip,
+      category: form.category,
+      diets: normalizeDiets(form.diets),
     },
   };
 }
@@ -559,7 +566,16 @@ export function recipeByTitle<T extends CarnetEntry>(recipes: T[], name: string)
 
 export type RecipeDiet = "vegetarien" | "vegan" | "sans_porc" | "sans_gluten" | "sans_lactose";
 
-const DIET_LABELS: Record<RecipeDiet, string> = {
+// Dans l'ordre du formulaire.
+export const RECIPE_DIETS: RecipeDiet[] = [
+  "vegetarien",
+  "vegan",
+  "sans_porc",
+  "sans_gluten",
+  "sans_lactose",
+];
+
+export const DIET_LABELS: Record<RecipeDiet, string> = {
   vegetarien: "Végétarien",
   vegan: "Vegan",
   sans_porc: "Sans porc",
@@ -582,6 +598,7 @@ export function recipeMeta(
   totalMinutes: number | null,
   budget: number | null,
   diets: RecipeDiet[],
+  category: RecipeCategory | null = null,
 ): string | null {
   const shown = diets.filter(
     (diet) =>
@@ -591,6 +608,8 @@ export function recipeMeta(
   const parts = [
     totalMinutes ? durationLabel(totalMinutes) : null,
     budget ? "€".repeat(budget) : null,
+    // « Végé » se lit déjà dans les régimes (Végétarien, Vegan) : pas de doublon.
+    category && !(category === "vege" && shown.length > 0) ? CATEGORY_LABELS[category] : null,
     shown.length > 0
       ? shown
           .map((diet, index) => (index === 0 ? DIET_LABELS[diet] : DIET_LABELS[diet].toLowerCase()))
@@ -598,4 +617,79 @@ export function recipeMeta(
       : null,
   ].filter((part): part is string => part !== null);
   return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+// Vegan dit végétarien ; végétarien dit sans porc. Les filtres et la ligne d'infos s'appuient
+// sur ces implications : on les pose à l'enregistrement, dans l'ordre du formulaire.
+export function normalizeDiets(diets: RecipeDiet[]): RecipeDiet[] {
+  const chosen = new Set(diets);
+  if (chosen.has("vegan")) chosen.add("vegetarien");
+  if (chosen.has("vegetarien")) chosen.add("sans_porc");
+  return RECIPE_DIETS.filter((diet) => chosen.has(diet));
+}
+
+// ─── type de plat et filtres du carnet (2026-11-27) ──────
+
+export type RecipeCategory = "viande" | "poisson" | "vege" | "dessert";
+
+// Dans l'ordre des filter chips et du formulaire.
+export const RECIPE_CATEGORIES: RecipeCategory[] = ["viande", "poisson", "vege", "dessert"];
+
+export const CATEGORY_LABELS: Record<RecipeCategory, string> = {
+  viande: "Viande",
+  poisson: "Poisson",
+  vege: "Végé",
+  dessert: "Dessert",
+};
+
+// « Rapide » : préparation et cuisson comprises, jusqu'à 30 min.
+export const QUICK_MAX_MINUTES = 30;
+
+// Les filtres du carnet : un type à la fois, et deux interrupteurs qui s'ajoutent.
+export type RecipeFilters = { category: RecipeCategory | null; isQuick: boolean; isCheap: boolean };
+
+export const NO_RECIPE_FILTERS: RecipeFilters = { category: null, isQuick: false, isCheap: false };
+
+export function hasRecipeFilters(filters: RecipeFilters): boolean {
+  return filters.category !== null || filters.isQuick || filters.isCheap;
+}
+
+// Une recette sans durée ou sans budget connus ne passe pas ces filtres : on ne promet pas
+// « rapide » ou « petit budget » sans le savoir.
+export function matchesRecipeFilters(
+  recipe: { category: RecipeCategory | null; totalMinutes: number | null; budget: number | null },
+  filters: RecipeFilters,
+): boolean {
+  if (filters.category !== null && recipe.category !== filters.category) return false;
+  if (filters.isQuick && (recipe.totalMinutes === null || recipe.totalMinutes > QUICK_MAX_MINUTES))
+    return false;
+  if (filters.isCheap && recipe.budget !== 1) return false;
+  return true;
+}
+
+// Sous le nom d'une recette dans le carnet : ce que les filtres regardent, et le régime le
+// plus parlant (« 45 min · € · Vegan »). Sans durée ni budget, les parts et les ingrédients.
+export function recipeListSubtitle(recipe: {
+  totalMinutes: number | null;
+  budget: number | null;
+  diets: RecipeDiet[];
+  servings: number;
+  ingredientCount: number;
+}): string {
+  const parts = [
+    recipe.totalMinutes ? durationLabel(recipe.totalMinutes) : null,
+    recipe.budget ? "€".repeat(recipe.budget) : null,
+  ].filter((part): part is string => part !== null);
+  const base =
+    parts.length > 0 ? parts.join(" · ") : recipeSubtitle(recipe.servings, recipe.ingredientCount);
+  const diet = dietLabelForList(recipe.diets);
+  return diet ? `${base} · ${diet}` : base;
+}
+
+// Un seul régime dans la liste, le plus parlant. Végétarien se lit déjà dans le badge Végé ;
+// sans porc et sans lactose restent sur la page de la recette.
+export function dietLabelForList(diets: RecipeDiet[]): string | null {
+  if (diets.includes("vegan")) return DIET_LABELS.vegan;
+  if (diets.includes("sans_gluten")) return DIET_LABELS.sans_gluten;
+  return null;
 }

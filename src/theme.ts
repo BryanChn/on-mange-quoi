@@ -40,6 +40,15 @@ const lightColors = {
   // Texte de confirmation (« Lien copié ») : le basilic ne laisse que 4,25:1 sur blanc et 3,8:1
   // sur crème ; ce vert plus sombre tient 6,5:1 et 5,9:1.
   success: "#1F6B41",
+  // Type de plat (badge des vignettes, filtres du carnet) : une teinte chacun, lisible sur
+  // blanc (≥ 4,5:1), pour reconnaître le plat sans lire.
+  categoryViande: "#B4442F",
+  categoryPoisson: "#2F6F94",
+  categoryVege: "#1F6B41",
+  categoryDessert: "#9A5F1E",
+  // Pills et chips de régime (Vegan, Sans gluten…) : basilic clair, texte basilic foncé (7:1).
+  dietBg: "#DDEFE3",
+  dietText: "#1F6B41",
   // La tomate sur crème ne passe pas pour du petit texte : l'erreur prend la sauce.
   danger: brand.sauce,
   // Carte signature (« Ce soir », dernier vote, résultat) : l'icône « inverse » du chat,
@@ -74,6 +83,12 @@ const darkColors: typeof lightColors = {
   accent: "#E9C46A",
   onAccent: brand.espresso,
   success: "#6CC08B",
+  categoryViande: "#F08A75",
+  categoryPoisson: "#7DB8DD",
+  categoryVege: "#6CC08B",
+  categoryDessert: "#E3A866",
+  dietBg: "#1E3327",
+  dietText: "#6CC08B",
   danger: "#F2A39A",
   // Carte signature : l'icône « nuit » du chat (corail, visage couleur du fond) sur la surface
   // teintée des étiquettes. Pas de grand aplat vif : il éblouit sur fond sombre. Le visage du
