@@ -386,6 +386,10 @@ export type RecipeFormInput = {
   // Le type de plat (filtres du carnet), facultatif.
   category: RecipeCategory | null;
   diets: RecipeDiet[];
+  // Temps total en minutes, tel que tapé ; vide = pas de durée.
+  totalMinutes: string;
+  // 1 à 3 (€ à €€€), null = pas de budget.
+  budget: number | null;
 };
 
 export type RecipeIngredientDraft = ParsedIngredient & { raw: string; foodId: number | null };
@@ -401,12 +405,25 @@ export type RecipeFormResult =
         chefTip: string | null;
         category: RecipeCategory | null;
         diets: RecipeDiet[];
+        totalMinutes: number | null;
+        budget: number | null;
       };
     }
   | {
       ok: false;
-      errors: { title?: string; ingredients?: string; steps?: string; chefTip?: string };
+      errors: RecipeFormErrors;
     };
+
+export type RecipeFormErrors = {
+  title?: string;
+  ingredients?: string;
+  steps?: string;
+  chefTip?: string;
+  totalMinutes?: string;
+};
+
+// Préparation et cuisson, repos compris : de 1 min à 24 h (même limite que la base).
+export const RECIPE_MAX_MINUTES = 1440;
 
 function tidy(text: string): string {
   return text.trim().replace(/\s+/g, " ");
@@ -416,7 +433,7 @@ function tidy(text: string): string {
 // ingrédient lu. Les limites sont vérifiées ici pour un message clair ; la base les vérifie
 // aussi (le serveur ne fait jamais confiance à l'app).
 export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
-  const errors: { title?: string; ingredients?: string; steps?: string; chefTip?: string } = {};
+  const errors: RecipeFormErrors = {};
 
   const title = tidy(form.title);
   if (title === "") errors.title = "Donne un nom à la recette.";
@@ -437,7 +454,16 @@ export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
   if (chefTip.length > RECIPE_CHEF_TIP_MAX_LENGTH)
     errors.chefTip = `L’astuce fait ${RECIPE_CHEF_TIP_MAX_LENGTH} caractères au plus.`;
 
-  if (errors.title || errors.ingredients || errors.steps || errors.chefTip)
+  // Des chiffres seulement : « 35 ». Vide : pas de durée.
+  const minutesText = form.totalMinutes.trim();
+  const totalMinutes = minutesText === "" ? null : Number(minutesText);
+  if (
+    totalMinutes !== null &&
+    (!/^\d+$/.test(minutesText) || totalMinutes < 1 || totalMinutes > RECIPE_MAX_MINUTES)
+  )
+    errors.totalMinutes = `Le temps : un nombre de minutes, de 1 à ${RECIPE_MAX_MINUTES}.`;
+
+  if (errors.title || errors.ingredients || errors.steps || errors.chefTip || errors.totalMinutes)
     return { ok: false, errors };
   return {
     ok: true,
@@ -452,6 +478,8 @@ export function buildRecipeDraft(form: RecipeFormInput): RecipeFormResult {
       chefTip: chefTip === "" ? null : chefTip,
       category: form.category,
       diets: normalizeDiets(form.diets),
+      totalMinutes,
+      budget: form.budget,
     },
   };
 }
@@ -640,6 +668,15 @@ export const CATEGORY_LABELS: Record<RecipeCategory, string> = {
   poisson: "Poisson",
   vege: "Végé",
   dessert: "Dessert",
+};
+
+// Le budget d'une recette, de € à €€€ (approximatif : pas de vrais prix).
+export const RECIPE_BUDGETS = [1, 2, 3] as const;
+
+export const BUDGET_LABELS: Record<number, string> = {
+  1: "Petit budget",
+  2: "Budget moyen",
+  3: "Gros budget",
 };
 
 // « Rapide » : préparation et cuisson comprises, jusqu'à 30 min.

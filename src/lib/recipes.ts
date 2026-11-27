@@ -57,6 +57,8 @@ export type RecipeDraft = {
   chefTip: string | null;
   category: RecipeCategory | null;
   diets: RecipeDiet[];
+  totalMinutes: number | null;
+  budget: number | null;
 };
 
 const RECIPE_COLUMNS =
@@ -223,6 +225,9 @@ export async function saveRecipe(
     // Absent = pas de type ; les régimes sont toujours envoyés (un tableau vide les efface).
     ...(draft.category ? { recipe_category: draft.category } : {}),
     recipe_diets: draft.diets,
+    // 0 = effacer (champ vidé) ; null resterait la valeur d'avant.
+    recipe_total_minutes: draft.totalMinutes ?? 0,
+    recipe_budget: draft.budget ?? 0,
   });
   if (error) throw error;
   return data;

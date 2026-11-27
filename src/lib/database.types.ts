@@ -631,7 +631,7 @@ isOneToOne: false
 { Args: { "new_token": string }; Returns: undefined
                            },
 "save_recipe":
-{ Args: { "ingredients": Json,"recipe_category"?: Database["public"]['Enums']["recipe_category"],"recipe_chef_tip"?: string,"recipe_diets"?: (Database["public"]['Enums']["recipe_diet"])[],"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
+{ Args: { "ingredients": Json,"recipe_category"?: Database["public"]['Enums']["recipe_category"],"recipe_chef_tip"?: string,"recipe_budget"?: number,"recipe_diets"?: (Database["public"]['Enums']["recipe_diet"])[],"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"recipe_total_minutes"?: number,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
                            },
 "search_foods":
 { Args: { "query": string }; Returns: {

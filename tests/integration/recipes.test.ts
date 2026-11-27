@@ -89,6 +89,8 @@ const bolo: RecipeDraft = {
   chefTip: null,
   category: null,
   diets: [],
+  totalMinutes: null,
+  budget: null,
 };
 
 describe("le carnet du foyer", () => {
@@ -382,6 +384,39 @@ describe("le type de plat et les régimes", () => {
       await copyBaseRecipe("00000000-0000-4000-8000-000000000019", groupId),
     );
     assert.equal(copy.category, "poisson");
+  });
+});
+
+describe("le temps et le budget", () => {
+  test("écrits, modifiés puis effacés ; une version de l'app qui ne les envoie pas les garde", async () => {
+    await signInAs(alice);
+    const id = await saveRecipe(foyerId, null, { ...bolo, totalMinutes: 25, budget: 1 });
+    const saved = await fetchRecipe(id);
+    assert.equal(saved.totalMinutes, 25);
+    assert.equal(saved.budget, 1);
+
+    await saveRecipe(foyerId, id, { ...bolo, totalMinutes: 90, budget: 3 });
+    assert.equal((await fetchRecipe(id)).totalMinutes, 90);
+
+    // Une version de l'app d'avant ces champs : l'appel sans eux ne les efface pas.
+    const old = await supabase.rpc("save_recipe", {
+      target_group_id: foyerId,
+      target_recipe_id: id,
+      recipe_title: "Bolognaise maison",
+      recipe_servings: 4,
+      recipe_steps: [],
+      ingredients: [],
+    });
+    assert.equal(old.error, null);
+    const kept = await fetchRecipe(id);
+    assert.equal(kept.totalMinutes, 90);
+    assert.equal(kept.budget, 3);
+
+    // Champs vidés dans le formulaire : effacés.
+    await saveRecipe(foyerId, id, bolo);
+    const cleared = await fetchRecipe(id);
+    assert.equal(cleared.totalMinutes, null);
+    assert.equal(cleared.budget, null);
   });
 });
 
