@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ChefTip } from "@/components/chef-tip";
 import { PrimaryButton } from "@/components/primary-button";
 import { RecipeBanner } from "@/components/recipe-tile";
 import { ServingsStepper } from "@/components/servings-stepper";
@@ -230,6 +231,9 @@ export default function RecipeScreen() {
           </View>
         </View>
       ) : null}
+
+      {/* Avant les étapes : à lire avant de commencer. */}
+      {recipe.chefTip ? <ChefTip text={recipe.chefTip} /> : null}
 
       {recipe.steps.length > 0 ? (
         <View style={styles.section}>
