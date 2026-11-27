@@ -113,7 +113,12 @@ export default function ShoppingListScreen() {
   // Suggestion en cours d'ajout : pas de double ajout sur un double toucher.
   const [addingSuggestion, setAddingSuggestion] = useState<string | null>(null);
   // Coches affichées dès le toucher, avant la réponse du serveur (on coche vite en magasin).
-  const [pendingChecks, setPendingChecks] = useState<Map<string, boolean>>(new Map());
+  // confirmedFor : le numéro du rechargement lancé après la confirmation du serveur. La coche
+  // en attente ne s'efface qu'à l'arrivée de ce rechargement (ou d'un plus récent) : avant, la
+  // liste affichée date d'avant la coche, et l'article revenait un instant à son état d'avant.
+  const [pendingChecks, setPendingChecks] = useState<
+    Map<string, { checked: boolean; confirmedFor: number | null }>
+  >(new Map());
   // Les articles tout juste cochés ou décochés, retenus dans leur section d'avant pendant le
   // temps de pose (chacun le sien) : la ligne ne part pas sous le doigt.
   const [held, setHeld] = useState<Map<string, ShoppingSection>>(new Map());
@@ -146,6 +151,16 @@ export default function ShoppingListScreen() {
           members: new Map(group.members.map((member) => [member.id, member])),
           trips,
         });
+        // Ce rechargement suit la confirmation de ces coches : la liste fait foi.
+        setPendingChecks((current) => {
+          const done = [...current].filter(
+            ([, pending]) => pending.confirmedFor !== null && requestId >= pending.confirmedFor,
+          );
+          if (done.length === 0) return current;
+          const next = new Map(current);
+          for (const [id] of done) next.delete(id);
+          return next;
+        });
         setHasFailed(false);
       },
       (error: unknown) => {
@@ -177,7 +192,7 @@ export default function ShoppingListScreen() {
   // La liste telle qu'affichée : les coches en attente comptent déjà.
   const items = sortShoppingList(
     list.items.map((item) => {
-      const pending = pendingChecks.get(item.id);
+      const pending = pendingChecks.get(item.id)?.checked;
       if (pending === undefined || pending === (item.checkedAt !== null)) return item;
       return pending
         ? { ...item, checkedAt: new Date().toISOString(), checkedBy: userId ?? null }
@@ -340,15 +355,22 @@ export default function ShoppingListScreen() {
     hapticToggle(checked);
     holdInPlace(item);
     setError(null);
-    setPendingChecks((current) => new Map(current).set(item.id, checked));
+    setPendingChecks((current) => new Map(current).set(item.id, { checked, confirmedFor: null }));
     try {
       await setShoppingItemChecked(item.id, checked);
+      // Le prochain rechargement porte ce numéro : c'est lui qui effacera la coche en attente.
+      const nextRequest = latestRequestRef.current + 1;
+      setPendingChecks((current) => {
+        const pending = current.get(item.id);
+        // Un autre toucher a pris le relais entre-temps : c'est lui qui compte.
+        if (!pending || pending.checked !== checked) return current;
+        return new Map(current).set(item.id, { checked, confirmedFor: nextRequest });
+      });
       loadList();
     } catch (error) {
       hapticReject();
       setError(failureMessage("La coche n’est pas passée", error));
-    } finally {
-      // Le rechargement (ou l'échec) fait foi : la coche en attente n'a plus lieu d'être.
+      // Échec : l'article revient à son vrai état.
       setPendingChecks((current) => {
         const next = new Map(current);
         next.delete(item.id);
