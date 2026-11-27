@@ -5,6 +5,9 @@ import {
   addDays,
   formatLongDay,
   formatShortDay,
+  formatWeekday,
+  mealWhenLabel,
+  sortMealsByDate,
   isSelectable,
   monthWeeks,
   toDay,
@@ -42,4 +45,29 @@ test("un mois en semaines, du lundi au dimanche", () => {
   ]);
   assert.equal(weeks.at(-1)?.at(3), "2026-12-31");
   assert.ok(weeks.every((week) => week.length === 7));
+});
+
+test("quand a lieu un repas, sur sa carte de l'accueil", () => {
+  // Vendredi 27 novembre 2026.
+  const today = "2026-11-27";
+  assert.equal(mealWhenLabel(null, today), null);
+  assert.equal(mealWhenLabel(today, today), "Aujourd’hui");
+  // Un repas d'hier pas encore effacé (24 h après son jour) : toujours « Aujourd'hui ».
+  assert.equal(mealWhenLabel("2026-11-26", today), "Aujourd’hui");
+  assert.equal(mealWhenLabel("2026-11-28", today), "Demain");
+  assert.equal(mealWhenLabel("2026-12-03", today), "Jeudi");
+  assert.equal(mealWhenLabel("2026-12-04", today), "ven. 4 déc.");
+  assert.equal(formatWeekday("2026-11-29"), "Dimanche");
+});
+
+test("les repas à venir, du plus proche au plus lointain", () => {
+  const meals = [
+    { id: "loin", mealDate: "2026-12-10" },
+    { id: "ancien", mealDate: null },
+    { id: "demain", mealDate: "2026-11-28" },
+  ];
+  assert.deepEqual(
+    sortMealsByDate(meals).map((meal) => meal.id),
+    ["ancien", "demain", "loin"],
+  );
 });

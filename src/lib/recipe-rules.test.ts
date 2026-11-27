@@ -17,7 +17,7 @@ import {
   parseIngredientLine,
   recipeByTitle,
   recipeSubtitle,
-  recipesShortcut,
+  recipesSubtitle,
   recipeTileIndex,
   scaleAmount,
   servingsLabel,
@@ -257,24 +257,10 @@ test("écrans : chercher sans accents ni majuscules", () => {
   assert.ok(!matchesRecipeSearch("Gratin", "quiche"));
 });
 
-test("écrans : la ligne Recettes de l'accueil", () => {
-  const famille = { id: "f", name: "Famille" };
-  const coloc = { id: "c", name: "Coloc" };
-  assert.deepEqual(recipesShortcut([], new Map()), { kind: "none" });
-  assert.deepEqual(recipesShortcut([famille], new Map()), {
-    kind: "one",
-    groupId: "f",
-    subtitle: "Écris ta première recette",
-  });
-  assert.deepEqual(recipesShortcut([famille], new Map([["f", 1]])), {
-    kind: "one",
-    groupId: "f",
-    subtitle: "1 recette dans le carnet",
-  });
-  assert.deepEqual(recipesShortcut([famille, coloc], new Map([["f", 5]])), {
-    kind: "many",
-    subtitle: "5 recettes dans 2 carnets",
-  });
+test("écrans : la ligne Recettes d'un foyer", () => {
+  assert.equal(recipesSubtitle(0), "Écris ta première recette");
+  assert.equal(recipesSubtitle(1), "1 recette dans le carnet");
+  assert.equal(recipesSubtitle(12), "12 recettes dans le carnet");
 });
 
 test("écrans : une vignette garde sa couleur", () => {

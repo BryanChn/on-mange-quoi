@@ -34,10 +34,19 @@ type AvatarProps = {
   isPending?: boolean;
   // Photo perso (chemin dans le stockage) : prioritaire sur l'avatar dessiné et l'initiale.
   photoPath?: string | null;
+  // signature : posé sur une carte de couleur, où le gris du pointillé ne se lirait pas.
+  tone?: "default" | "signature";
 };
 
 // Décoratif : le nom est toujours écrit à côté, un lecteur d'écran n'a rien à lire ici.
-export function Avatar({ name, avatar, size = 32, isPending = false, photoPath }: AvatarProps) {
+export function Avatar({
+  name,
+  avatar,
+  size = 32,
+  isPending = false,
+  photoPath,
+  tone = "default",
+}: AvatarProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const avatarId = toAvatarId(avatar);
@@ -45,12 +54,14 @@ export function Avatar({ name, avatar, size = 32, isPending = false, photoPath }
   const shape = { width: size, height: size, borderRadius: size / 2 };
   const fill = avatarId ? AVATAR_BACKGROUNDS[avatarId] : pickAvatarColor(name, theme.avatarColors);
 
+  const onSignature = tone === "signature" && styles.pendingOnSignature;
+
   // Mêmes propriétés dans les deux états (contour de 2, invisible quand il est plein) :
   // seules les couleurs changent, et elles passent en transition quand un membre vote.
   const stateStyle = isPending
     ? avatarId
-      ? [styles.pending, styles.pendingPicture, { backgroundColor: fill }]
-      : styles.pending
+      ? [styles.pending, styles.pendingPicture, { backgroundColor: fill }, onSignature]
+      : [styles.pending, onSignature]
     : { backgroundColor: fill, borderColor: fill };
 
   return (
@@ -71,7 +82,12 @@ export function Avatar({ name, avatar, size = 32, isPending = false, photoPath }
         <Image source={AVATAR_IMAGES[avatarId]} style={styles.picture} contentFit="contain" />
       ) : (
         <Text
-          style={[styles.initial, { fontSize: size * 0.4 }, isPending && styles.initialPending]}
+          style={[
+            styles.initial,
+            { fontSize: size * 0.4 },
+            isPending && styles.initialPending,
+            isPending && tone === "signature" && styles.initialOnSignature,
+          ]}
         >
           {getInitial(name)}
         </Text>
@@ -93,9 +109,11 @@ function createStyles({ colors, onAvatar }: Theme) {
       borderColor: colors.textMuted,
       backgroundColor: "transparent",
     },
+    pendingOnSignature: { borderColor: colors.onSignatureMuted },
     pendingPicture: { opacity: 0.45 },
     picture: { width: "100%", height: "100%" },
     initial: { color: onAvatar, fontWeight: "700" },
     initialPending: { color: colors.textMuted },
+    initialOnSignature: { color: colors.onSignatureMuted },
   });
 }

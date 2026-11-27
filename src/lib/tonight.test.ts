@@ -14,7 +14,11 @@ import {
   defaultMoment,
   everyoneHasVoted,
   formatTime,
-  groupSubtitle,
+  featuredGroupIndex,
+  groupStatus,
+  groupTonight,
+  memberNamesLine,
+  toBuyLabel,
   idleLine,
   isMomentPast,
   leadingTitle,
@@ -236,16 +240,43 @@ test("idleLine : la même phrase toute la journée", () => {
   assert.ok(idleLine(new Date(2026, 10, 13)).length > 0);
 });
 
-test("groupSubtitle : sans vote, en cours, ce soir, cette semaine, plus ancien", () => {
-  assert.equal(groupSubtitle(group("a", null), now), "3 membres");
-  assert.equal(groupSubtitle(group("a", open("s", at(12))), now), "3 membres · vote en cours");
-  assert.equal(groupSubtitle(group("a", closed("s", at(12))), now), "3 membres · ce soir : Pizza");
-  assert.equal(groupSubtitle(group("a", closed("s", at(10))), now), "3 membres · mardi : Pizza");
+test("groupStatus : le point de la pastille d'un groupe", () => {
+  assert.equal(groupStatus(group("a", null), now), "none");
+  assert.equal(groupStatus(group("a", open("s", at(12))), now), "open");
+  assert.equal(groupStatus(group("a", closed("s", at(12))), now), "decided");
+  // Décidé hier, ou pour un midi déjà passé : plus rien à signaler.
+  assert.equal(groupStatus(group("a", closed("s", at(11))), now), "none");
+  assert.equal(groupStatus(group("a", closed("s", at(12, 11), "Salade", "midi")), now), "none");
+});
+
+test("groupTonight : chaque groupe a sa carte, et le vote s'y lance en un appui", () => {
+  const idle = groupTonight(group("b", null), ME, now);
+  assert.ok(idle.kind === "idle" && idle.groupToStart?.id === "b");
+  const decided = groupTonight(group("b", closed("s", at(12), "Curry")), ME, now);
+  assert.ok(decided.kind === "decided" && decided.session.winnerName === "Curry");
+});
+
+test("featuredGroupIndex : on ouvre sur le groupe où il se passe quelque chose", () => {
+  assert.equal(featuredGroupIndex([group("a", null), group("b", null)], ME, now), 0);
+  assert.equal(featuredGroupIndex([group("a", null), group("b", closed("s", at(12)))], ME, now), 1);
   assert.equal(
-    groupSubtitle(group("a", closed("s", at(1))), now),
-    "3 membres · dernier vote : Pizza",
+    featuredGroupIndex(
+      [group("a", closed("s", at(12))), group("b", null), group("c", open("v", at(12)))],
+      ME,
+      now,
+    ),
+    2,
   );
-  assert.equal(groupSubtitle({ ...group("a", null), members: [members[0]] }, now), "1 membre");
+  assert.equal(featuredGroupIndex([], ME, now), 0);
+});
+
+test("toBuyLabel et memberNamesLine : les sous-titres des outils du groupe", () => {
+  assert.equal(toBuyLabel(0), "Rien à acheter");
+  assert.equal(toBuyLabel(5), "5 à acheter");
+  assert.equal(memberNamesLine(members), "Bryan, Camille, Léa");
+  const five = [...members, { name: "Tom" }, { name: "Zoé" }];
+  assert.equal(memberNamesLine(five), "Bryan, Camille, Léa et 2 autres");
+  assert.equal(memberNamesLine(five.slice(0, 4)), "Bryan, Camille, Léa et 1 autre");
 });
 
 test("pickTonight : le vote ouvert le plus récent passe avant tout", () => {
@@ -284,13 +315,6 @@ test("pickTonight : décidé pour midi, c'est réglé jusqu'à 15 h, puis on pen
   // À 19 h (now), le midi est passé : l'accueil propose de lancer le vote du soir.
   const eveningCard = pickTonight(lunch, ME, now);
   assert.ok(eveningCard.kind === "idle" && eveningCard.groupToStart?.id === "a");
-});
-
-test("groupSubtitle : « ce midi : Salade » le jour même", () => {
-  assert.equal(
-    groupSubtitle(group("a", closed("s", at(12, 11), "Salade", "midi")), now),
-    "3 membres · ce midi : Salade",
-  );
 });
 
 test("pickTonight : rien ce soir, lancement direct seulement avec un seul groupe", () => {

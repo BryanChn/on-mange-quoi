@@ -206,25 +206,6 @@ export function memberCountLabel(count: number): string {
   return `${count} membre${count > 1 ? "s" : ""}`;
 }
 
-// Sous le nom d'un groupe : « 3 membres · vote en cours », « 6 membres · mardi : Pizza ».
-// Au-delà de six jours, le nom du jour tromperait (« mardi » d'il y a deux semaines).
-export function groupSubtitle(group: HomeGroup, now: Date): string {
-  const members = memberCountLabel(group.members.length);
-  const session = group.latestSession;
-
-  if (!session) return members;
-  if (session.isOpen) return `${members} · vote en cours`;
-
-  const closedAt = new Date(session.closedAt);
-  if (isSameDay(closedAt, now)) {
-    return `${members} · ${momentLabel(session.moment)} : ${session.winnerName}`;
-  }
-  if (now.getTime() - closedAt.getTime() < 6 * DAY_IN_MS) {
-    return `${members} · ${weekdayName(closedAt)} : ${session.winnerName}`;
-  }
-  return `${members} · dernier vote : ${session.winnerName}`;
-}
-
 export function pickTonight(groups: HomeGroup[], userId: string, now: Date): Tonight {
   let latestOpen: { group: HomeGroup; session: OpenHomeSession } | null = null;
   let latestDecided: { group: HomeGroup; session: ClosedHomeSession } | null = null;
@@ -252,4 +233,47 @@ export function pickTonight(groups: HomeGroup[], userId: string, now: Date): Ton
     return { kind: "decided", ...latestDecided };
   }
   return { kind: "idle", groupToStart: groups.length === 1 ? groups[0] : null };
+}
+
+// ─── Accueil par groupe (refonte v4 du 2026-11-27) ───────────────
+
+// Le point de la pastille d'un groupe : un vote en cours (tomate), décidé pour le prochain
+// repas (basilic), ou rien.
+export type GroupStatus = "open" | "decided" | "none";
+
+export function groupStatus(group: HomeGroup, now: Date): GroupStatus {
+  const session = group.latestSession;
+  if (!session) return "none";
+  if (session.isOpen) return "open";
+  const decidedToday = isSameDay(new Date(session.closedAt), now);
+  return decidedToday && !isMomentPast(session.moment, now) ? "decided" : "none";
+}
+
+// La carte « Ce soir » d'un seul groupe : mêmes règles que pour tous, et le vote se lance
+// toujours dans ce groupe-là.
+export function groupTonight(group: HomeGroup, userId: string, now: Date): Tonight {
+  return pickTonight([group], userId, now);
+}
+
+// Le groupe affiché à l'ouverture : celui où il se passe quelque chose (vote en cours le plus
+// récent, sinon décidé aujourd'hui), sinon le premier.
+export function featuredGroupIndex(groups: HomeGroup[], userId: string, now: Date): number {
+  const tonight = pickTonight(groups, userId, now);
+  if (tonight.kind === "idle") return 0;
+  return Math.max(
+    0,
+    groups.findIndex((group) => group.id === tonight.group.id),
+  );
+}
+
+export function toBuyLabel(count: number): string {
+  return count === 0 ? "Rien à acheter" : `${count} à acheter`;
+}
+
+// « Bryan, Léa, Tom » ; au-delà de trois : « Bryan, Léa, Tom et 2 autres ».
+export function memberNamesLine(members: Pick<Member, "name">[], max = 3): string {
+  const names = members.slice(0, max).map((member) => member.name);
+  const rest = members.length - names.length;
+  if (rest <= 0) return names.join(", ");
+  return `${names.join(", ")} et ${rest} autre${rest > 1 ? "s" : ""}`;
 }
