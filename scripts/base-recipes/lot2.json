@@ -12,6 +12,7 @@
       "minutes": 110,
       "budget": 2,
       "diets": ["sans_porc"],
+      "category": "viande",
       "steps": [
         "Hache finement l'oignon, la carotte et l'ail, et fais-les fondre 8 min dans l'huile à feu doux : c'est la base du goût.",
         "Monte le feu, ajoute le bœuf et laisse-le dorer avant de l'émietter. Verse le coulis, sale, poivre et laisse mijoter au moins 30 min à feu doux, à demi couvert.",
@@ -44,6 +45,7 @@
       "minutes": 70,
       "budget": 1,
       "diets": ["vegetarien", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Préchauffe le four à 180 °C. Étale la pâte dans un moule et pique-la à la fourchette. Couvre-la de papier cuisson et de légumes secs, et cuis-la 15 min à blanc.",
         "Pendant ce temps, lave les poireaux, coupe-les en fines rondelles et fais-les fondre 10 min dans le beurre à feu doux, avec une pincée de sel, jusqu'à ce qu'il ne reste plus d'eau dans la poêle.",
@@ -72,6 +74,7 @@
       "minutes": 45,
       "budget": 1,
       "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Cuis le riz selon le paquet.",
         "Émince l'oignon, coupe le poivron en dés et hache l'ail. Fais-les revenir 6 à 8 min dans l'huile, jusqu'à ce que l'oignon commence à dorer.",
@@ -102,6 +105,7 @@
       "minutes": 100,
       "budget": 2,
       "diets": ["sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "viande",
       "steps": [
         "Si tu peux, sale le poulet quelques heures avant, ou la veille, et laisse-le à découvert au réfrigérateur : la peau sèche et sera plus croustillante. Sors-le 30 min avant de le cuire.",
         "Préchauffe le four à 200 °C. Épluche les pommes de terre, coupe-les en gros morceaux et mets-les dans un grand plat avec l'ail en chemise, le thym, 2 c. à soupe d'huile, du sel et du poivre.",
@@ -127,6 +131,7 @@
       "minutes": 40,
       "budget": 1,
       "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Épluche le potiron et les pommes de terre, et coupe-les en cubes. Émince l'oignon.",
         "Fais fondre l'oignon 3 min dans l'huile, ajoute les légumes et laisse-les colorer légèrement 5 min en remuant.",
@@ -153,6 +158,7 @@
       "minutes": 35,
       "budget": 1,
       "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Rince les lentilles et mets-les dans trois fois leur volume d'eau froide. Cuis-les 20 à 25 min à petits frémissements : elles doivent rester un peu fermes. Sale à la fin et égoutte.",
         "Pendant ce temps, cisèle l'échalote et mets-la dans le vinaigre avec une pincée de sel. Épluche les carottes, coupe-les en petits dés et cisèle le persil.",
@@ -179,6 +185,7 @@
       "minutes": 20,
       "budget": 1,
       "diets": ["vegetarien", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Mets une grande casserole d'eau salée à bouillir et cuis les pâtes selon le paquet.",
         "Fais griller les pignons 2 min à sec dans une poêle, jusqu'à ce qu'ils sentent bon, puis laisse-les refroidir.",
@@ -205,6 +212,7 @@
       "minutes": 30,
       "budget": 2,
       "diets": ["vegan", "vegetarien", "sans_lactose", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Cuis les nouilles selon le paquet, égoutte-les et passe-les sous l'eau froide pour qu'elles ne collent pas.",
         "Coupe le tofu en cubes et sèche-le bien dans un torchon. Fais-le dorer 8 min dans la moitié de l'huile, à feu vif, sans trop le remuer, puis réserve-le.",
@@ -233,6 +241,7 @@
       "minutes": 35,
       "budget": 2,
       "diets": ["sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "poisson",
       "steps": [
         "Préchauffe le four à 200 °C et cuis le riz selon le paquet.",
         "Coupe les courgettes en fines rondelles, les tomates cerises en deux et le citron en rondelles.",
@@ -260,6 +269,7 @@
       "minutes": 40,
       "budget": 1,
       "diets": ["vegetarien", "sans_porc"],
+      "category": "dessert",
       "steps": [
         "Préchauffe le four à 180 °C et beurre un moule d'environ 22 cm.",
         "Fais fondre le chocolat et le beurre ensemble, doucement, au bain-marie ou au micro-ondes par tranches de 30 s en remuant.",

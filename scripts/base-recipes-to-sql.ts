@@ -24,6 +24,8 @@ type Lot = {
     steps: string[];
     // L'astuce du chef (300 caractères au plus), facultative.
     chefTip?: string;
+    // Le type de plat (filtres du carnet), facultatif.
+    category?: "viande" | "poisson" | "vege" | "dessert";
     ingredients: [string, string, number | null][];
   }[];
 };
@@ -83,16 +85,17 @@ for (const recipe of lot.recipes) {
       : `array[${recipe.diets.map(sql).join(", ")}]::public.recipe_diet[]`;
   lines.push(`-- ${recipe.title}`);
   lines.push(
-    "insert into public.recipes (id, group_id, title, servings, steps, diets, total_minutes, budget, chef_tip)",
+    "insert into public.recipes (id, group_id, title, servings, steps, diets, total_minutes, budget, chef_tip, category)",
   );
   lines.push(`values (${sql(id)}, null, ${sql(recipe.title)}, ${recipe.servings}, array[`);
   lines.push(recipe.steps.map((step) => `  ${sql(step)}`).join(",\n"));
   const chefTip = recipe.chefTip ? sql(recipe.chefTip) : "null";
-  lines.push(`], ${diets}, ${recipe.minutes}, ${recipe.budget}, ${chefTip})`);
+  const category = recipe.category ? `${sql(recipe.category)}::public.recipe_category` : "null";
+  lines.push(`], ${diets}, ${recipe.minutes}, ${recipe.budget}, ${chefTip}, ${category})`);
   lines.push(
     "on conflict (id) do update set title = excluded.title, servings = excluded.servings, steps = excluded.steps,",
     "  diets = excluded.diets, total_minutes = excluded.total_minutes, budget = excluded.budget,",
-    "  chef_tip = excluded.chef_tip;",
+    "  chef_tip = excluded.chef_tip, category = excluded.category;",
   );
   if (recipe.chefTip && recipe.chefTip.length > 300) {
     throw new Error(

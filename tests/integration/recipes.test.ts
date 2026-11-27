@@ -87,6 +87,8 @@ const bolo: RecipeDraft = {
     { raw: "sel", label: "sel", quantity: null, unit: null, foodId: null },
   ],
   chefTip: null,
+  category: null,
+  diets: [],
 };
 
 describe("le carnet du foyer", () => {
@@ -331,6 +333,55 @@ describe("les photos des recettes", () => {
       .update({ photo_path: path(danFoyerId) })
       .eq("id", id);
     assert.ok(error, "le chemin doit commencer par le dossier du foyer");
+  });
+});
+
+describe("le type de plat et les régimes", () => {
+  test("choisis à l'écriture, modifiés puis retirés, lus par tout le foyer", async () => {
+    await signInAs(alice);
+    const id = await saveRecipe(foyerId, null, {
+      ...bolo,
+      category: "viande",
+      diets: ["sans_gluten"],
+    });
+
+    await signInAs(bea);
+    const saved = await fetchRecipe(id);
+    assert.equal(saved.category, "viande");
+    assert.deepEqual(saved.diets, ["sans_gluten"]);
+    // Le carnet les a aussi : le badge et les filtres s'en servent.
+    const summary = (await fetchCarnet(foyerId)).find((recipe) => recipe.id === id);
+    assert.equal(summary?.category, "viande");
+
+    await saveRecipe(foyerId, id, {
+      ...bolo,
+      category: "vege",
+      diets: ["vegetarien", "sans_porc"],
+    });
+    const changed = await fetchRecipe(id);
+    assert.equal(changed.category, "vege");
+    assert.deepEqual(changed.diets, ["vegetarien", "sans_porc"]);
+
+    // Sans type ni régime : tout est retiré.
+    await saveRecipe(foyerId, id, bolo);
+    const cleared = await fetchRecipe(id);
+    assert.equal(cleared.category, null);
+    assert.deepEqual(cleared.diets, []);
+  });
+
+  test("les 20 recettes de base ont un type, et la copie le garde", async () => {
+    await signInAs(alice);
+    const bases = (await fetchBaseRecipes()).filter((recipe) =>
+      /^00000000-0000-4000-8000-0000000000(0[1-9]|1[0-9]|20)$/.test(recipe.id),
+    );
+    assert.equal(bases.length, 20);
+    assert.ok(bases.every((recipe) => recipe.category !== null));
+
+    const groupId = await createGroup(alice, []);
+    const copy = await fetchRecipe(
+      await copyBaseRecipe("00000000-0000-4000-8000-000000000019", groupId),
+    );
+    assert.equal(copy.category, "poisson");
   });
 });
 

@@ -16,6 +16,7 @@
       "minutes": 20,
       "budget": 1,
       "diets": [],
+      "category": "viande",
       "steps": [
         "Mets une grande casserole d'eau à chauffer et sale-la quand elle bout. Cuis les spaghetti 1 min de moins que le temps du paquet : elles finiront dans la poêle.",
         "Pendant ce temps, fais fondre les lardons à feu moyen dans une grande poêle, sans matière grasse, jusqu'à ce qu'ils soient dorés et que leur gras ait fondu. Coupe le feu.",
@@ -41,6 +42,7 @@
       "minutes": 15,
       "budget": 1,
       "diets": ["vegetarien", "sans_gluten"],
+      "category": "vege",
       "steps": [
         "Nettoie les champignons avec un papier humide, pas sous l'eau (ils boivent comme des éponges), puis émince-les.",
         "Fais-les sauter 5 min à feu vif dans la moitié du beurre, sans trop les remuer : ils rendent leur eau, puis ils dorent. Sale à la fin et réserve.",
@@ -65,6 +67,7 @@
       "minutes": 35,
       "budget": 2,
       "diets": ["sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "viande",
       "steps": [
         "Rince le riz jusqu'à ce que l'eau soit claire, puis cuis-le selon le paquet.",
         "Émince l'oignon, hache l'ail et râpe le gingembre. Coupe le poulet en bouchées et sale-le.",
@@ -95,6 +98,7 @@
       "minutes": 25,
       "budget": 2,
       "diets": ["sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "poisson",
       "steps": [
         "Cuis le riz selon le paquet.",
         "Détaille le brocoli en petits bouquets et cuis-les 5 à 6 min à la vapeur ou dans l'eau bouillante salée : ils doivent rester vert vif et un peu croquants.",
@@ -121,6 +125,7 @@
       "minutes": 60,
       "budget": 1,
       "diets": ["sans_porc"],
+      "category": "viande",
       "steps": [
         "Épluche les pommes de terre, coupe-les en gros morceaux et mets-les dans l'eau froide salée. Porte à ébullition et cuis 20 min, jusqu'à ce que la pointe d'un couteau s'enfonce sans résistance.",
         "Pendant ce temps, fais fondre les oignons 5 min dans un peu de beurre. Ajoute le bœuf, laisse-le dorer avant de l'émietter, puis cuis 8 min avec le concentré de tomate. Sale, poivre.",
@@ -149,6 +154,7 @@
       "minutes": 120,
       "budget": 3,
       "diets": ["sans_porc"],
+      "category": "viande",
       "steps": [
         "Mets le veau dans une cocotte, couvre d'eau froide et porte à ébullition. Égoutte la viande, rince-la à l'eau froide et rince aussi la cocotte.",
         "Remets le veau, couvre à nouveau d'eau froide, ajoute les carottes en rondelles, l'oignon piqué des clous de girofle et le bouquet garni. Sale et laisse cuire 1 h 30 à petits frémissements.",
@@ -182,6 +188,7 @@
       "minutes": 60,
       "budget": 1,
       "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Coupe tous les légumes en dés de 2 cm, émince l'oignon et hache l'ail.",
         "Fais dorer l'aubergine 5 à 8 min dans une partie de l'huile, sale-la et réserve-la. Fais pareil avec les courgettes, puis avec les poivrons.",
@@ -210,6 +217,7 @@
       "minutes": 35,
       "budget": 1,
       "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Rince les lentilles jusqu'à ce que l'eau soit claire : ça enlève l'amidon qui fait mousser.",
         "Fais fondre l'oignon émincé 5 min dans la moitié de l'huile. Ajoute l'ail, le gingembre râpé, le curry et la moitié du cumin, et remue 1 min.",
@@ -240,6 +248,7 @@
       "minutes": 30,
       "budget": 1,
       "diets": ["vegan", "vegetarien", "sans_gluten", "sans_lactose", "sans_porc"],
+      "category": "vege",
       "steps": [
         "Cuis le riz selon le paquet.",
         "Fais fondre l'oignon émincé 5 min dans l'huile. Ajoute l'ail haché, la moitié du garam masala et le curcuma, et remue 1 min.",
@@ -269,6 +278,7 @@
       "minutes": 90,
       "budget": 1,
       "diets": ["vegetarien", "sans_porc"],
+      "category": "dessert",
       "steps": [
         "Dans un saladier, mélange la farine, le sucre et le sel. Creuse un puits et casse-y les œufs.",
         "Mélange au fouet, du centre vers les bords, en versant le lait petit à petit : la pâte reste épaisse au début, c'est ce qui évite les grumeaux.",

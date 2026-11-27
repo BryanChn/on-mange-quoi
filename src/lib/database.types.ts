@@ -257,14 +257,14 @@ isOneToOne: false
                   ]
                 },"recipes": {
                   Row: {
-                    "budget": number | null,"chef_tip": string | null,"created_at": string,"created_by": string | null,"diets": (Database["public"]['Enums']["recipe_diet"])[],"group_id": string | null,"id": string,"photo_path": string | null,"servings": number,"source_recipe_id": string | null,"steps": (string)[],"title": string,"total_minutes": number | null,"updated_at": string
+                    "budget": number | null,"category": Database["public"]['Enums']["recipe_category"] | null,"chef_tip": string | null,"created_at": string,"created_by": string | null,"diets": (Database["public"]['Enums']["recipe_diet"])[],"group_id": string | null,"id": string,"photo_path": string | null,"servings": number,"source_recipe_id": string | null,"steps": (string)[],"title": string,"total_minutes": number | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "budget"?: number | null,"chef_tip"?: string | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title": string,"total_minutes"?: number | null,"updated_at"?: string
+                    "budget"?: number | null,"category"?: Database["public"]['Enums']["recipe_category"] | null,"chef_tip"?: string | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title": string,"total_minutes"?: number | null,"updated_at"?: string
                   }
                   Update: {
-                    "budget"?: number | null,"chef_tip"?: string | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title"?: string,"total_minutes"?: number | null,"updated_at"?: string
+                    "budget"?: number | null,"category"?: Database["public"]['Enums']["recipe_category"] | null,"chef_tip"?: string | null,"created_at"?: string,"created_by"?: string | null,"diets"?: (Database["public"]['Enums']["recipe_diet"])[],"group_id"?: string | null,"id"?: string,"photo_path"?: string | null,"servings"?: number,"source_recipe_id"?: string | null,"steps"?: (string)[],"title"?: string,"total_minutes"?: number | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -631,7 +631,7 @@ isOneToOne: false
 { Args: { "new_token": string }; Returns: undefined
                            },
 "save_recipe":
-{ Args: { "ingredients": Json,"recipe_chef_tip"?: string,"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
+{ Args: { "ingredients": Json,"recipe_category"?: Database["public"]['Enums']["recipe_category"],"recipe_chef_tip"?: string,"recipe_diets"?: (Database["public"]['Enums']["recipe_diet"])[],"recipe_servings": number,"recipe_steps": (string)[],"recipe_title": string,"target_group_id": string,"target_recipe_id"?: string }; Returns: string
                            },
 "search_foods":
 { Args: { "query": string }; Returns: {
@@ -680,7 +680,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","recipe_diet": "vegetarien"|"vegan"|"sans_porc"|"sans_gluten"|"sans_lactose","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
+            "decision_method": "vote"|"tirage"|"organisateur","group_kind": "foyer"|"soiree","ingredient_unit": "g"|"kg"|"ml"|"cl"|"l"|"cuillere_cafe"|"cuillere_soupe"|"pincee","meal_moment": "midi"|"soir","recipe_category": "viande"|"poisson"|"vege"|"dessert","recipe_diet": "vegetarien"|"vegan"|"sans_porc"|"sans_gluten"|"sans_lactose","session_status": "open"|"closed","soiree_mode": "commande"|"resto"|"maison","soiree_step": "choix"|"commande"|"passee"|"decide","vote_topic": "plat"|"resto"|"apero"|"entree"|"dessert"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -800,7 +800,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"recipe_diet": ["vegetarien", "vegan", "sans_porc", "sans_gluten", "sans_lactose"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
+            "decision_method": ["vote", "tirage", "organisateur"],"group_kind": ["foyer", "soiree"],"ingredient_unit": ["g", "kg", "ml", "cl", "l", "cuillere_cafe", "cuillere_soupe", "pincee"],"meal_moment": ["midi", "soir"],"recipe_category": ["viande", "poisson", "vege", "dessert"],"recipe_diet": ["vegetarien", "vegan", "sans_porc", "sans_gluten", "sans_lactose"],"session_status": ["open", "closed"],"soiree_mode": ["commande", "resto", "maison"],"soiree_step": ["choix", "commande", "passee", "decide"],"vote_topic": ["plat", "resto", "apero", "entree", "dessert"]
           }
         }
 } as const

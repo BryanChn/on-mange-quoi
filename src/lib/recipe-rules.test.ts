@@ -3,7 +3,13 @@ import { test } from "node:test";
 
 import {
   buildRecipeDraft,
+  dietLabelForList,
   durationLabel,
+  recipeListSubtitle,
+  hasRecipeFilters,
+  matchesRecipeFilters,
+  NO_RECIPE_FILTERS,
+  normalizeDiets,
   recipeMeta,
   carnetSuggestions,
   cookedLabel,
@@ -279,6 +285,8 @@ const form = {
   ],
   steps: ["  Écumer\nle bouillon  ", "", "Servir"],
   chefTip: "  Écume   souvent :\nle bouillon reste clair. ",
+  category: "viande" as const,
+  diets: ["sans_gluten" as const],
 };
 
 test("écrire : le brouillon envoyé à la base", () => {
@@ -293,6 +301,8 @@ test("écrire : le brouillon envoyé à la base", () => {
       ],
       steps: ["Écumer le bouillon", "Servir"],
       chefTip: "Écume souvent : le bouillon reste clair.",
+      category: "viande",
+      diets: ["sans_gluten"],
     },
   });
 });
@@ -447,4 +457,56 @@ test("étiquettes : durée, budget et régimes sous le titre", () => {
   assert.equal(recipeMeta(120, 3, ["sans_porc"]), "2 h · €€€ · Sans porc");
   assert.equal(recipeMeta(20, 1, []), "20 min · €");
   assert.equal(recipeMeta(null, null, []), null);
+  // Le type de plat rejoint la ligne ; « Végé » ne double pas un régime végétarien.
+  assert.equal(recipeMeta(20, 1, [], "viande"), "20 min · € · Viande");
+  assert.equal(recipeMeta(45, 1, ["vegan", "vegetarien"], "vege"), "45 min · € · Vegan");
+  assert.equal(recipeMeta(null, null, [], "vege"), "Végé");
+});
+
+test("étiquettes : vegan dit végétarien, végétarien dit sans porc", () => {
+  assert.deepEqual(normalizeDiets(["vegan"]), ["vegetarien", "vegan", "sans_porc"]);
+  assert.deepEqual(normalizeDiets(["sans_lactose", "vegetarien"]), [
+    "vegetarien",
+    "sans_porc",
+    "sans_lactose",
+  ]);
+  assert.deepEqual(normalizeDiets([]), []);
+});
+
+test("filtres du carnet : type, rapide et petit budget se combinent", () => {
+  const curry = { category: "vege" as const, totalMinutes: 25, budget: 1 };
+  const blanquette = { category: "viande" as const, totalMinutes: 120, budget: 3 };
+  const sansInfos = { category: null, totalMinutes: null, budget: null };
+  const recipes = [curry, blanquette, sansInfos];
+  const shown = (filters: Parameters<typeof matchesRecipeFilters>[1]) =>
+    recipes.filter((recipe) => matchesRecipeFilters(recipe, filters));
+
+  assert.equal(shown(NO_RECIPE_FILTERS).length, 3);
+  assert.deepEqual(shown({ ...NO_RECIPE_FILTERS, category: "viande" }), [blanquette]);
+  assert.deepEqual(shown({ ...NO_RECIPE_FILTERS, isQuick: true }), [curry]);
+  assert.deepEqual(shown({ category: "vege", isQuick: true, isCheap: true }), [curry]);
+  assert.deepEqual(shown({ ...NO_RECIPE_FILTERS, category: "dessert" }), []);
+  assert.equal(hasRecipeFilters(NO_RECIPE_FILTERS), false);
+  assert.equal(hasRecipeFilters({ ...NO_RECIPE_FILTERS, isCheap: true }), true);
+});
+
+test("carnet : durée, budget et un régime sous le nom", () => {
+  const chili = { totalMinutes: 45, budget: 1, servings: 4, ingredientCount: 12 };
+  assert.equal(
+    recipeListSubtitle({ ...chili, diets: ["vegetarien", "vegan"] }),
+    "45 min · € · Vegan",
+  );
+  assert.equal(recipeListSubtitle({ ...chili, budget: 2, diets: [] }), "45 min · €€");
+  assert.equal(
+    recipeListSubtitle({
+      totalMinutes: null,
+      budget: null,
+      diets: [],
+      servings: 4,
+      ingredientCount: 8,
+    }),
+    "4 parts · 8 ingrédients",
+  );
+  assert.equal(dietLabelForList(["sans_porc", "sans_gluten"]), "Sans gluten");
+  assert.equal(dietLabelForList(["vegetarien", "sans_porc"]), null);
 });

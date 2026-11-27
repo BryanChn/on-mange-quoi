@@ -1,7 +1,7 @@
 // Recettes (migration recipes) : le carnet d'un foyer, les recettes de base, une recette et
 // ses ingrédients, enregistrer, copier, retirer, suivre en direct. Les règles d'accès sont
 // dans la base (RLS : membres du foyer ; recettes de base en lecture seule).
-import type { FoodNutrients, IngredientUnit, RecipeDiet } from "./recipe-rules";
+import type { FoodNutrients, IngredientUnit, RecipeCategory, RecipeDiet } from "./recipe-rules";
 import { supabase } from "./supabase";
 
 export type { IngredientUnit };
@@ -32,6 +32,11 @@ export type RecipeSummary = {
   // La recette de base dont elle est la copie, null sinon.
   sourceRecipeId: string | null;
   updatedAt: string;
+  // Étiquettes posées à l'écriture : le badge de la vignette et les filtres du carnet.
+  category: RecipeCategory | null;
+  diets: RecipeDiet[];
+  totalMinutes: number | null;
+  budget: number | null;
 };
 
 export type Recipe = RecipeSummary & {
@@ -39,10 +44,6 @@ export type Recipe = RecipeSummary & {
   groupId: string | null;
   steps: string[];
   ingredients: RecipeIngredientView[];
-  // Étiquettes posées à l'écriture (les recettes de base en ont ; les filtres viendront en V2).
-  diets: RecipeDiet[];
-  totalMinutes: number | null;
-  budget: number | null;
   // L'astuce du chef (encadré du chat cuisinier), null sans astuce.
   chefTip: string | null;
 };
@@ -54,9 +55,12 @@ export type RecipeDraft = {
   steps: string[];
   ingredients: RecipeIngredient[];
   chefTip: string | null;
+  category: RecipeCategory | null;
+  diets: RecipeDiet[];
 };
 
-const RECIPE_COLUMNS = "id, title, servings, photo_path, source_recipe_id, updated_at";
+const RECIPE_COLUMNS =
+  "id, title, servings, photo_path, source_recipe_id, updated_at, category, diets, total_minutes, budget";
 // Les listes comptent les ingrédients sans les lire. Jamais dans fetchRecipe : son tri des
 // ingrédients (par position) s'appliquerait aussi à ce compte, et Postgres le refuse (42803).
 const SUMMARY_COLUMNS = `${RECIPE_COLUMNS}, ingredient_count:recipe_ingredients(count)`;
@@ -68,6 +72,10 @@ type RecipeRow = {
   photo_path: string | null;
   source_recipe_id: string | null;
   updated_at: string;
+  category: RecipeCategory | null;
+  diets: RecipeDiet[];
+  total_minutes: number | null;
+  budget: number | null;
 };
 
 function toSummary(row: RecipeRow, ingredientCount: number): RecipeSummary {
@@ -79,6 +87,10 @@ function toSummary(row: RecipeRow, ingredientCount: number): RecipeSummary {
     photoPath: row.photo_path,
     sourceRecipeId: row.source_recipe_id,
     updatedAt: row.updated_at,
+    category: row.category,
+    diets: row.diets,
+    totalMinutes: row.total_minutes,
+    budget: row.budget,
   };
 }
 
@@ -110,7 +122,7 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
   const { data, error } = await supabase
     .from("recipes")
     .select(
-      `${RECIPE_COLUMNS}, group_id, steps, diets, total_minutes, budget, chef_tip,
+      `${RECIPE_COLUMNS}, group_id, steps, chef_tip,
       recipe_ingredients(position, raw, label, quantity, unit, food_id,
         food:foods(kcal, protein_g, carbs_g, fat_g, unit_weight_g))`,
     )
@@ -122,9 +134,6 @@ export async function fetchRecipe(recipeId: string): Promise<Recipe> {
     ...toSummary(data, data.recipe_ingredients.length),
     groupId: data.group_id,
     steps: data.steps,
-    diets: data.diets,
-    totalMinutes: data.total_minutes,
-    budget: data.budget,
     chefTip: data.chef_tip,
     ingredients: data.recipe_ingredients.map((row) => ({
       raw: row.raw,
@@ -211,6 +220,9 @@ export async function saveRecipe(
     ...(recipeId ? { target_recipe_id: recipeId } : {}),
     // Absent = null pour la base : enregistrer sans astuce efface celle qu'il y avait.
     ...(draft.chefTip ? { recipe_chef_tip: draft.chefTip } : {}),
+    // Absent = pas de type ; les régimes sont toujours envoyés (un tableau vide les efface).
+    ...(draft.category ? { recipe_category: draft.category } : {}),
+    recipe_diets: draft.diets,
   });
   if (error) throw error;
   return data;
