@@ -7,7 +7,7 @@ import { ErrorScreen, LoadingScreen } from "@/components/status-screens";
 import { servingsLabel } from "@/lib/recipe-rules";
 import { fetchRecipe, type Recipe } from "@/lib/recipes";
 import { loadErrorMessage } from "@/lib/network-errors";
-import { useSheetBottomInset } from "@/lib/use-sheet-bottom-inset";
+import { useBottomInset } from "@/lib/use-bottom-inset";
 import { useTheme, type Theme } from "@/theme";
 
 // La feuille des ingrédients, ouverte depuis une étape du mode cuisine (feuille native :
@@ -17,7 +17,7 @@ export default function IngredientsSheet() {
   const { id, servings: servingsParam } = useLocalSearchParams<{ id: string; servings?: string }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const bottomInset = useSheetBottomInset();
+  const bottomInset = useBottomInset();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
 

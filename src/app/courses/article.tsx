@@ -23,7 +23,7 @@ import {
   SHOPPING_QUANTITY_MAX_LENGTH,
   type ShoppingAisle,
 } from "@/lib/shopping-rules";
-import { useSheetBottomInset } from "@/lib/use-sheet-bottom-inset";
+import { useBottomInset } from "@/lib/use-bottom-inset";
 import { useTheme, type Theme } from "@/theme";
 
 // La fiche d'un article (form sheet, maquette du 27/11 : bouton ⋯ ou appui long) : son nom, sa
@@ -40,7 +40,7 @@ export default function ShoppingItemSheet() {
   }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const bottomInset = useSheetBottomInset();
+  const bottomInset = useBottomInset();
   const initialImportant = params.important === "1";
   const [label, setLabel] = useState(params.label);
   const [quantity, setQuantity] = useState(params.quantity ?? "");

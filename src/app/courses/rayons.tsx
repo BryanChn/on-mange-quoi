@@ -8,7 +8,7 @@ import { hapticReject, hapticTick } from "@/lib/haptics";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { fetchAisleSettings, saveAisleOrder } from "@/lib/shopping";
 import { AISLE_LABELS, moveAisle, type ShoppingAisle } from "@/lib/shopping-rules";
-import { useSheetBottomInset } from "@/lib/use-sheet-bottom-inset";
+import { useBottomInset } from "@/lib/use-bottom-inset";
 import { useTheme, type Theme } from "@/theme";
 
 // « Ordre des rayons » (form sheet) : dans l'ordre où l'on traverse le magasin, pour tout le
@@ -17,7 +17,7 @@ export default function AisleOrderSheet() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const bottomInset = useSheetBottomInset();
+  const bottomInset = useBottomInset();
   const [order, setOrder] = useState<ShoppingAisle[] | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
