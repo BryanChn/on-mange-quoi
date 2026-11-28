@@ -381,6 +381,17 @@ export default function WriteRecipeScreen() {
 
   const hasPhoto = pendingPhoto !== null || (photoPath !== null && !isPhotoRemoved);
 
+  // Le message au-dessus d'« Enregistrer » : on touche le bouton en bas de l'écran, l'erreur
+  // du champ (le nom, tout en haut) peut être hors de vue. La première dans l'ordre de l'écran.
+  const footerError =
+    errors.save ??
+    errors.title ??
+    errors.ingredients ??
+    errors.steps ??
+    errors.chefTip ??
+    errors.totalMinutes ??
+    null;
+
   // Le bouton de l'encart : appareil photo, galerie, et retirer s'il y a déjà une photo.
   function askPhotoSource() {
     const choices: AlertButton[] = [
@@ -941,11 +952,24 @@ export default function WriteRecipeScreen() {
         {deleteStep !== "idle" ? (
           <Card>
             <Text style={styles.confirmTitle} accessibilityRole="header">
-              Retirer « {form.title} » ?
+              {/* Le nom peut avoir été vidé dans le champ juste au-dessus. */}
+              {form.title.trim() === ""
+                ? "Retirer cette recette ?"
+                : `Retirer « ${form.title.trim()} » ?`}
             </Text>
             <Text style={styles.muted}>
               Elle disparaît du carnet pour tout le foyer. Pas de retour en arrière.
             </Text>
+            {/* Le footer est masqué pendant la confirmation : l'échec du retrait s'affiche ici. */}
+            {errors.save ? (
+              <Text
+                style={styles.error}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="assertive"
+              >
+                {errors.save}
+              </Text>
+            ) : null}
             <PrimaryButton
               label="Retirer la recette"
               variant="danger"
@@ -954,32 +978,32 @@ export default function WriteRecipeScreen() {
             />
             <TextButton
               label="Annuler"
-              onPress={() => setDeleteStep("idle")}
+              onPress={() => {
+                setDeleteStep("idle");
+                // L'échec du retrait ne concerne plus l'enregistrement.
+                setErrors((current) => ({ ...current, save: undefined }));
+              }}
               isDisabled={deleteStep === "deleting"}
             />
           </Card>
         ) : null}
       </ScrollView>
 
-      {/* Sticky footer : toujours à portée, au-dessus de la barre Android ; masqué pendant la
-          saisie, où il ne ferait que réduire la place au-dessus du clavier. */}
-      {isKeyboardVisible ? null : (
+      {/* Sticky footer : toujours à portée, au-dessus de la barre Android. Masqué pendant la
+          saisie (il réduirait la place au-dessus du clavier) et pendant la confirmation du
+          retrait (deux boutons principaux qui se contredisent). */}
+      {isKeyboardVisible || deleteStep !== "idle" ? null : (
         <View style={[styles.footer, { paddingBottom: bottomInset + theme.spacing.md }]}>
-          {errors.save ? (
+          {footerError ? (
             <Text
               style={styles.error}
               accessibilityRole="alert"
               accessibilityLiveRegion="assertive"
             >
-              {errors.save}
+              {footerError}
             </Text>
           ) : null}
-          <PrimaryButton
-            label="Enregistrer la recette"
-            onPress={handleSave}
-            isLoading={isSaving}
-            isDisabled={deleteStep === "deleting"}
-          />
+          <PrimaryButton label="Enregistrer la recette" onPress={handleSave} isLoading={isSaving} />
         </View>
       )}
     </View>
