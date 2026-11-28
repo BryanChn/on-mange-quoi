@@ -3,18 +3,20 @@ import { router, useLocalSearchParams, usePreventRemove } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type AlertButton,
   type ScrollViewInstance,
   type TextInputInstance,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "@/components/card";
+import { FieldLabel, FormSection } from "@/components/form-section";
 import { PrimaryButton } from "@/components/primary-button";
 import { CategoryIcon } from "@/components/category-icon";
 import { ServingsStepper } from "@/components/servings-stepper";
@@ -26,6 +28,7 @@ import { hapticAdded, hapticReject, hapticTick } from "@/lib/haptics";
 import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { removeRecipePhoto, removeRecipePhotoFile, uploadRecipePhoto } from "@/lib/photo-storage";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
+import { useBottomInset, useIsKeyboardVisible } from "@/lib/use-bottom-inset";
 import {
   buildRecipeDraft,
   fieldsFromIngredient,
@@ -91,11 +94,15 @@ function nextKey(): number {
 // (https://claude.ai/artifact/8Ei7qPU2mWkKyABtFjBNRw) : les ingrédients se saisissent comme
 // les courses (nom, quantité, +) et s'affichent en liste ; les étapes en cartes numérotées.
 // Un toucher sur une ligne l'ouvre sur place pour la corriger ou la retirer.
+// Hiérarchie du 28/11 (https://claude.ai/artifact/Fib37nyL3VH8SykZG4Bvf2) : l'essentiel d'abord
+// (nom, parts, ingrédients, étapes), le facultatif ensuite, la photo sur l'encart, et
+// « Enregistrer » dans un sticky footer au-dessus de la barre Android.
 export default function WriteRecipeScreen() {
   const { groupId, id } = useLocalSearchParams<{ groupId: string; id?: string }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const insets = useSafeAreaInsets();
+  const bottomInset = useBottomInset();
+  const isKeyboardVisible = useIsKeyboardVisible();
   const isEditing = Boolean(id);
 
   // La recette enregistrée : son id, et sa photo en ligne. Après un premier enregistrement dont
@@ -372,6 +379,24 @@ export default function WriteRecipeScreen() {
     setIsDirty(true);
   }
 
+  const hasPhoto = pendingPhoto !== null || (photoPath !== null && !isPhotoRemoved);
+
+  // Le bouton de l'encart : appareil photo, galerie, et retirer s'il y a déjà une photo.
+  function askPhotoSource() {
+    const choices: AlertButton[] = [
+      { text: "Prendre une photo", onPress: () => handlePickPhoto("camera") },
+      { text: "Choisir dans la galerie", onPress: () => handlePickPhoto("library") },
+    ];
+    if (hasPhoto) {
+      choices.push({ text: "Retirer la photo", style: "destructive", onPress: handleRemovePhoto });
+    }
+    // Android n'affiche que trois boutons : avec « Retirer », on ferme en touchant à côté.
+    if (Platform.OS === "ios" || !hasPhoto) choices.push({ text: "Annuler", style: "cancel" });
+    Alert.alert(hasPhoto ? "Changer la photo" : "Ajouter une photo", undefined, choices, {
+      cancelable: true,
+    });
+  }
+
   async function handleSave() {
     if (!form || isSaving) return;
     // Ce qui reste dans les champs d'ajout compte : on ne perd pas le dernier ingrédient tapé
@@ -450,501 +475,530 @@ export default function WriteRecipeScreen() {
   }
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      contentContainerStyle={[
-        styles.container,
-        { paddingBottom: insets.bottom + theme.spacing.xl },
-      ]}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.title} accessibilityRole="header">
-        {isEditing ? "Modifier la recette" : "Écrire une recette"}
-      </Text>
+    <View style={styles.screen}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        // Faire défiler ferme le clavier, et le sticky footer revient.
+        keyboardDismissMode="on-drag"
+      >
+        {/* ─── l'essentiel : le titre d'écran suffit, pas de titre de section ─── */}
+        <View style={styles.essentials}>
+          <Text style={styles.title} accessibilityRole="header">
+            {isEditing ? "Modifier la recette" : "Écrire une recette"}
+          </Text>
 
-      {/* L'encart du plat : la photo choisie, sinon le livre par défaut. */}
-      <RecipeBanner
-        recipeId={savedId ?? "nouvelle-recette"}
-        photoPath={isPhotoRemoved ? null : photoPath}
-        uri={pendingPhoto?.uri}
-      />
-
-      <TextField
-        label="Nom de la recette"
-        value={form.title}
-        onChangeText={(title) => update({ title })}
-        placeholder="Pot-au-feu"
-        maxLength={RECIPE_TITLE_MAX_LENGTH}
-        autoCapitalize="sentences"
-        error={errors.title}
-      />
-
-      <ServingsStepper value={form.servings} onChange={(servings) => update({ servings })} />
-
-      {/* ─── type de plat : un choix unique, facultatif (retoucher le désélectionne) ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Type de plat <Text style={styles.count}>· facultatif</Text>
-        </Text>
-        <View style={styles.categories} accessibilityRole="radiogroup">
-          {RECIPE_CATEGORIES.map((category) => {
-            const isSelected = form.category === category;
-            return (
-              <Pressable
-                key={category}
-                onPress={() => {
-                  hapticTick();
-                  update({ category: isSelected ? null : category });
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: isSelected }}
-                accessibilityLabel={CATEGORY_LABELS[category]}
-                style={({ pressed }) => [
-                  styles.category,
-                  isSelected && styles.categorySelected,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <CategoryIcon category={category} size={24} />
-                <Text style={styles.categoryLabel}>{CATEGORY_LABELS[category]}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <Text style={styles.hint}>Il sert aux filtres du carnet.</Text>
-      </View>
-
-      {/* ─── temps et budget : les filtres « ≤ 30 min » et « Petit budget » les lisent ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Temps et budget <Text style={styles.count}>· facultatifs</Text>
-        </Text>
-        <View style={styles.timeRow}>
-          <View style={[styles.timeField, errors.totalMinutes ? styles.fieldError : null]}>
-            <TextInput
-              value={form.totalMinutes}
-              onChangeText={(totalMinutes) => update({ totalMinutes })}
-              placeholder="35"
-              placeholderTextColor={theme.colors.placeholder}
-              accessibilityLabel="Temps total, en minutes"
-              keyboardType="number-pad"
-              maxLength={4}
-              style={styles.timeInput}
+          {/* L'encart du plat (la photo choisie, sinon le livre), et de quoi la changer. */}
+          <View>
+            <RecipeBanner
+              recipeId={savedId ?? "nouvelle-recette"}
+              photoPath={isPhotoRemoved ? null : photoPath}
+              uri={pendingPhoto?.uri}
             />
-            <Text style={styles.timeUnit}>min</Text>
+            <Pressable
+              onPress={askPhotoSource}
+              disabled={isPicking || isSaving}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isPicking || isSaving }}
+              style={({ pressed }) => [
+                styles.photoButton,
+                (pressed || isPicking || isSaving) && styles.pressed,
+              ]}
+            >
+              <Feather name="camera" size={16} color={theme.colors.chipText} />
+              <Text style={styles.photoButtonLabel}>
+                {isPicking ? "Ouverture…" : hasPhoto ? "Changer la photo" : "Ajouter une photo"}
+              </Text>
+            </Pressable>
           </View>
-          <View style={styles.budgets} accessibilityRole="radiogroup">
-            {RECIPE_BUDGETS.map((budget) => {
-              const isSelected = form.budget === budget;
-              return (
-                <Pressable
-                  key={budget}
-                  onPress={() => {
-                    hapticTick();
-                    update({ budget: isSelected ? null : budget });
-                  }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: isSelected }}
-                  accessibilityLabel={BUDGET_LABELS[budget]}
-                  style={({ pressed }) => [
-                    styles.budget,
-                    isSelected && styles.budgetSelected,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={[styles.budgetText, isSelected && styles.budgetTextSelected]}>
-                    {"€".repeat(budget)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-        {errors.totalMinutes ? (
-          <Text style={styles.error}>{errors.totalMinutes}</Text>
-        ) : (
-          <Text style={styles.hint}>Préparation et cuisson comprises. € = petit budget.</Text>
-        )}
-      </View>
-
-      {/* ─── régimes : des chips à cocher ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Régimes <Text style={styles.count}>· facultatif</Text>
-        </Text>
-        <View style={styles.diets}>
-          {RECIPE_DIETS.map((diet) => {
-            const isSelected = form.diets.includes(diet);
-            return (
-              <Pressable
-                key={diet}
-                onPress={() => {
-                  hapticTick();
-                  update({
-                    diets: isSelected
-                      ? form.diets.filter((chosen) => chosen !== diet)
-                      : [...form.diets, diet],
-                  });
-                }}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: isSelected }}
-                accessibilityLabel={DIET_LABELS[diet]}
-                style={({ pressed }) => [
-                  styles.diet,
-                  isSelected && styles.dietSelected,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={[styles.dietLabel, isSelected && styles.dietLabelSelected]}>
-                  {DIET_LABELS[diet]}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* ─── ingrédients ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Ingrédients
-          {form.ingredients.length > 0 ? (
-            <Text style={styles.count}> · {form.ingredients.length}</Text>
-          ) : null}
-        </Text>
-
-        <View style={styles.composer}>
-          <View style={[styles.composerField, errors.ingredient ? styles.fieldError : null]}>
-            <TextInput
-              ref={nameRef}
-              value={newName}
-              onChangeText={changeNewName}
-              placeholder="Ingrédient"
-              placeholderTextColor={theme.colors.placeholder}
-              accessibilityLabel="Ingrédient à ajouter"
-              autoCapitalize="sentences"
-              maxLength={INGREDIENT_LABEL_MAX_LENGTH}
-              returnKeyType="next"
-              submitBehavior="submit"
-              onSubmitEditing={() => quantityRef.current?.focus()}
-              style={styles.composerInput}
-            />
-            <View style={styles.composerDivider} />
-            <TextInput
-              ref={quantityRef}
-              value={newQuantity}
-              onChangeText={setNewQuantity}
-              placeholder="Qté"
-              placeholderTextColor={theme.colors.placeholder}
-              accessibilityLabel="Quantité, facultatif"
-              maxLength={INGREDIENT_QUANTITY_MAX_LENGTH}
-              returnKeyType="done"
-              submitBehavior="submit"
-              onSubmitEditing={handleAddIngredient}
-              style={styles.composerQuantity}
-            />
-          </View>
-          <Pressable
-            onPress={handleAddIngredient}
-            accessibilityRole="button"
-            accessibilityLabel="Ajouter l’ingrédient"
-            style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
-          >
-            <Feather name="plus" size={24} color={theme.colors.onPrimary} />
-          </Pressable>
-        </View>
-        {suggestions.length > 0 ? (
-          <View style={styles.card} accessibilityLabel="Aliments proposés">
-            {suggestions.map((food, index) => (
-              <Pressable
-                key={food.id}
-                onPress={() => chooseFood(food)}
-                accessibilityRole="button"
-                accessibilityLabel={`Choisir ${food.name}`}
-                style={({ pressed }) => [
-                  styles.suggestion,
-                  index > 0 && styles.divider,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.suggestionName}>{food.name}</Text>
-                {food.groupName ? (
-                  <Text style={styles.suggestionGroup}>{food.groupName}</Text>
-                ) : null}
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-        {newFood ? (
-          <View style={styles.chosen}>
-            <Feather name="check-circle" size={16} color={theme.colors.success} />
-            <Text style={styles.chosenText} numberOfLines={1}>
-              {newFood.name}
+          {photoError ? (
+            <Text
+              style={styles.error}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+            >
+              {photoError}
             </Text>
-            <TextButton label="Changer" onPress={() => changeNewName(newName)} />
-          </View>
-        ) : null}
-        {errors.ingredient ? (
-          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            {errors.ingredient}
-          </Text>
-        ) : newFood || suggestions.length > 0 ? null : (
-          <Text style={styles.hint}>
-            Choisis un aliment proposé pour compter les calories. Quantité libre : « 1 kg », « 3 ».
-          </Text>
-        )}
+          ) : null}
 
-        {form.ingredients.length > 0 ? (
-          <View style={styles.card}>
-            {form.ingredients.map((ingredient, index) =>
-              editingKey === ingredient.key ? (
-                <View key={ingredient.key} style={[styles.editRow, index > 0 && styles.divider]}>
-                  <View style={styles.composerField}>
-                    <TextInput
-                      value={editName}
-                      onChangeText={setEditName}
-                      autoFocus
-                      accessibilityLabel="Ingrédient"
-                      maxLength={INGREDIENT_LABEL_MAX_LENGTH}
-                      returnKeyType="done"
-                      onSubmitEditing={() => saveIngredient(ingredient.key)}
-                      style={styles.composerInput}
-                    />
-                    <View style={styles.composerDivider} />
-                    <TextInput
-                      value={editQuantity}
-                      onChangeText={setEditQuantity}
-                      placeholder="Qté"
-                      placeholderTextColor={theme.colors.placeholder}
-                      accessibilityLabel="Quantité, facultatif"
-                      maxLength={INGREDIENT_QUANTITY_MAX_LENGTH}
-                      returnKeyType="done"
-                      onSubmitEditing={() => saveIngredient(ingredient.key)}
-                      style={styles.composerQuantity}
-                    />
+          <TextField
+            label="Nom de la recette"
+            value={form.title}
+            onChangeText={(title) => update({ title })}
+            placeholder="Pot-au-feu"
+            maxLength={RECIPE_TITLE_MAX_LENGTH}
+            autoCapitalize="sentences"
+            error={errors.title}
+          />
+
+          <View style={styles.servingsRow}>
+            <FieldLabel>Pour combien ?</FieldLabel>
+            <ServingsStepper value={form.servings} onChange={(servings) => update({ servings })} />
+          </View>
+        </View>
+
+        {/* ─── ingrédients : la liste, puis l'ajout en dessous ─── */}
+        <FormSection
+          title="Ingrédients"
+          count={form.ingredients.length}
+          hint="Choisis un aliment proposé pour compter les calories."
+        >
+          {form.ingredients.length > 0 ? (
+            <View style={styles.card}>
+              {form.ingredients.map((ingredient, index) =>
+                editingKey === ingredient.key ? (
+                  <View key={ingredient.key} style={[styles.editRow, index > 0 && styles.divider]}>
+                    <View style={styles.composerField}>
+                      <TextInput
+                        value={editName}
+                        onChangeText={setEditName}
+                        autoFocus
+                        accessibilityLabel="Ingrédient"
+                        maxLength={INGREDIENT_LABEL_MAX_LENGTH}
+                        returnKeyType="done"
+                        onSubmitEditing={() => saveIngredient(ingredient.key)}
+                        style={styles.composerInput}
+                      />
+                      <View style={styles.composerDivider} />
+                      <TextInput
+                        value={editQuantity}
+                        onChangeText={setEditQuantity}
+                        placeholder="Qté"
+                        placeholderTextColor={theme.colors.placeholder}
+                        accessibilityLabel="Quantité, facultatif"
+                        maxLength={INGREDIENT_QUANTITY_MAX_LENGTH}
+                        returnKeyType="done"
+                        onSubmitEditing={() => saveIngredient(ingredient.key)}
+                        style={styles.composerQuantity}
+                      />
+                    </View>
+                    <View style={styles.editActions}>
+                      <TextButton
+                        label="Retirer"
+                        variant="danger"
+                        onPress={() => removeIngredient(ingredient.key)}
+                      />
+                      <TextButton label="OK" onPress={() => saveIngredient(ingredient.key)} />
+                    </View>
                   </View>
-                  <View style={styles.editActions}>
-                    <TextButton
-                      label="Retirer"
-                      variant="danger"
-                      onPress={() => removeIngredient(ingredient.key)}
-                    />
-                    <TextButton label="OK" onPress={() => saveIngredient(ingredient.key)} />
-                  </View>
-                </View>
-              ) : (
+                ) : (
+                  <Pressable
+                    key={ingredient.key}
+                    onPress={() => openIngredient(ingredient)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${ingredient.name}${ingredient.quantity ? `, ${ingredient.quantity}` : ""}`}
+                    accessibilityHint="Ouvre l’ingrédient pour le corriger ou le retirer"
+                    style={({ pressed }) => [
+                      styles.row,
+                      index > 0 && styles.divider,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.rowName}>{ingredient.name}</Text>
+                    {ingredient.foodId !== null ? (
+                      <Feather
+                        name="check-circle"
+                        size={14}
+                        color={theme.colors.success}
+                        accessibilityLabel="Compté dans les calories"
+                      />
+                    ) : null}
+                    {ingredient.quantity ? (
+                      <Text style={styles.rowQuantity}>{ingredient.quantity}</Text>
+                    ) : null}
+                  </Pressable>
+                ),
+              )}
+            </View>
+          ) : null}
+
+          <View style={styles.composer}>
+            <View style={[styles.composerField, errors.ingredient ? styles.fieldError : null]}>
+              <TextInput
+                ref={nameRef}
+                value={newName}
+                onChangeText={changeNewName}
+                placeholder="Ingrédient"
+                placeholderTextColor={theme.colors.placeholder}
+                accessibilityLabel="Ingrédient à ajouter"
+                autoCapitalize="sentences"
+                maxLength={INGREDIENT_LABEL_MAX_LENGTH}
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => quantityRef.current?.focus()}
+                style={styles.composerInput}
+              />
+              <View style={styles.composerDivider} />
+              <TextInput
+                ref={quantityRef}
+                value={newQuantity}
+                onChangeText={setNewQuantity}
+                placeholder="Qté"
+                placeholderTextColor={theme.colors.placeholder}
+                accessibilityLabel="Quantité, facultatif"
+                maxLength={INGREDIENT_QUANTITY_MAX_LENGTH}
+                returnKeyType="done"
+                submitBehavior="submit"
+                onSubmitEditing={handleAddIngredient}
+                style={styles.composerQuantity}
+              />
+            </View>
+            <Pressable
+              onPress={handleAddIngredient}
+              accessibilityRole="button"
+              accessibilityLabel="Ajouter l’ingrédient"
+              style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
+            >
+              <Feather name="plus" size={24} color={theme.colors.onPrimary} />
+            </Pressable>
+          </View>
+          {suggestions.length > 0 ? (
+            <View style={styles.card} accessibilityLabel="Aliments proposés">
+              {suggestions.map((food, index) => (
                 <Pressable
-                  key={ingredient.key}
-                  onPress={() => openIngredient(ingredient)}
+                  key={food.id}
+                  onPress={() => chooseFood(food)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${ingredient.name}${ingredient.quantity ? `, ${ingredient.quantity}` : ""}`}
-                  accessibilityHint="Ouvre l’ingrédient pour le corriger ou le retirer"
+                  accessibilityLabel={`Choisir ${food.name}`}
                   style={({ pressed }) => [
-                    styles.row,
+                    styles.suggestion,
                     index > 0 && styles.divider,
                     pressed && styles.pressed,
                   ]}
                 >
-                  <Text style={styles.rowName}>{ingredient.name}</Text>
-                  {ingredient.foodId !== null ? (
-                    <Feather
-                      name="check-circle"
-                      size={14}
-                      color={theme.colors.success}
-                      accessibilityLabel="Compté dans les calories"
-                    />
-                  ) : null}
-                  {ingredient.quantity ? (
-                    <Text style={styles.rowQuantity}>{ingredient.quantity}</Text>
+                  <Text style={styles.suggestionName}>{food.name}</Text>
+                  {food.groupName ? (
+                    <Text style={styles.suggestionGroup}>{food.groupName}</Text>
                   ) : null}
                 </Pressable>
-              ),
-            )}
+              ))}
+            </View>
+          ) : null}
+          {newFood ? (
+            <View style={styles.chosen}>
+              <Feather name="check-circle" size={16} color={theme.colors.success} />
+              <Text style={styles.chosenText} numberOfLines={1}>
+                {newFood.name}
+              </Text>
+              <TextButton label="Changer" onPress={() => changeNewName(newName)} />
+            </View>
+          ) : null}
+          {errors.ingredient ? (
+            <Text
+              style={styles.error}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+            >
+              {errors.ingredient}
+            </Text>
+          ) : newFood || suggestions.length > 0 ? null : (
+            <Text style={styles.hint}>
+              {form.ingredients.length > 0
+                ? "Quantité libre : « 1 kg », « 3 ». Touche une ligne pour la corriger."
+                : "Quantité libre : « 1 kg », « 3 »."}
+            </Text>
+          )}
+          {errors.ingredients ? <Text style={styles.error}>{errors.ingredients}</Text> : null}
+        </FormSection>
+
+        {/* ─── étapes ─── */}
+        <FormSection title="Étapes" count={form.steps.length}>
+          {form.steps.map((step, index) =>
+            editingKey === step.key ? (
+              <View key={step.key} style={styles.stepCard}>
+                <TextInput
+                  value={editText}
+                  onChangeText={setEditText}
+                  autoFocus
+                  multiline
+                  accessibilityLabel={`Étape ${index + 1}`}
+                  maxLength={RECIPE_STEP_MAX_LENGTH}
+                  style={[styles.input, styles.stepInput]}
+                />
+                <View style={styles.editActions}>
+                  <TextButton
+                    label="Retirer"
+                    variant="danger"
+                    onPress={() => removeStep(step.key)}
+                  />
+                  <TextButton label="OK" onPress={() => saveStep(step.key)} />
+                </View>
+              </View>
+            ) : (
+              <Pressable
+                key={step.key}
+                onPress={() => openStep(step)}
+                accessibilityRole="button"
+                accessibilityLabel={`Étape ${index + 1} : ${step.text}`}
+                accessibilityHint="Ouvre l’étape pour la corriger ou la retirer"
+                style={({ pressed }) => [
+                  styles.stepCard,
+                  styles.stepRow,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.stepText}>{step.text}</Text>
+              </Pressable>
+            ),
+          )}
+
+          <View style={styles.composer}>
+            <TextInput
+              value={newStep}
+              onChangeText={setNewStep}
+              placeholder={`Étape ${form.steps.length + 1} : ${form.steps.length === 0 ? "par quoi on commence ?" : "et ensuite ?"}`}
+              placeholderTextColor={theme.colors.placeholder}
+              accessibilityLabel={`Étape ${form.steps.length + 1} à ajouter`}
+              maxLength={RECIPE_STEP_MAX_LENGTH}
+              multiline
+              style={[styles.input, styles.stepInput, styles.grow]}
+            />
+            <Pressable
+              onPress={handleAddStep}
+              disabled={newStep.trim() === ""}
+              accessibilityRole="button"
+              accessibilityLabel="Ajouter l’étape"
+              accessibilityState={{ disabled: newStep.trim() === "" }}
+              style={({ pressed }) => [
+                styles.addButton,
+                styles.addButtonSoft,
+                (pressed || newStep.trim() === "") && styles.pressed,
+              ]}
+            >
+              <Feather name="plus" size={24} color={theme.colors.chipText} />
+            </Pressable>
           </View>
-        ) : null}
-        {form.ingredients.length > 0 ? (
-          <Text style={styles.hint}>Touche un ingrédient pour le corriger ou le retirer.</Text>
-        ) : null}
-        {errors.ingredients ? <Text style={styles.error}>{errors.ingredients}</Text> : null}
-      </View>
+          {errors.steps ? <Text style={styles.error}>{errors.steps}</Text> : null}
+        </FormSection>
 
-      {/* ─── étapes ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Étapes
-        </Text>
+        {/* ─── astuce du chef ─── */}
+        <FormSection
+          title="L’astuce du chef"
+          isOptional
+          hint="Le geste qui fait la différence, affiché avant les étapes avec le chat cuisinier."
+        >
+          <TextInput
+            value={form.chefTip}
+            onChangeText={(chefTip) => update({ chefTip })}
+            placeholder="Laisse reposer la pâte 1 h : les crêpes seront plus fines."
+            placeholderTextColor={theme.colors.placeholder}
+            accessibilityLabel="L’astuce du chef"
+            maxLength={RECIPE_CHEF_TIP_MAX_LENGTH}
+            multiline
+            style={[styles.input, styles.stepInput]}
+          />
+          {errors.chefTip ? <Text style={styles.error}>{errors.chefTip}</Text> : null}
+        </FormSection>
 
-        {form.steps.map((step, index) =>
-          editingKey === step.key ? (
-            <View key={step.key} style={styles.stepCard}>
-              <TextInput
-                value={editText}
-                onChangeText={setEditText}
-                autoFocus
-                multiline
-                accessibilityLabel={`Étape ${index + 1}`}
-                maxLength={RECIPE_STEP_MAX_LENGTH}
-                style={[styles.input, styles.stepInput]}
-              />
-              <View style={styles.editActions}>
-                <TextButton label="Retirer" variant="danger" onPress={() => removeStep(step.key)} />
-                <TextButton label="OK" onPress={() => saveStep(step.key)} />
+        {/* ─── pour le carnet : les champs que lisent les filtres, réunis ─── */}
+        <FormSection
+          title="Pour le carnet"
+          isOptional
+          hint="Ils servent aux filtres : type, « ≤ 30 min », « Petit budget »."
+        >
+          <View style={styles.fields}>
+            {/* Type de plat : un choix unique (retoucher le désélectionne). */}
+            <View style={styles.field}>
+              <FieldLabel>Type de plat</FieldLabel>
+              <View style={styles.categories} accessibilityRole="radiogroup">
+                {RECIPE_CATEGORIES.map((category) => {
+                  const isSelected = form.category === category;
+                  return (
+                    <Pressable
+                      key={category}
+                      onPress={() => {
+                        hapticTick();
+                        update({ category: isSelected ? null : category });
+                      }}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={CATEGORY_LABELS[category]}
+                      style={({ pressed }) => [
+                        styles.category,
+                        isSelected && styles.categorySelected,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <CategoryIcon category={category} size={24} />
+                      <Text style={styles.categoryLabel}>{CATEGORY_LABELS[category]}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
-          ) : (
-            <Pressable
-              key={step.key}
-              onPress={() => openStep(step)}
-              accessibilityRole="button"
-              accessibilityLabel={`Étape ${index + 1} : ${step.text}`}
-              accessibilityHint="Ouvre l’étape pour la corriger ou la retirer"
-              style={({ pressed }) => [styles.stepCard, styles.stepRow, pressed && styles.pressed]}
-            >
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>{index + 1}</Text>
+
+            {/* Temps : un petit champ avec son unité ; budget : trois choix, un seul. */}
+            <View style={styles.field}>
+              <View style={styles.timeBudgetRow}>
+                <View style={styles.field}>
+                  <FieldLabel>Temps total</FieldLabel>
+                  <View style={[styles.timeField, errors.totalMinutes ? styles.fieldError : null]}>
+                    <TextInput
+                      value={form.totalMinutes}
+                      onChangeText={(totalMinutes) => update({ totalMinutes })}
+                      placeholder="35"
+                      placeholderTextColor={theme.colors.placeholder}
+                      accessibilityLabel="Temps total, en minutes"
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      style={styles.timeInput}
+                    />
+                    <Text style={styles.timeUnit}>min</Text>
+                  </View>
+                </View>
+                <View style={[styles.field, styles.grow]}>
+                  <FieldLabel>Budget</FieldLabel>
+                  <View style={styles.budgets} accessibilityRole="radiogroup">
+                    {RECIPE_BUDGETS.map((budget) => {
+                      const isSelected = form.budget === budget;
+                      return (
+                        <Pressable
+                          key={budget}
+                          onPress={() => {
+                            hapticTick();
+                            update({ budget: isSelected ? null : budget });
+                          }}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: isSelected }}
+                          accessibilityLabel={BUDGET_LABELS[budget]}
+                          style={({ pressed }) => [
+                            styles.budget,
+                            isSelected && styles.budgetSelected,
+                            pressed && styles.pressed,
+                          ]}
+                        >
+                          <Text
+                            style={[styles.budgetText, isSelected && styles.budgetTextSelected]}
+                          >
+                            {"€".repeat(budget)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
               </View>
-              <Text style={styles.stepText}>{step.text}</Text>
-            </Pressable>
-          ),
-        )}
+              {errors.totalMinutes ? (
+                <Text style={styles.error}>{errors.totalMinutes}</Text>
+              ) : (
+                <Text style={styles.hint}>Préparation et cuisson comprises. € = petit budget.</Text>
+              )}
+            </View>
 
-        <View style={styles.composer}>
-          <TextInput
-            value={newStep}
-            onChangeText={setNewStep}
-            placeholder={`Étape ${form.steps.length + 1} : ${form.steps.length === 0 ? "par quoi on commence ?" : "et ensuite ?"}`}
-            placeholderTextColor={theme.colors.placeholder}
-            accessibilityLabel={`Étape ${form.steps.length + 1} à ajouter`}
-            maxLength={RECIPE_STEP_MAX_LENGTH}
-            multiline
-            style={[styles.input, styles.stepInput, styles.grow]}
-          />
-          <Pressable
-            onPress={handleAddStep}
-            disabled={newStep.trim() === ""}
-            accessibilityRole="button"
-            accessibilityLabel="Ajouter l’étape"
-            accessibilityState={{ disabled: newStep.trim() === "" }}
-            style={({ pressed }) => [
-              styles.addButton,
-              styles.addButtonSoft,
-              (pressed || newStep.trim() === "") && styles.pressed,
-            ]}
-          >
-            <Feather name="plus" size={24} color={theme.colors.chipText} />
-          </Pressable>
-        </View>
-        {errors.steps ? <Text style={styles.error}>{errors.steps}</Text> : null}
-      </View>
+            {/* Régimes : des chips à cocher, basilic une fois cochées. */}
+            <View style={styles.field}>
+              <FieldLabel>Régimes</FieldLabel>
+              <View style={styles.diets}>
+                {RECIPE_DIETS.map((diet) => {
+                  const isSelected = form.diets.includes(diet);
+                  return (
+                    <Pressable
+                      key={diet}
+                      onPress={() => {
+                        hapticTick();
+                        update({
+                          diets: isSelected
+                            ? form.diets.filter((chosen) => chosen !== diet)
+                            : [...form.diets, diet],
+                        });
+                      }}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={DIET_LABELS[diet]}
+                      style={({ pressed }) => [
+                        styles.diet,
+                        isSelected && styles.dietSelected,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={[styles.dietLabel, isSelected && styles.dietLabelSelected]}>
+                        {DIET_LABELS[diet]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        </FormSection>
 
-      {/* ─── astuce du chef, facultative ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          L’astuce du chef <Text style={styles.count}>· facultative</Text>
-        </Text>
-        <Text style={styles.muted}>
-          Le geste qui fait la différence. Elle s’affiche avant les étapes, avec le chat cuisinier.
-        </Text>
-        <TextInput
-          value={form.chefTip}
-          onChangeText={(chefTip) => update({ chefTip })}
-          placeholder="Laisse reposer la pâte 1 h : les crêpes seront plus fines."
-          placeholderTextColor={theme.colors.placeholder}
-          accessibilityLabel="L’astuce du chef"
-          maxLength={RECIPE_CHEF_TIP_MAX_LENGTH}
-          multiline
-          style={[styles.input, styles.stepInput]}
-        />
-        {errors.chefTip ? <Text style={styles.error}>{errors.chefTip}</Text> : null}
-      </View>
-
-      {/* ─── photo, facultative ─── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
-          Photo <Text style={styles.count}>· facultative</Text>
-        </Text>
-        <Text style={styles.muted}>
-          Elle illustre le plat en haut de la recette. Tu pourras aussi l’ajouter plus tard.
-        </Text>
-        <View style={styles.photoActions}>
+        {isEditing && deleteStep === "idle" ? (
           <TextButton
-            label={isPicking ? "Ouverture…" : "Prendre une photo"}
-            onPress={() => handlePickPhoto("camera")}
-            isDisabled={isPicking || isSaving}
-          />
-          <TextButton
-            label="Choisir dans la galerie"
-            onPress={() => handlePickPhoto("library")}
-            isDisabled={isPicking || isSaving}
-          />
-          {pendingPhoto || (photoPath && !isPhotoRemoved) ? (
-            <TextButton
-              label="Retirer la photo"
-              variant="danger"
-              onPress={handleRemovePhoto}
-              isDisabled={isPicking || isSaving}
-            />
-          ) : null}
-        </View>
-        {photoError ? (
-          <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            {photoError}
-          </Text>
-        ) : null}
-      </View>
-
-      {errors.save ? (
-        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="assertive">
-          {errors.save}
-        </Text>
-      ) : null}
-      <PrimaryButton
-        label="Enregistrer la recette"
-        onPress={handleSave}
-        isLoading={isSaving}
-        isDisabled={deleteStep === "deleting"}
-      />
-
-      {isEditing && deleteStep === "idle" ? (
-        <TextButton
-          label="Retirer du carnet"
-          variant="danger"
-          onPress={() => {
-            setDeleteStep("confirm");
-            setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-          }}
-          isDisabled={isSaving}
-        />
-      ) : null}
-
-      {deleteStep !== "idle" ? (
-        <Card>
-          <Text style={styles.confirmTitle} accessibilityRole="header">
-            Retirer « {form.title} » ?
-          </Text>
-          <Text style={styles.muted}>
-            Elle disparaît du carnet pour tout le foyer. Pas de retour en arrière.
-          </Text>
-          <PrimaryButton
-            label="Retirer la recette"
+            label="Retirer du carnet"
             variant="danger"
-            onPress={handleDelete}
-            isLoading={deleteStep === "deleting"}
+            onPress={() => {
+              setDeleteStep("confirm");
+              setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+            }}
+            isDisabled={isSaving}
           />
-          <TextButton
-            label="Annuler"
-            onPress={() => setDeleteStep("idle")}
+        ) : null}
+
+        {deleteStep !== "idle" ? (
+          <Card>
+            <Text style={styles.confirmTitle} accessibilityRole="header">
+              Retirer « {form.title} » ?
+            </Text>
+            <Text style={styles.muted}>
+              Elle disparaît du carnet pour tout le foyer. Pas de retour en arrière.
+            </Text>
+            <PrimaryButton
+              label="Retirer la recette"
+              variant="danger"
+              onPress={handleDelete}
+              isLoading={deleteStep === "deleting"}
+            />
+            <TextButton
+              label="Annuler"
+              onPress={() => setDeleteStep("idle")}
+              isDisabled={deleteStep === "deleting"}
+            />
+          </Card>
+        ) : null}
+      </ScrollView>
+
+      {/* Sticky footer : toujours à portée, au-dessus de la barre Android ; masqué pendant la
+          saisie, où il ne ferait que réduire la place au-dessus du clavier. */}
+      {isKeyboardVisible ? null : (
+        <View style={[styles.footer, { paddingBottom: bottomInset + theme.spacing.md }]}>
+          {errors.save ? (
+            <Text
+              style={styles.error}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+            >
+              {errors.save}
+            </Text>
+          ) : null}
+          <PrimaryButton
+            label="Enregistrer la recette"
+            onPress={handleSave}
+            isLoading={isSaving}
             isDisabled={deleteStep === "deleting"}
           />
-        </Card>
-      ) : null}
-    </ScrollView>
+        </View>
+      )}
+    </View>
   );
 }
 
 function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardShadow }: Theme) {
   return StyleSheet.create({
-    container: { flexGrow: 1, padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.xl },
+    screen: { flex: 1, backgroundColor: colors.background },
+    // Une section respire de la suivante (xxl) ; dans une section, les champs à lg, un libellé
+    // et son champ à sm.
+    container: {
+      flexGrow: 1,
+      padding: spacing.lg,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xxl,
+      gap: spacing.xxl,
+    },
+    essentials: { gap: spacing.lg },
     title: {
       color: colors.text,
       fontFamily: fonts.display,
@@ -952,16 +1006,38 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
       lineHeight: 34,
     },
     muted: { color: colors.textMuted, fontSize: fontSize.small, lineHeight: 20 },
-    hint: { marginLeft: spacing.xs, color: colors.textMuted, fontSize: fontSize.caption },
-    section: { gap: spacing.sm },
-    // Titre de section v4 : discret, comme un en-tête de liste groupée.
-    sectionTitle: {
-      paddingHorizontal: spacing.xs,
-      color: colors.textMuted,
-      fontSize: fontSize.small,
-      fontWeight: "700",
+    hint: { color: colors.textMuted, fontSize: fontSize.caption, lineHeight: 18 },
+    fields: { gap: spacing.lg },
+    field: { gap: spacing.sm },
+    servingsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.md,
     },
-    count: { fontWeight: "400" },
+    // Le bouton posé sur l'encart, comme sur l'écran de la recette.
+    photoButton: {
+      position: "absolute",
+      right: spacing.md,
+      bottom: spacing.md,
+      height: control.sm,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs + 2,
+      paddingHorizontal: spacing.md + 2,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surface,
+      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.12)",
+    },
+    photoButtonLabel: { color: colors.chipText, fontSize: fontSize.small, fontWeight: "600" },
+    footer: {
+      gap: spacing.sm,
+      paddingTop: spacing.md,
+      paddingHorizontal: spacing.lg,
+      backgroundColor: colors.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
 
     // Le même composant d'ajout que la liste de courses : nom | quantité, puis +.
     composer: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
@@ -1015,11 +1091,10 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     rowName: { flex: 1, color: colors.text, fontSize: fontSize.body },
     rowQuantity: { color: colors.chipText, fontSize: fontSize.body, fontWeight: "700" },
     editRow: { gap: spacing.sm, padding: spacing.md },
-    photoActions: { flexDirection: "row", flexWrap: "wrap", columnGap: spacing.lg },
     suggestion: { gap: 2, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
     suggestionName: { color: colors.text, fontSize: fontSize.body },
     suggestionGroup: { color: colors.textMuted, fontSize: fontSize.caption },
-    chosen: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginLeft: spacing.xs },
+    chosen: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
     chosenText: { flex: 1, color: colors.success, fontSize: fontSize.small },
     editActions: { flexDirection: "row", justifyContent: "flex-end", gap: spacing.lg },
 
@@ -1077,7 +1152,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     categorySelected: { borderColor: colors.primary, backgroundColor: colors.chipBg },
     categoryLabel: { color: colors.text, fontSize: fontSize.caption, fontWeight: "600" },
     // Temps : un petit champ avec son unité ; budget : trois chips, une seule choisie.
-    timeRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    timeBudgetRow: { flexDirection: "row", gap: spacing.md },
     timeField: {
       width: 104,
       height: control.lg,
@@ -1092,7 +1167,7 @@ function createStyles({ colors, spacing, radius, control, fonts, fontSize, cardS
     },
     timeInput: { flex: 1, minWidth: 0, color: colors.text, fontSize: fontSize.body },
     timeUnit: { color: colors.textMuted, fontSize: fontSize.small },
-    budgets: { flex: 1, flexDirection: "row", gap: spacing.xs + 2 },
+    budgets: { flexDirection: "row", gap: spacing.xs + 2 },
     budget: {
       flex: 1,
       height: control.lg,
