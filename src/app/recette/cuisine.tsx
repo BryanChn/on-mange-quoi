@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useBottomInset } from "@/lib/use-bottom-inset";
+
 import { ChefTip } from "@/components/chef-tip";
 import { IngredientList } from "@/components/ingredient-list";
 import { PrimaryButton } from "@/components/primary-button";
@@ -32,6 +34,7 @@ export default function CookingScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
+  const bottomInset = useBottomInset();
   // Le téléphone posé sur le plan de travail ne se met pas en veille entre deux étapes.
   useKeepAwake();
 
@@ -135,7 +138,7 @@ export default function CookingScreen() {
     <View
       style={[
         styles.screen,
-        { paddingTop: insets.top, paddingBottom: insets.bottom + theme.spacing.lg },
+        { paddingTop: insets.top, paddingBottom: bottomInset + theme.spacing.lg },
       ]}
     >
       <View style={styles.progressRow} accessibilityElementsHidden>
