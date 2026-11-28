@@ -9,34 +9,38 @@
 
 #### ⏭️ Prochaine session : ce qui reste à faire
 
-Tout est mergé et en ligne (#122 à #161) : migrations jusqu'à `recipe_category`, mise à jour EAS du 27/11 au soir (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Claude écrit tout, je relis les PR ; il lance `db:push` et `npm run update` quand je le lui demande (migration d'abord, JavaScript ensuite). Au travail : 5G (le Wi-Fi bloque le serveur).
+Tout est mergé et en ligne (#122 à #173) : migrations jusqu'à `shopping_aisle_backfill`, mise à jour EAS du 27/11 à 22 h (runtime `bebbdad…`, l'APK `63ec05ef` la reçoit, aucun nouvel APK nécessaire). Claude écrit tout, je relis les PR ; il lance `db:push` et `npm run update` quand je le lui demande (migration d'abord, JavaScript ensuite). Au travail : 5G (le Wi-Fi bloque le serveur).
 
-**0. En premier : tester sur le téléphone ce qui est sorti le 27/11 au soir**
-- **Accueil** : « Salut Bryan, » en tête, pastilles de groupes (point tomate = vote en cours, basilic = décidé), cartes « Ce soir » en couleur à faire glisser, « Bientôt » pour les repas à venir. Supprimer un groupe affiché : l'accueil revient au premier.
-- **Courses** : cocher trois articles à la suite (chacun se barre, reste 0,7 s, puis se replie), l'accordéon « Déjà pris », le composer en bas, « Je vais aux courses » dans l'en-tête.
-- **Carnet** : filtres Viande / Poisson / Végé / Dessert, « ≤ 30 min », « Petit budget » ; badge du type sur les vignettes ; type et régimes dans « Écrire une recette ».
-- Toute la refonte v4 (carnet, recette avec barre « Cuisiner » en bas, mode cuisine avec feuille d'ingrédients, vote, repas, Mon compte), en clair et en sombre.
+**0. En premier : « Écrire une recette » (retour du 27/11, 22 h 40)**
+- **Hiérarchie brouillonne** : on ne distingue pas un titre de section (« Ingrédients », « Étapes »), un libellé de champ et un texte d'aide (« Choisis un aliment proposé… »). Tout a presque la même taille et la même couleur, et les sections se suivent sans respiration.
+- **À faire** : une vraie échelle (titre de section > libellé > aide en `caption` pâle), des sections espacées (`spacing.xl` entre sections, `spacing.sm` dans une section), les « facultatif » en retrait. Maquette avant de coder, comme pour les autres écrans.
+- **Même bug que les feuilles (#170)** : le bouton fixé en bas « Enregistrer la recette » passe sous la barre Android à 3 boutons. Réutiliser la vraie hauteur de la barre (`initialWindowMetrics`, voir `use-sheet-bottom-inset.ts`) et vérifier les autres écrans avec une barre en bas (recette, vote, mode cuisine, courses).
 
-**1. Pistes ouvertes, à trancher**
+**1. Tester sur le téléphone ce qui est sorti le 27/11 au soir**
+- Courses : rayons en accordéon (« 2/5 », un rayon fini se replie avec une coche verte), emoji des rayons, bouton ⋯ et fiche Article (le bouton « Enregistrer » au-dessus de la barre), « Ordre des rayons », un article inconnu rangé grâce à Ciqual.
+- Aide : un encadré la première fois, puis un « ? » pour la revoir (accueil avec plusieurs groupes, vote, repas, recette, courses).
+- Correctifs de l'audit (#172) : « ½ oignon » et « 25 g » en mode cuisine à 4 parts, 6 segments pour 6 étapes, placeholders plus pâles, idées du carnet qui ne sont pas déjà dans le carnet, explication de « Supprimer mon compte » entière.
+- Recettes : temps total et budget dans « Écrire une recette », filtres « ≤ 30 min » et « Petit budget ».
 
-| # | Piste | Détail |
+**2. Suites de l'audit du 27/11** (rapport : https://claude.ai/artifact/Eh1bizVbU3p5g1j2v3si5K)
+
+| # | Tâche | Quand |
 | --- | --- | --- |
-| 1 | Champ **durée** (et budget) dans « Écrire une recette » | Validé le 27/11 au soir, en cours : sans lui, « ≤ 30 min » et « Petit budget » écartent toujours les recettes écrites par le foyer |
-| 1 bis | **Trier la liste de courses** (par rayon, « indispensable », « souvent acheté ») | **Entré en V1 le 27/11 au soir** : la liste s'allonge trop. Recherche et maquette d'abord. Pistes : rayon déduit du groupe d'aliment Ciqual (`foods.group_name`), sections repliables, ordre des rayons selon le magasin, étoile « indispensable » posée à la main |
-| 2 | Chip « Sans gluten » dans les filtres | Le régime n'est montré que dans la ligne d'une recette |
-| 3 | **Test instable** `meal-digest.test.ts` (« 1 min après le changement ») | La tâche planifiée de la base passe entre deux étapes et envoie le résumé à l'heure réelle. Relancé, il passe. Petite PR pour qu'il ne dépende plus de la tâche planifiée |
-| 4 | Écran « Tous les repas » | Pas de lien sur l'accueil tant qu'il n'existe pas |
-| 5 | Installer `ffmpeg` (`sudo apt install ffmpeg`) | Pour que Claude puisse découper mes vidéos d'écran en images (lecture `.mp4` impossible sans) |
+| 1 | **Sentry** (remontée des crashs) : il me faut un compte ; module natif, donc nouvel APK | Avec le build groupé d'avant les stores |
+| 2 | **CAPTCHA** (Cloudflare Turnstile) sur la connexion et la page invité : compte Cloudflare à créer | Avant les stores |
+| 3 | **En-têtes de sécurité** de la page web des invités (CSP, `X-Frame-Options`, `Referrer-Policy`) | Au prochain build (ils changent l'empreinte) |
+| 4 | Retirer le script `reset-project` de `package.json` (il vise un fichier supprimé) | Au prochain build : les scripts comptent dans l'empreinte |
+| 5 | Découper les gros écrans (`recette/ecrire.tsx` 1 131 lignes, `session/[id].tsx` 938, `courses/[groupId].tsx` 876) en hooks et sous-composants | Après les stores |
+| 6 | Essayer **TanStack Query** sur la liste de courses (le motif « charger, s'abonner, recharger » est écrit six fois) | Après les stores |
+| 7 | Boutons d'en-tête collés au bord droit sur la version web | À vérifier : invisible pour les invités |
+| 8 | « ½ jaune d'œuf » : arrondir à l'unité les ingrédients qui ne se coupent pas | Si ça gêne à l'usage |
 
-**2. Avant de déclarer la V1 livrée** (audit du 26/11 : https://claude.ai/artifact/GzYDvY54jnoo6ow8DsKoAu)
+**3. Avant de déclarer la V1 livrée**
 
 | # | Tâche | Qui |
 | --- | --- | --- |
-| 1 | ~~Recettes de base~~ : terminé le 27/11, 20 recettes en deux lots | — |
-| 2 | ~~Refonte graphique~~ : terminée le 27/11 (#154 à #161) | — |
-| 3 | ~~Audit de sécurité~~ : fait le 27/11 (#153, `docs/audit-securite-2026-11-27.md`) | — |
-| 4 | Test réel avec des invités sans l'app, test des 5 secondes sur l'accueil | Moi, avec des proches |
-| 5 | Retirer les données de test du foyer Maison | Moi ou Claude |
+| 1 | Test réel avec des invités sans l'app, test des 5 secondes sur l'accueil | Moi, avec des proches |
+| 2 | Retirer les données de test du foyer Maison | Moi ou Claude |
 
 Réglé le 27/11 parmi les notes du 26/11 : étiquettes en pastilles et code couleur (badges et filtres, #161), carnet trop long (idées repliées à trois, « Voir tout »), plusieurs repas à venir (« Bientôt » en petites cartes glissables, #155). Reste à trancher :
 - **Historique « Mes repas passés »** dans le profil : **à trancher**, car il contredit l'effacement 24 h après le repas (décidé pour les données minimales, RGPD, et pour effacer les comptes invités). Piste compatible : garder pour les membres un résumé léger (nom, date, menu ou resto choisi), sans commande ni invités.
@@ -45,9 +49,44 @@ Plus tard : filtres par régime et difficulté, peu calorique, protéines (V2) ;
 
 **Données de test dans le vrai foyer Maison** (ajoutées le 26/11, à retirer quand je veux) : 5 recettes (Pot-au-feu, Gratin dauphinois, Quiche lorraine, Soupe de légumes, Chili con carne) reliées à Ciqual, leurs photos et celle de ma Bolognaise (Wikimedia Commons : Quiche, Chili, Bolognaise en CC0 ; Pot-au-feu CC BY-SA 4.0 Tsaag Valren, Gratin CC BY-SA 3.0 Ludovic Péron, Soupe CC BY-SA 2.0 Scott Teresi : ne jamais les reprendre dans les recettes de base ni sur les stores), et 5 votes clos datés du 16 au 22/11 (insérés déclencheurs coupés : aucune notification). Retrait : supprimer les recettes depuis l'app ; les votes : `delete from vote_sessions where group_id = '3e055308-…' and created_at < '2026-11-23'` (après accord).
 
-**3. Avant les stores** (backlog) : inchangé, voir la session du 25/11 ; en plus, les en-têtes de sécurité du web dans `app.json` au prochain build (ils changent l'empreinte) et un CAPTCHA sur la connexion.
+**4. Avant les stores** (backlog) : inchangé, voir la session du 25/11 ; plus les points 1 à 4 du tableau de l'audit ci-dessus.
 
-**4. Indicateur** : requête `private.feu_vert` le lundi 30/11.
+**5. Indicateur** : requête `private.feu_vert` le lundi 30/11.
+
+**6. Petit outil** : installer `ffmpeg` (`sudo apt install ffmpeg`) pour que Claude puisse lire mes vidéos d'écran.
+
+#### 🗓️ Session du 2026-11-27 (fin de soirée) : courses par rayon, aide, audit complet
+
+| PR | Contenu |
+| --- | --- |
+| #162 | Journal : session du 27/11 au soir |
+| #163 | Recettes : **temps total et budget** dans « Écrire une recette » (migration `recipe_time_budget`) ; « ≤ 30 min » et « Petit budget » marchent aussi pour les recettes du foyer |
+| #164 | Courses : **liste rangée par rayon** (migration `shopping_aisles`), étoile « indispensable » en tête, ordre des rayons du magasin du foyer, « Choisir le rayon » mémorisé par le foyer |
+| #165 | Rayons calés sur les enseignes (13, dont Charcuterie et traiteur, Bébé, Animaux), dictionnaire testé sur ~140 articles courants ; articles existants rangés par une migration générée depuis le dictionnaire TypeScript (`scripts/aisle-backfill-to-sql.ts`, une seule source de vérité) |
+| #166 | **Rayons en accordéon** (« 2/5 », un rayon fini se replie avec une coche), fiche Article en feuille native (bouton ⋯ ou appui long), **Ciqual en renfort** du dictionnaire (64 sous-groupes rangés dans les 13 rayons) |
+| #167 | Emoji pour les rayons (comme la maquette, validés sur le téléphone), marge du bas des feuilles |
+| #168 | Aide des courses plus légère, avec un « ? » pour la revoir (`useHelp`, AsyncStorage) |
+| #169 | Aide partagée (`HelpCard`, `HelpButton`) sur l'accueil, le vote, le repas et la recette |
+| #170 | Feuilles : les boutons ne passent plus sous la barre Android (sticky footer dans la fiche Article, hook `useSheetBottomInset`) |
+| #171 | **Écran de secours en cas de crash** : `ErrorBoundary` du layout racine, « Réessayer » ou « Retour à l'accueil » au lieu d'un écran blanc |
+| #172 | Correctifs UX de l'audit : quantités cuisinables (½, grammes au 5 près au-delà de 20 g), un segment par étape, token `placeholder`, idées du carnet, redites retirées |
+| #173 | Test `meal-digest` stable : horloge du test en 2099 pour ne plus croiser la vraie tâche `pg_cron` |
+
+**Audit du 27/11** (https://claude.ai/artifact/Eh1bizVbU3p5g1j2v3si5K)
+- **Sécurité** : 71 attaques sur la base locale avec quatre personnages (inconnue, membre, invité anonyme, rafales), toutes bloquées. Realtime étanche, fonctions Edge protégées par le secret partagé. Ouvert : CAPTCHA, en-têtes web.
+- **Design** : 17 écrans en clair et en sombre ; 10 points, corrigés dans #170 et #172, sauf le bord droit sur le web.
+- **Architecture** : patterns en place (functional core / imperative shell, logique côté serveur, defense in depth, optimistic UI, single source of truth, design tokens). Dettes : pas de remontée des crashs, écrans trop longs, motif de chargement répété.
+
+**Décisions du jour**
+- **Liste de courses toujours par rayon** (le tri « par ajout » est retiré) ; l'ordre de décision d'un rayon : choix du foyer, puis dictionnaire, puis Ciqual, puis « Autres ».
+- **Emoji pour les rayons** : essayés à ma demande, gardés (lisibles, colorés, comme la maquette).
+- **Aide** : un encadré la première fois (*push*), puis un « ? » pour la revoir (*pull*).
+- **Merge** : la protection de `main` exige une branche à jour ; quand plusieurs PR attendent, Claude intègre `main` dans la suivante et attend la CI avant de merger.
+
+**Pièges trouvés le 2026-11-27 (fin de soirée)**
+- **Form sheet Android** : la marge basse vaut souvent 0 alors que la barre à 3 boutons fait ~48 dp. Prendre `initialWindowMetrics` (hook `useSheetBottomInset`).
+- **Les scripts de `package.json` comptent dans l'empreinte runtime** : en ajouter ou en retirer un coupe les mises à jour EAS des APK installés.
+- **Test et tâche planifiée** : un test qui antidate des données dans le passé croise la vraie tâche `pg_cron` locale (*race condition*). Dater dans le futur.
 
 #### 🗓️ Session du 2026-11-27 (après-midi et soir) : mode cuisine, audit, refonte v4, courses, étiquettes
 
