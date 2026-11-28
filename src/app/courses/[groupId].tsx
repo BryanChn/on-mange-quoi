@@ -16,6 +16,8 @@ import {
 import Animated, { LayoutAnimationConfig } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useBottomInset, useIsKeyboardVisible } from "@/lib/use-bottom-inset";
+
 import { AisleSection } from "@/components/aisle-section";
 import { Avatar } from "@/components/avatar";
 import { HeaderButton } from "@/components/header-button";
@@ -93,6 +95,8 @@ export default function ShoppingListScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
+  const bottomInset = useBottomInset();
+  const isKeyboardVisible = useIsKeyboardVisible();
   const headerHeight = useHeaderHeight();
   const { session } = useSession();
   const userId = session?.user.id;
@@ -645,7 +649,15 @@ export default function ShoppingListScreen() {
         </ScrollView>
 
         {/* L'ajout en bas, sous le pouce : on remplit la liste sans remonter. */}
-        <View style={[styles.dock, { paddingBottom: insets.bottom + theme.spacing.sm }]}>
+        <View
+          style={[
+            styles.dock,
+            {
+              // Clavier ouvert, il recouvre la barre Android : la marge de la fenêtre suffit.
+              paddingBottom: (isKeyboardVisible ? insets.bottom : bottomInset) + theme.spacing.sm,
+            },
+          ]}
+        >
           {suggestions.length > 0 ? (
             <ScrollView
               horizontal

@@ -1,7 +1,6 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChefTip } from "@/components/chef-tip";
 import { HelpButton, HelpCard } from "@/components/help-card";
@@ -18,6 +17,7 @@ import { pickRecipePhoto, type PhotoSource } from "@/lib/photo-picker";
 import { uploadRecipePhoto } from "@/lib/photo-storage";
 import { macrosPerServing, recipeMeta } from "@/lib/recipe-rules";
 import { copyBaseRecipe, fetchRecipe, subscribeToCarnet, type Recipe } from "@/lib/recipes";
+import { useBottomInset } from "@/lib/use-bottom-inset";
 import { failureMessage, loadErrorMessage } from "@/lib/network-errors";
 import { useHelp } from "@/lib/use-help";
 import { useTheme, type Theme } from "@/theme";
@@ -30,7 +30,7 @@ export default function RecipeScreen() {
   const { id, groupId } = useLocalSearchParams<{ id: string; groupId?: string }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const insets = useSafeAreaInsets();
+  const bottomInset = useBottomInset();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [hasFailed, setHasFailed] = useState(false);
   // Pourquoi le chargement a échoué : le message dit la vraie cause.
@@ -277,7 +277,7 @@ export default function RecipeScreen() {
       {/* En bas, sous le pouce : l'action principale, et le panier à côté. Une recette de
           base hors d'un carnet, sans étapes, n'a rien à proposer. */}
       {isBase && !groupId && !hasSteps ? null : (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + theme.spacing.md }]}>
+        <View style={[styles.bottomBar, { paddingBottom: bottomInset + theme.spacing.md }]}>
           {copyError ? (
             <Text
               style={styles.error}
